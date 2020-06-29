@@ -10,7 +10,7 @@ services:
         - GIT_PASS=${GIT_PASS}
         - SERVICE_NAME=diff_reviewer
     ports:
-      - 8080:8080
+      - 8076:8076
     environment:
       GO_ENV: ci
       GIN_MODE: test
@@ -25,7 +25,7 @@ services:
         - SERVICE_NAME=diff_reviewer
     image: diff_reviewer
     ports:
-      - 8080:8080
+      - 8076:8076
 
   wait:
     image: deliveroo/circleci:0.2.8

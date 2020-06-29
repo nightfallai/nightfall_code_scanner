@@ -10,10 +10,6 @@ ARG GRPC_HEALTH_PROBE_VERSION=v0.3.2
 RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.6
 RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v0.9.15
 
-# Get grpc-health-probe: only needed for GRPC services
-RUN wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
-    chmod +x /bin/grpc_health_probe
-
 # verify the service name is provided
 RUN test -n "$SERVICE_NAME"
 WORKDIR /projects/$SERVICE_NAME
@@ -29,8 +25,6 @@ RUN make generate
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o $SERVICE_NAME .
 
 FROM alpine:3.8
-# Copy in grpc_health_probe binary from builder: this is only needed for GRPC servoces
-COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 # ARG's aren't global to the Dockerfile, they're per stage so we need
 # to redeclare this here to be used below in build commands like RUN & WORKDIR
 ARG SERVICE_NAME

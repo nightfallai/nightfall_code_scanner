@@ -1,0 +1,31 @@
+version: '3.6'
+services:
+  diff_reviewer_build:
+    image: builder
+    build:
+      context: .
+      target: builder
+      args:
+        - GIT_USER=${GIT_USER:-engbot}
+        - GIT_PASS=${GIT_PASS}
+        - SERVICE_NAME=diff_reviewer
+    ports:
+      - 8080:8080
+    environment:
+      GO_ENV: ci
+      GIN_MODE: test
+    command: ./diff_reviewer
+
+  diff_reviewer:
+    build:
+      context: .
+      args:
+        - GIT_USER=${GIT_USER:-engbot}
+        - GIT_PASS=${GIT_PASS}
+        - SERVICE_NAME=diff_reviewer
+    image: diff_reviewer
+    ports:
+      - 8080:8080
+
+  wait:
+    image: deliveroo/circleci:0.2.8

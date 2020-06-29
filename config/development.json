@@ -1,0 +1,17 @@
+{
+  "zap": {
+    "config": {
+      "level": "debug",
+      "encoding": "console",
+      "outputPaths": [
+        "stdout"
+      ],
+      "errorOutputPaths": [
+        "stderr"
+      ],
+      "development": true,
+      "encoderConfig":null,
+      "sampling": null
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "appName": "diff_reviewer",
+  "bugsnag": {
+    "config": {
+      "apiKey": "",
+      "projectPackages": [
+        "main*",
+        "github.com/watchtowerai/diff_reviewer/*"
+      ],
+      "releaseStage": "production",
+      "appType": ""
+    }
+  },
+  "zap": {
+    "config": {
+      "level": "info",
+      "encoding": "json",
+      "outputPaths": [
+        "stdout",
+        "/var/log/watchtower/diff_reviewer/server.log"
+      ],
+      "errorOutputPaths": [
+        "stderr",
+        "/var/log/watchtower/diff_reviewer/error.log"
+      ],
+      "development": false,
+      "encoderConfig": {
+        "messageKey": "msg",
+        "levelKey": "level",
+        "levelEncoder": "lowercase"
+      },
+      "sampling": {
+        "initial": 100,
+        "thereafter": 100
+      }
+    },
+    "enabled": true
+  },
+  "datadog": {
+    "config": {
+      "apm": {
+        "hostname": "127.0.0.1"
+      }
+    },
+    "enabled": false
+  }
+}

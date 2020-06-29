@@ -1,0 +1,8 @@
+{
+  "bugsnag": {
+    "enabled": true
+  },
+  "datadog": {
+    "enabled": true
+  }
+}

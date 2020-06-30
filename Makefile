@@ -16,7 +16,7 @@ all: clean build start
 build:
 	$(GOBUILD) -o $(BINARY_NAME) -v
 test:
-	GIN_MODE=$(GO_GIN_MODE) GO_ENV=$(GO_TEST_ENV) $(GOTEST) ./... -count=1 -coverprofile=coverage.out
+	GO_ENV=$(GO_TEST_ENV) $(GOTEST) ./... -count=1 -coverprofile=coverage.out
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)

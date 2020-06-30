@@ -5,23 +5,9 @@ services:
     build:
       context: .
       target: builder
-      args:
-        - GIT_USER=${GIT_USER:-engbot}
-        - GIT_PASS=${GIT_PASS}
-        - SERVICE_NAME=nightfall_dlp
     environment:
       GO_ENV: ci
-      GIN_MODE: test
     command: ./nightfall_dlp
-
-  nightfall_dlp:
-    build:
-      context: .
-      args:
-        - GIT_USER=${GIT_USER:-engbot}
-        - GIT_PASS=${GIT_PASS}
-        - SERVICE_NAME=nightfall_dlp
-    image: nightfall_dlp
 
   wait:
     image: deliveroo/circleci:0.2.8

@@ -10,16 +10,7 @@ GOGET=$(GOCMD) get
 
 SERVICE_NAME=nightfall_dlp
 BINARY_NAME=./$(SERVICE_NAME)
-
-# docker parameters
-NAME=watchtowerai/$(SERVICE_NAME)
-TAG=$(shell git log -1 --pretty=format:"%H")
-VERSION=$(NAME):$(TAG)
-LATEST=$(NAME):latest
-GIT_USER?=""
-GIT_PASS?=""
 GO_TEST_ENV?=test
-GO_GIN_MODE?=release
 
 all: clean build start
 build:

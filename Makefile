@@ -1,5 +1,3 @@
-.PHONY: generate
-
 # Let Go know that our modules are private
 export GOPRIVATE=github.com/watchtowerai
 

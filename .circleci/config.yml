@@ -1,8 +1,8 @@
 version: 2.1
 
 app-parameters: &parameters
-  CONTAINER_DEPLOY_NAME: engineering/diff_reviewer
-  CONTAINER_BUILD_NAME: diff_reviewer
+  CONTAINER_DEPLOY_NAME: engineering/nightfall_dlp
+  CONTAINER_BUILD_NAME: nightfall_dlp
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
           command: ci build
       - run:
           name: test docker
-          command: ci run --rm diff_reviewer_build make test
+          command: ci run --rm nightfall_dlp_build make test
       - run:
           name: Clean up reusable Docker
           command: clean_up_reusable_docker
@@ -48,7 +48,7 @@ jobs:
             -e CIRCLE_PULL_REQUEST=$CIRCLE_PULL_REQUEST \
             -e CIRCLE_SHA1=$CIRCLE_SHA1 \
             -e REVIEWDOG_TOKEN=$REVIEWDOG_TOKEN \
-            --rm diff_reviewer_build \
+            --rm nightfall_dlp_build \
             sh -c '$(go env GOPATH)/bin/golangci-lint run \
               | $(go env GOPATH)/bin/reviewdog -f=golangci-lint -name=golangci -reporter='"$CHECK_LEVEL"' -level=error'
       - run:

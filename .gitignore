@@ -18,6 +18,6 @@
 *.swo
 
 # The service executable
-diff_reviewer
+nightfall_dlp
 
 config/user.json

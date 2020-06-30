@@ -1,6 +1,6 @@
 version: '3.6'
 services:
-  diff_reviewer_build:
+  nightfall_dlp_build:
     image: builder
     build:
       context: .
@@ -8,20 +8,20 @@ services:
       args:
         - GIT_USER=${GIT_USER:-engbot}
         - GIT_PASS=${GIT_PASS}
-        - SERVICE_NAME=diff_reviewer
+        - SERVICE_NAME=nightfall_dlp
     environment:
       GO_ENV: ci
       GIN_MODE: test
-    command: ./diff_reviewer
+    command: ./nightfall_dlp
 
-  diff_reviewer:
+  nightfall_dlp:
     build:
       context: .
       args:
         - GIT_USER=${GIT_USER:-engbot}
         - GIT_PASS=${GIT_PASS}
-        - SERVICE_NAME=diff_reviewer
-    image: diff_reviewer
+        - SERVICE_NAME=nightfall_dlp
+    image: nightfall_dlp
 
   wait:
     image: deliveroo/circleci:0.2.8

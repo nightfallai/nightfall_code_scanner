@@ -8,7 +8,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-SERVICE_NAME=diff_reviewer
+SERVICE_NAME=nightfall_dlp
 BINARY_NAME=./$(SERVICE_NAME)
 
 # docker parameters

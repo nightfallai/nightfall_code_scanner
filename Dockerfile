@@ -52,5 +52,4 @@ RUN apk add ca-certificates
 COPY --from=builder /projects/$SERVICE_NAME/ .
 ENV GO_ENV=production
 ENV GIN_MODE=release
-EXPOSE 8076
 CMD ./${SERVICE_NAME}

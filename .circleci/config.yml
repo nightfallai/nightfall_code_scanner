@@ -63,11 +63,3 @@ workflows:
           context: build
       - lint:
           context: build
-      - push-to-dockerhub:
-          requires:
-            - build
-            - lint
-          filters:
-            branches:
-              only: master
-          context: build

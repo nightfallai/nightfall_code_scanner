@@ -1,16 +1,5 @@
 {
   "appName": "diff_reviewer",
-  "bugsnag": {
-    "config": {
-      "apiKey": "",
-      "projectPackages": [
-        "main*",
-        "github.com/watchtowerai/diff_reviewer/*"
-      ],
-      "releaseStage": "production",
-      "appType": ""
-    }
-  },
   "zap": {
     "config": {
       "level": "info",
@@ -35,13 +24,5 @@
       }
     },
     "enabled": true
-  },
-  "datadog": {
-    "config": {
-      "apm": {
-        "hostname": "127.0.0.1"
-      }
-    },
-    "enabled": false
   }
 }

@@ -4,15 +4,11 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/spf13/viper"
-	"github.com/watchtowerai/diff_reviewer/internal/clients"
-	"github.com/watchtowerai/watchtower_go_libraries/pkg/clients/bugsnag"
 	"github.com/watchtowerai/watchtower_go_libraries/pkg/clients/datadog"
 	"github.com/watchtowerai/watchtower_go_libraries/pkg/config"
-	log "github.com/watchtowerai/watchtower_go_libraries/pkg/log"
-	"github.com/watchtowerai/watchtower_go_libraries/pkg/modules/logging"
-	"github.com/watchtowerai/watchtower_go_libraries/pkg/modules/recovery"
-	recovery2 "github.com/watchtowerai/watchtower_go_libraries/pkg/recovery"
+
+	"github.com/spf13/viper"
+	"github.com/watchtowerai/diff_reviewer/internal/clients"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
@@ -23,11 +19,6 @@ func main() {
 		fx.Provide(
 			// general constructors
 			newConfig,
-			logging.NewZapLoggerWithBugsnag,
-			log.NewSugaredLoggerFactory,
-			bugsnag.NewConfiguration,
-			bugsnag.NewBugsnagNotifier,
-			recovery.NewBugsnagHandler,
 			newSugarLogger,
 			newRecovery,
 		),
@@ -46,10 +37,6 @@ func newConfig() (*viper.Viper, error) {
 // newSugarLogger helper
 func newSugarLogger(zapLog *zap.Logger) *zap.SugaredLogger {
 	return zapLog.Sugar()
-}
-
-func newRecovery(bsh *recovery.BugsnagHandler) recovery2.Handler {
-	return bsh
 }
 
 func getDirName() string {

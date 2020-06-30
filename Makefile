@@ -31,15 +31,6 @@ test:
 clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
-dockerbuild:
-	docker build -t $(VERSION) . --build-arg GIT_USER=$(GIT_USER) --build-arg GIT_PASS=$(GIT_PASS) --build-arg SERVICE_NAME=$(SERVICE_NAME)
-	docker tag $(VERSION) $(LATEST)
-dockertag:
-	docker tag $(SERVICE_NAME):latest $(VERSION)
-	docker tag $(SERVICE_NAME):latest $(LATEST)
-dockerpush:
-	docker push $(VERSION)
-	docker push $(LATEST)
 start:
 	./$(BINARY_NAME)
 run:

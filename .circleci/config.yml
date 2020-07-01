@@ -1,9 +1,5 @@
 version: 2.1
 
-app-parameters: &parameters
-  CONTAINER_DEPLOY_NAME: engineering/nightfall_dlp
-  CONTAINER_BUILD_NAME: nightfall_dlp
-
 jobs:
   build:
     docker:

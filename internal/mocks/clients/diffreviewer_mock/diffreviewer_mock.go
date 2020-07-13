@@ -7,6 +7,7 @@ package diffreviewer_mock
 import (
 	gomock "github.com/golang/mock/gomock"
 	diffreviewer "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	nightfallconfig "github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 	reflect "reflect"
 )
 
@@ -34,17 +35,18 @@ func (m *DiffReviewer) EXPECT() *DiffReviewerMockRecorder {
 }
 
 // LoadConfig mocks base method
-func (m *DiffReviewer) LoadConfig() error {
+func (m *DiffReviewer) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LoadConfig")
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "LoadConfig", nightfallConfigFileName)
+	ret0, _ := ret[0].(*nightfallconfig.Config)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // LoadConfig indicates an expected call of LoadConfig
-func (mr *DiffReviewerMockRecorder) LoadConfig() *gomock.Call {
+func (mr *DiffReviewerMockRecorder) LoadConfig(nightfallConfigFileName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadConfig", reflect.TypeOf((*DiffReviewer)(nil).LoadConfig))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadConfig", reflect.TypeOf((*DiffReviewer)(nil).LoadConfig), nightfallConfigFileName)
 }
 
 // GetDiff mocks base method

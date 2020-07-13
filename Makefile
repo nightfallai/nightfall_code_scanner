@@ -1,5 +1,6 @@
 # Let Go know that our modules are private
 export GOPRIVATE=github.com/watchtowerai
+.PHONY: test
 
 # Go parameters
 GOCMD=go

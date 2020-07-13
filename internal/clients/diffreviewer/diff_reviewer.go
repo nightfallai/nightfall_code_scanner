@@ -1,11 +1,13 @@
 package diffreviewer
 
+import "github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+
 //go:generate go run github.com/golang/mock/mockgen -destination=../../mocks/clients/diffreviewer_mock/diffreviewer_mock.go -source=../../clients/diffreviewer/diff_reviewer.go -package=diffreviewer_mock -mock_names=DiffReviewer=DiffReviewer
 
 // DiffReviewer is the interface type for writing Nightfall DLP reviews/comments to a code repository commit/PR
 type DiffReviewer interface {
 	// LoadConfig retrieves the necessary config values from files or environment
-	LoadConfig() error
+	LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error)
 	// GetDiff fetches the diff from the code repository and return a parsed array of FileDiffs
 	GetDiff() ([]*FileDiff, error)
 	// WriteComments posts the Nightfall DLP findings as comments/a review to the diff

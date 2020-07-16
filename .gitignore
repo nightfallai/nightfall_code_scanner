@@ -17,6 +17,7 @@
 .idea/
 *.swp
 *.swo
+*.DS_Store
 
 # The service executable
 nightfall_dlp

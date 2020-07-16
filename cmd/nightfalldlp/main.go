@@ -38,7 +38,7 @@ func usingGithubAction() bool {
 func CreateDiffReviewerClient(httpClient *http.Client) (diffreviewer.DiffReviewer, error) {
 	switch {
 	case usingGithubAction():
-		return github.NewGithubClient(httpClient), nil
+		return github.NewGithubService(httpClient), nil
 	default:
 		return nil, errors.New("Current environment unknown")
 	}

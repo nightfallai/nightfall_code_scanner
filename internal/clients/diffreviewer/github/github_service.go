@@ -3,9 +3,9 @@ package github
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
-	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
@@ -21,12 +21,65 @@ const (
 	ErrorLevel   Level = "error"
 
 	WorkspacePathEnvVar   = "GITHUB_WORKSPACE"
-	RepoEnvVar            = "GITHUB_REPOSITORY"
-	CommitShaEnvVar       = "GITHUB_SHA"
+	EventPathEnvVar       = "GITHUB_EVENT_PATH"
 	NightfallAPIKeyEnvVar = "NIGHTFALL_API_KEY"
 )
 
 var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
+
+type ownerLogin struct {
+	Login string `json:"login"`
+}
+
+type eventRepo struct {
+	Owner ownerLogin `json:"owner"`
+	Name  string     `json:"name"`
+}
+
+type checkSuite struct {
+	After        string        `json:"after"`
+	PullRequests []pullRequest `json:"pull_requests"`
+}
+
+type headCommit struct {
+	ID string `json:"id"`
+}
+
+// event represents github event webhook file
+type event struct {
+	PullRequest pullRequest `json:"pull_request"`
+	Repository  eventRepo   `json:"repository"`
+	CheckSuite  checkSuite  `json:"check_suite"`
+	HeadCommit  headCommit  `json:"head_commit"`
+}
+
+type ownerID struct {
+	ID int64 `json:"id"`
+}
+
+// repo contains information relevant to the
+// github repo being checked
+type repo struct {
+	Owner ownerID `json:"owner"`
+}
+
+type pullRequestHead struct {
+	Sha  string `json:"sha"`
+	Ref  string `json:"ref"`
+	Repo repo   `json:"repo"`
+}
+
+type pullRequestBase struct {
+	Repo repo `json:"repo"`
+}
+
+// pullRequest contains information relevant to
+// the github pull request
+type pullRequest struct {
+	Number int             `json:"number"`
+	Head   pullRequestHead `json:"head"`
+	Base   pullRequestBase `json:"base"`
+}
 
 // CheckRequest represents nightfallDLP GitHub check request.
 type CheckRequest struct {
@@ -79,7 +132,7 @@ type Annotation struct {
 	RawMessage string `json:"raw_message,omitempty"`
 }
 
-// Client contains the github client that makes Github api calls
+// Service contains the github client that makes Github api calls
 type Service struct {
 	Client       interfaces.GithubAPI
 	CheckRequest *CheckRequest
@@ -94,39 +147,49 @@ func NewGithubService(httpClientInterface interfaces.HTTPClient) diffreviewer.Di
 	}
 }
 
+func getEventFile(eventPath string) (*event, error) {
+	f, err := os.Open(eventPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	var event event
+	if err := json.NewDecoder(f).Decode(&event); err != nil {
+		return nil, err
+	}
+	return &event, nil
+}
+
 // LoadConfig gets all config values from files or environment and creates a config
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok {
 		return nil, errors.New("Missing env var for workspace path")
 	}
+	eventPath, ok := os.LookupEnv(EventPathEnvVar)
+	if !ok {
+		return nil, errors.New("Missing env var for event path")
+	}
+	event, err := getEventFile(eventPath)
+	if err != nil {
+		return nil, err
+	}
+	s.CheckRequest = &CheckRequest{
+		Owner:       event.Repository.Owner.Login,
+		Repo:        event.Repository.Name,
+		SHA:         event.PullRequest.Head.Sha,
+		PullRequest: event.PullRequest.Number,
+	}
+	if s.CheckRequest.SHA == "" {
+		s.CheckRequest.SHA = event.HeadCommit.ID
+	}
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		return nil, err
 	}
-	repoFullName, ok := os.LookupEnv(RepoEnvVar)
-	if !ok {
-		return nil, errors.New("Missing env var for repo name")
-	}
-	// Format of repoFullName is <owner>/<repo_name>
-	repoFullNameSplit := strings.Split(repoFullName, "/")
-	if len(repoFullNameSplit) != 2 {
-		return nil, errors.New("Received invalid format for repo full name")
-	}
-	owner := repoFullNameSplit[0]
-	repo := repoFullNameSplit[1]
-	commitSha, ok := os.LookupEnv(CommitShaEnvVar)
-	if !ok {
-		return nil, errors.New("Missing env var for repo name")
-	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok {
 		return nil, errors.New("Missing env var for nightfall api key")
-	}
-	s.CheckRequest = &CheckRequest{
-		Owner: owner,
-		Repo:  repo,
-		SHA:   commitSha,
 	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:    nightfallAPIKey,

@@ -1,0 +1,42 @@
+{
+    "pull_request": {
+        "number": 1,
+        "head": {
+            "sha": "1234",
+            "ref": "master",
+            "repo": {
+                "owner": {
+                    "id": 1
+                }
+            },
+            "base": {
+                "repo": {
+                    "owner": {
+                        "id": 1
+                    }
+                }
+            }
+        }
+    },
+    "repository": {
+        "owner": {
+            "login": "nightfallai"
+        },
+        "name": "testRepo"
+    },
+    "check_suite": {
+        "after": "after",
+        "pull_requests": [
+            {
+                "repo": {
+                    "owner": {
+                        "id": 1
+                    }
+                }
+            }
+        ]
+    },
+    "head_commit": {
+        "id": "1"
+    }
+}

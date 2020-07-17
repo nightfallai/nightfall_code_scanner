@@ -2,7 +2,6 @@ package github_test
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -137,8 +136,7 @@ const testConfigFileName = "nightfall_test_config.json"
 
 var envVars = []string{
 	githubservice.WorkspacePathEnvVar,
-	githubservice.RepoEnvVar,
-	githubservice.CommitShaEnvVar,
+	githubservice.EventPathEnvVar,
 	githubservice.NightfallAPIKeyEnvVar,
 }
 
@@ -154,13 +152,13 @@ func (g *githubTestSuite) TestLoadConfig() {
 	sha := "1234"
 	owner := "nightfallai"
 	repo := "testRepo"
-	repoFullName := fmt.Sprintf("%s/%s", owner, repo)
+	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
+	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
 	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
-	os.Setenv(githubservice.RepoEnvVar, repoFullName)
-	os.Setenv(githubservice.CommitShaEnvVar, sha)
+	os.Setenv(githubservice.EventPathEnvVar, eventPath)
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
@@ -171,9 +169,10 @@ func (g *githubTestSuite) TestLoadConfig() {
 		},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
-		Owner: owner,
-		Repo:  repo,
-		SHA:   sha,
+		Owner:       owner,
+		Repo:        repo,
+		SHA:         sha,
+		PullRequest: pullRequest,
 	}
 
 	diffReviewer := githubservice.NewGithubService(&http.Client{})

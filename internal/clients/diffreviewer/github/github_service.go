@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
+	"math"
 	"os"
 
 	"github.com/google/go-github/v31/github"
@@ -23,9 +26,16 @@ const (
 	WorkspacePathEnvVar   = "GITHUB_WORKSPACE"
 	EventPathEnvVar       = "GITHUB_EVENT_PATH"
 	NightfallAPIKeyEnvVar = "NIGHTFALL_API_KEY"
+
+	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 )
 
 var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
+var annotationLevelFailure = "failure"
+var checkRunInProgressStatus = "in_progress"
+var checkRunCompletedStatus = "completed"
+var checkRunConclusionSuccess = "success"
+var checkRunConclusionFailure = "failure"
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -136,7 +146,6 @@ type Annotation struct {
 type Service struct {
 	Client       interfaces.GithubAPI
 	CheckRequest *CheckRequest
-	CheckRun     *github.CheckRun
 }
 
 // NewGithubService create a new github service
@@ -258,6 +267,94 @@ func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 func (s *Service) WriteComments(
 	comments []*diffreviewer.Comment,
 ) error {
-	//TODO implement
+	checkRun, err := s.startReview()
+	if err != nil {
+		return err
+	}
+	conclusionStatus := checkRunConclusionFailure
+	if len(comments) == 0 {
+		conclusionStatus = checkRunConclusionSuccess
+	}
+	numUpdateRequests := int(math.Ceil(float64(len(comments)) / MaxAnnotationsPerRequest))
+	for i := 0; i < numUpdateRequests; i++ {
+		startCommentIdx := i * MaxAnnotationsPerRequest
+		endCommentIdx := min(startCommentIdx+MaxAnnotationsPerRequest, len(comments))
+		annotations := createAnnotations(comments[startCommentIdx:endCommentIdx])
+		opt := github.UpdateCheckRunOptions{
+			Name: getCheckName(s.CheckRequest.Name),
+			Output: &github.CheckRunOutput{
+				Title:       github.String(getCheckName(s.CheckRequest.Name)),
+				Annotations: annotations,
+			},
+		}
+		_, _, err := s.Client.UpdateCheckRun(context.Background(),
+			s.CheckRequest.Owner,
+			s.CheckRequest.Repo,
+			checkRun.GetID(),
+			opt,
+		)
+		if err != nil {
+			log.Printf("error posting batch #%d of comments: %s", i, err)
+		}
+	}
+	completedOpt := github.UpdateCheckRunOptions{
+		Status:     &checkRunCompletedStatus,
+		Conclusion: &conclusionStatus,
+	}
+	_, _, err = s.Client.UpdateCheckRun(context.Background(),
+		s.CheckRequest.Owner,
+		s.CheckRequest.Repo,
+		checkRun.GetID(),
+		completedOpt,
+	)
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+// startReview starts a github check and returns the check run
+func (s *Service) startReview() (*github.CheckRun, error) {
+	opt := github.CreateCheckRunOptions{
+		Name:    getCheckName(s.CheckRequest.Name),
+		HeadSHA: s.CheckRequest.SHA,
+		Status:  &checkRunInProgressStatus,
+	}
+	checkRun, _, err := s.Client.CreateCheckRun(context.Background(), s.CheckRequest.Owner, s.CheckRequest.Repo, opt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create check: %v", err)
+	}
+	return checkRun, nil
+}
+
+func createAnnotations(comments []*diffreviewer.Comment) []*github.CheckRunAnnotation {
+	annotations := make([]*github.CheckRunAnnotation, len(comments))
+	for i := 0; i < len(comments); i++ {
+		annotations[i] = convertCommentToAnnotation(comments[i])
+	}
+	return annotations
+}
+
+func convertCommentToAnnotation(comment *diffreviewer.Comment) *github.CheckRunAnnotation {
+	return &github.CheckRunAnnotation{
+		Path:            &comment.FilePath,
+		StartLine:       &comment.LineNumber,
+		EndLine:         &comment.LineNumber,
+		Message:         &comment.Body,
+		AnnotationLevel: &annotationLevelFailure,
+	}
+}
+
+func getCheckName(name string) string {
+	if name != "" {
+		return name
+	}
+	return "Nightfall DLP"
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
 }

@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-
 	"github.com/stretchr/testify/suite"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
 )
 

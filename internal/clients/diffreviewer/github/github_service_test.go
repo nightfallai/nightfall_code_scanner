@@ -2,12 +2,12 @@ package github_test
 
 import (
 	"context"
-	"io/ioutil"
+	"fmt"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -16,12 +16,10 @@ import (
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
 	githubservice "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
-	mock "github.com/watchtowerai/nightfall_dlp/internal/mocks/clients"
 	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubapi_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
-const getDiffTestUrl = "/repos/alan20854/TestRepo/pulls/2.diff"
 const expectedDiffResponseStr = `diff --git a/README.md b/README.md
 index c8bdd38..47a0095 100644
 --- a/README.md
@@ -194,18 +192,6 @@ func (g *githubTestSuite) TestGetDiff() {
 		CheckRequest: testPRCheckRequest,
 	}
 	tp.gc = testGithubService
-	mockResponseStr := expectedDiffResponseStr
-
-	mockHTTPClient := mock.NewHTTPClient(tp.ctrl)
-	mockHTTPClient.EXPECT().
-		Do(gomock.Any()).
-		DoAndReturn(func(request *http.Request) (*http.Response, error) {
-			g.Equal(getDiffTestUrl, request.URL)
-			resp := http.Response{
-				Body: ioutil.NopCloser(strings.NewReader(expectedDiffResponseStr)),
-			}
-			return &resp, nil
-		})
 	opts := github.RawOptions{Type: github.Diff}
 	mockAPI.EXPECT().
 		GetRaw(
@@ -214,10 +200,158 @@ func (g *githubTestSuite) TestGetDiff() {
 			testPRCheckRequest.Repo,
 			testPRCheckRequest.PullRequest,
 			opts,
-		).Return(mockResponseStr, nil, nil)
+		).Return(expectedDiffResponseStr, nil, nil)
 	fileDiffs, err := tp.gc.GetDiff()
 	g.NoError(err, "unexpected error in GetDiff")
 	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
+}
+
+func (g *githubTestSuite) TestWriteComments() {
+	tp := g.initTestParams()
+	ctrl := gomock.NewController(g.T())
+	defer ctrl.Finish()
+	mockAPI := githubapi_mock.NewGithubAPI(tp.ctrl)
+	testGithubService := &githubservice.Service{
+		Client:       mockAPI,
+		CheckRequest: testPRCheckRequest,
+	}
+	tp.gc = testGithubService
+
+	singleBatchComments, singleBatchAnnotations := makeTestCommentsAndAnnotations(
+		"testComment",
+		"/comments.txt",
+		10,
+	)
+	multiBatchComments, multiBatchAnnotations := makeTestCommentsAndAnnotations(
+		"testComment",
+		"/comments.txt",
+		70,
+	)
+	emptyComments, emptyAnnotations := []*diffreviewer.Comment{}, []*github.CheckRunAnnotation{}
+
+	failureConclusion := "failure"
+	successConclusion := "success"
+
+	tests := []struct {
+		giveComments    []*diffreviewer.Comment
+		wantAnnotations []*github.CheckRunAnnotation
+		wantConclusion  string
+		desc            string
+	}{
+		{
+			giveComments:    singleBatchComments,
+			wantAnnotations: singleBatchAnnotations,
+			wantConclusion:  failureConclusion,
+			desc:            "single batch comments test",
+		},
+		{
+			giveComments:    multiBatchComments,
+			wantAnnotations: multiBatchAnnotations,
+			wantConclusion:  failureConclusion,
+			desc:            "multiple batch comments test",
+		},
+		{
+			giveComments:    emptyComments,
+			wantAnnotations: emptyAnnotations,
+			wantConclusion:  successConclusion,
+			desc:            "no comments test",
+		},
+	}
+
+	checkName := "Nightfall DLP"
+	checkRunInProgress := "in_progress"
+	createOpt := github.CreateCheckRunOptions{
+		Name:    checkName,
+		HeadSHA: testPRCheckRequest.SHA,
+		Status:  &checkRunInProgress,
+	}
+
+	expectedCheckRunID := github.Int64(879322521)
+	expectedCheckRun := github.CheckRun{
+		ID:      expectedCheckRunID,
+		HeadSHA: &testPRCheckRequest.SHA,
+		Status:  &checkRunInProgress,
+		Name:    &checkName,
+	}
+
+	for _, tt := range tests {
+		mockAPI.EXPECT().CreateCheckRun(
+			context.Background(),
+			testPRCheckRequest.Owner,
+			testPRCheckRequest.Repo,
+			createOpt,
+		).Return(&expectedCheckRun, nil, nil)
+
+		annotations := tt.wantAnnotations
+
+		numUpdateRequests := int(math.Ceil(float64(len(annotations)) / githubservice.MaxAnnotationsPerRequest))
+		for i := 0; i < numUpdateRequests; i++ {
+			startCommentIdx := i * githubservice.MaxAnnotationsPerRequest
+			endCommentIdx := min(startCommentIdx+githubservice.MaxAnnotationsPerRequest, len(annotations))
+			updateOpt := github.UpdateCheckRunOptions{
+				Name: checkName,
+				Output: &github.CheckRunOutput{
+					Title:       &checkName,
+					Annotations: annotations[startCommentIdx:endCommentIdx],
+				},
+			}
+			expectedUpdatedCheckRun := &github.CheckRun{
+				Output: updateOpt.Output,
+				Name:   expectedCheckRun.Name,
+			}
+			mockAPI.EXPECT().UpdateCheckRun(
+				context.Background(),
+				testPRCheckRequest.Owner,
+				testPRCheckRequest.Repo,
+				*expectedCheckRun.ID,
+				updateOpt,
+			).Return(expectedUpdatedCheckRun, nil, nil)
+		}
+
+		checkRunCompletedStatus := "completed"
+		completedOpt := github.UpdateCheckRunOptions{
+			Status:     &checkRunCompletedStatus,
+			Conclusion: &tt.wantConclusion,
+		}
+		mockAPI.EXPECT().UpdateCheckRun(
+			context.Background(),
+			testPRCheckRequest.Owner,
+			testPRCheckRequest.Repo,
+			*expectedCheckRunID,
+			completedOpt,
+		)
+
+		err := tp.gc.WriteComments(tt.giveComments)
+		g.NoError(err, fmt.Sprintf("Error getting actions dump for %s test", tt.desc))
+	}
+}
+
+func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffreviewer.Comment, []*github.CheckRunAnnotation) {
+	comments := make([]*diffreviewer.Comment, size)
+	annotations := make([]*github.CheckRunAnnotation, size)
+	annotationLevelFailure := "failure"
+	for i := 0; i < size; i++ {
+		comments[i] = &diffreviewer.Comment{
+			Body:       body,
+			FilePath:   filePath,
+			LineNumber: i + 1,
+		}
+		annotations[i] = &github.CheckRunAnnotation{
+			Path:            &filePath,
+			StartLine:       &comments[i].LineNumber,
+			EndLine:         &comments[i].LineNumber,
+			AnnotationLevel: &annotationLevelFailure,
+			Message:         &body,
+		}
+	}
+	return comments, annotations
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
 }
 
 func TestGithubClient(t *testing.T) {

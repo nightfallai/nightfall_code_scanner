@@ -15,6 +15,7 @@ import (
 const (
 	nightfallConfigFileName = ".nightfalldlp/config.json"
 	githubActionsEnvVar     = "GITHUB_ACTIONS"
+	githubTokenEnvVar       = "NIGHTFALL_GITHUB_TOKEN"
 )
 
 // main starts the service process.
@@ -53,7 +54,7 @@ func run() error {
 	return diffReviewClient.WriteComments(comments)
 }
 
-// usingGithubAction determine if nightfalldpl is being run by
+// usingGithubAction determine if nightfalldlp is being run by
 // Github Actions
 func usingGithubAction() bool {
 	val, ok := os.LookupEnv(githubActionsEnvVar)
@@ -68,8 +69,12 @@ func usingGithubAction() bool {
 func CreateDiffReviewerClient(httpClient *http.Client) (diffreviewer.DiffReviewer, error) {
 	switch {
 	case usingGithubAction():
-		return github.NewGithubService(httpClient), nil
+		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
+		if !ok {
+			return nil, errors.New("missing github token in env")
+		}
+		return github.NewAuthenticatedGithubService(githubToken), nil
 	default:
-		return nil, errors.New("Current environment unknown")
+		return nil, errors.New("current environment unknown")
 	}
 }

@@ -151,9 +151,17 @@ type Service struct {
 	BaseBranch   string
 }
 
-// NewGithubService create a new github service
+// NewGithubService creates a new github service with the given httpClient
 func NewGithubService(httpClientInterface interfaces.HTTPClient) diffreviewer.DiffReviewer {
 	githubClient := NewClient(httpClientInterface)
+	return &Service{
+		Client: githubClient,
+	}
+}
+
+// NewAuthenticatedGithubService creates a new authenticated github service with the github token
+func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer {
+	githubClient := NewAuthenticatedClient(githubToken)
 	return &Service{
 		Client: githubClient,
 	}

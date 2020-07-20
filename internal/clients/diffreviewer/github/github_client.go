@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
+	"golang.org/x/oauth2"
 )
 
 const mediaTypeV3Diff = "application/vnd.github.v3.diff"
@@ -21,6 +22,16 @@ type Client struct {
 func NewClient(httpClientInterface interfaces.HTTPClient) *Client {
 	httpClient := httpClientInterface.(*http.Client)
 	githubClient := github.NewClient(httpClient)
+	return &Client{githubClient}
+}
+
+func NewAuthenticatedClient(token string) *Client {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	githubClient := github.NewClient(tc)
 	return &Client{githubClient}
 }
 

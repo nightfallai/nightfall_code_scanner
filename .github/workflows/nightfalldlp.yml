@@ -48,6 +48,6 @@ jobs:
         continue-on-error: true
         env:
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
-          NIGHTFALLDLP_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTFALL_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           nightfalldlp

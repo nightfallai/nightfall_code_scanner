@@ -23,9 +23,10 @@ const (
 	WarningLevel Level = "warning"
 	ErrorLevel   Level = "error"
 
-	WorkspacePathEnvVar   = "GITHUB_WORKSPACE"
-	EventPathEnvVar       = "GITHUB_EVENT_PATH"
-	NightfallAPIKeyEnvVar = "NIGHTFALL_API_KEY"
+	WorkspacePathEnvVar    = "GITHUB_WORKSPACE"
+	EventPathEnvVar        = "GITHUB_EVENT_PATH"
+	NightfallAPIKeyEnvVar  = "NIGHTFALL_API_KEY"
+	GithubBaseBranchEnvVar = "NIGHTFALL_GITHUB_BASE_BRANCH"
 
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 )
@@ -36,6 +37,7 @@ var checkRunInProgressStatus = "in_progress"
 var checkRunCompletedStatus = "completed"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
+var defaultBaseBranch = "master"
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -146,6 +148,7 @@ type Annotation struct {
 type Service struct {
 	Client       interfaces.GithubAPI
 	CheckRequest *CheckRequest
+	BaseBranch   string
 }
 
 // NewGithubService create a new github service
@@ -192,6 +195,11 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
+	if baseBranch, ok := os.LookupEnv(GithubBaseBranchEnvVar); ok {
+		s.BaseBranch = baseBranch
+	} else {
+		s.BaseBranch = defaultBaseBranch
+	}
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		return nil, err
@@ -210,13 +218,25 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	// TODO look into how we can retrieve the diff through the github action yaml file
 	ctx := context.Background()
-	d, _, err := s.Client.GetRaw(
-		ctx,
-		s.CheckRequest.Owner,
-		s.CheckRequest.Repo,
-		s.CheckRequest.PullRequest,
-		rawOptionsTypeDiff,
-	)
+	var d string
+	var err error
+	if s.CheckRequest.PullRequest == 0 {
+		d, _, err = s.Client.GetRawBySha(
+			ctx,
+			s.CheckRequest.Owner,
+			s.CheckRequest.Repo,
+			s.CheckRequest.SHA,
+			s.BaseBranch,
+		)
+	} else {
+		d, _, err = s.Client.GetRaw(
+			ctx,
+			s.CheckRequest.Owner,
+			s.CheckRequest.Repo,
+			s.CheckRequest.PullRequest,
+			rawOptionsTypeDiff,
+		)
+	}
 	if err != nil {
 		return nil, err
 	}

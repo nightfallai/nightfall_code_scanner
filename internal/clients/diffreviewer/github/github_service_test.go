@@ -112,6 +112,11 @@ var testPRCheckRequest = &githubservice.CheckRequest{
 	PullRequest: 2,
 	SHA:         "7b46da6e4d3259b1a1c470ee468e2cb3d9733802",
 }
+var testPRCheckRequestNoPR = &githubservice.CheckRequest{
+	Owner: "alan20854",
+	Repo:  "TestRepo",
+	SHA:   "7b46da6e4d3259b1a1c470ee468e2cb3d9733802",
+}
 
 type githubTestSuite struct {
 	suite.Suite
@@ -187,23 +192,56 @@ func (g *githubTestSuite) TestGetDiff() {
 	ctrl := gomock.NewController(g.T())
 	defer ctrl.Finish()
 	mockAPI := githubapi_mock.NewGithubAPI(tp.ctrl)
-	testGithubService := &githubservice.Service{
-		Client:       mockAPI,
-		CheckRequest: testPRCheckRequest,
+
+	tests := []struct {
+		haveCheckRequest *githubservice.CheckRequest
+		haveRawResponse  string
+		wantFileDiffs    []*diffreviewer.FileDiff
+	}{
+		{
+			haveCheckRequest: testPRCheckRequest,
+			haveRawResponse:  expectedDiffResponseStr,
+			wantFileDiffs:    expectedFileDiffs,
+		},
+		{
+			haveCheckRequest: testPRCheckRequestNoPR,
+			haveRawResponse:  expectedDiffResponseStr,
+			wantFileDiffs:    expectedFileDiffs,
+		},
 	}
-	tp.gc = testGithubService
-	opts := github.RawOptions{Type: github.Diff}
-	mockAPI.EXPECT().
-		GetRaw(
-			context.Background(),
-			testPRCheckRequest.Owner,
-			testPRCheckRequest.Repo,
-			testPRCheckRequest.PullRequest,
-			opts,
-		).Return(expectedDiffResponseStr, nil, nil)
-	fileDiffs, err := tp.gc.GetDiff()
-	g.NoError(err, "unexpected error in GetDiff")
-	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
+
+	for _, tt := range tests {
+		testGithubService := &githubservice.Service{
+			Client:       mockAPI,
+			CheckRequest: tt.haveCheckRequest,
+		}
+		tp.gc = testGithubService
+		baseBranch := "master"
+		tp.gc.BaseBranch = baseBranch
+		if tt.haveCheckRequest.PullRequest == 0 {
+			mockAPI.EXPECT().
+				GetRawBySha(
+					context.Background(),
+					testPRCheckRequest.Owner,
+					testPRCheckRequest.Repo,
+					testPRCheckRequest.SHA,
+					baseBranch,
+				).Return(tt.haveRawResponse, nil, nil)
+		} else {
+			opts := github.RawOptions{Type: github.Diff}
+			mockAPI.EXPECT().
+				GetRaw(
+					context.Background(),
+					testPRCheckRequest.Owner,
+					testPRCheckRequest.Repo,
+					testPRCheckRequest.PullRequest,
+					opts,
+				).Return(tt.haveRawResponse, nil, nil)
+		}
+		fileDiffs, err := tp.gc.GetDiff()
+		g.NoError(err, "unexpected error in GetDiff")
+		g.Equal(tt.wantFileDiffs, fileDiffs, "invalid fileDiff return value")
+	}
 }
 
 func (g *githubTestSuite) TestWriteComments() {

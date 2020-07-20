@@ -10,6 +10,7 @@ import (
 
 type GithubAPI interface {
 	GetRaw(ctx context.Context, owner string, repo string, number int, opts github.RawOptions) (string, *github.Response, error)
+	GetRawBySha(ctx context.Context, owner string, repo string, sha string, head string) (string, *github.Response, error)
 	CreateCheckRun(ctx context.Context, owner, repo string, opts github.CreateCheckRunOptions) (*github.CheckRun, *github.Response, error)
 	UpdateCheckRun(ctx context.Context, owner, repo string, checkRunID int64, opts github.UpdateCheckRunOptions) (*github.CheckRun, *github.Response, error)
 }

@@ -9,6 +9,8 @@ import (
 	"unicode/utf8"
 
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
 const (
@@ -33,57 +35,23 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 	nightfallAPI.VERY_LIKELY:   5,
 }
 
-// DetectorConfig configuration for all detectors and the minimum
-// likelihood threshold value
-type DetectorConfig map[nightfallAPI.Detector]nightfallAPI.Likelihood
-
-// Config struct containing all required
-// config values to create a Nightfall Client
-type Config struct {
-	APIKey          string
-	Domain          string
-	DetectorConfigs DetectorConfig
-}
-
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
 	APIClient       *nightfallAPI.APIClient
 	APIKey          string
-	DetectorConfigs DetectorConfig
+	DetectorConfigs nightfallconfig.DetectorConfig
 }
 
 // NewClient create Client
-func NewClient(config Config) *Client {
+func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
 	n := Client{
 		APIClient:       nightfallAPI.NewAPIClient(APIConfig),
-		APIKey:          config.APIKey,
-		DetectorConfigs: config.DetectorConfigs,
+		APIKey:          config.NightfallAPIKey,
+		DetectorConfigs: config.NightfallDetectors,
 	}
 	return &n
-}
-
-// Line contains information pertaining to a
-// line in a diff
-type Line struct {
-	LineNumber int
-	Content    string
-}
-
-// FileDiff contains all lines for a file
-// that has been updated in a diff
-type FileDiff struct {
-	FilePath string
-	Lines    []*Line
-}
-
-// Comment contains information to create
-// a comment on a diff
-type Comment struct {
-	Body       string
-	FilePath   string
-	LineNumber int
 }
 
 type contentToScan struct {
@@ -92,7 +60,7 @@ type contentToScan struct {
 	LineNumber int
 }
 
-func foundSensitiveData(finding nightfallAPI.ScanResponse, detectorConfigs DetectorConfig) bool {
+func foundSensitiveData(finding nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) bool {
 	minimumLikelihoodForDetector := detectorConfigs[nightfallAPI.Detector(finding.Detector)]
 	findingLikelihood := nightfallAPI.Likelihood(finding.Confidence.Bucket)
 
@@ -145,7 +113,7 @@ func wordSplitter(data []byte, atEOF bool) (int, []byte, error) {
 	return numBytesRead, readChunk, nil
 }
 
-func chunkContent(setBufSize int, line *Line, filePath string) ([]*contentToScan, error) {
+func chunkContent(setBufSize int, line *diffreviewer.Line, filePath string) ([]*contentToScan, error) {
 	chunkedContent := []*contentToScan{}
 	r := bytes.NewReader([]byte(line.Content))
 	s := bufio.NewScanner(r)
@@ -158,7 +126,7 @@ func chunkContent(setBufSize int, line *Line, filePath string) ([]*contentToScan
 			cts := contentToScan{
 				Content:    strChunk,
 				FilePath:   filePath,
-				LineNumber: line.LineNumber,
+				LineNumber: line.LnumNew,
 			}
 			chunkedContent = append(chunkedContent, &cts)
 		}
@@ -181,8 +149,8 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 	return contentToScanList[startIndex:endIndex]
 }
 
-func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfallAPI.ScanResponse, detectorConfigs DetectorConfig) []*Comment {
-	comments := []*Comment{}
+func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) []*diffreviewer.Comment {
+	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
 			if foundSensitiveData(finding, detectorConfigs) {
@@ -190,7 +158,7 @@ func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfal
 				// Create comment
 				correspondingContent := inputContent[j]
 				findingMsg := getCommentMsg(finding)
-				c := Comment{
+				c := diffreviewer.Comment{
 					FilePath:   correspondingContent.FilePath,
 					LineNumber: correspondingContent.LineNumber,
 					Body:       findingMsg,
@@ -235,20 +203,22 @@ func (n *Client) Scan(ctx context.Context, items []string) ([][]nightfallAPI.Sca
 // ReviewDiff will take in a diff, chunk the contents of the diff
 // and send the chunks to the Nightfall API to determine if it
 // contains sensitive data
-func (n *Client) ReviewDiff(ctx context.Context, fileDiffs []*FileDiff) ([]*Comment, error) {
+func (n *Client) ReviewDiff(ctx context.Context, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
-		for _, line := range fd.Lines {
-			chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.FilePath)
-			if err != nil {
-				return nil, err
+		for _, hunk := range fd.Hunks {
+			for _, line := range hunk.Lines {
+				chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.PathNew)
+				if err != nil {
+					return nil, err
+				}
+				contentToScanList = append(contentToScanList, chunkedContent...)
 			}
-			contentToScanList = append(contentToScanList, chunkedContent...)
 		}
 	}
 
-	comments := []*Comment{}
+	comments := []*diffreviewer.Comment{}
 	// Integer round up division
 	numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
 	for i := 0; i < numRequestsRequired; i++ {

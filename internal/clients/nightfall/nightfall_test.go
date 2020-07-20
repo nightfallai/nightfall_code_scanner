@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
 const (
@@ -27,7 +29,7 @@ var allLikelihoods = []nightfallAPI.Likelihood{
 func TestChunkContent(t *testing.T) {
 	tests := []struct {
 		haveBufSize int
-		haveLine    *Line
+		haveLine    *diffreviewer.Line
 		want        []*contentToScan
 	}{
 		{
@@ -119,7 +121,7 @@ func TestSliceListBySize(t *testing.T) {
 }
 
 func TestCreateCommentsFromScanResp(t *testing.T) {
-	detectorConfigs := DetectorConfig{
+	detectorConfigs := nightfallconfig.DetectorConfig{
 		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
 	}
 	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
@@ -127,7 +129,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 	tests := []struct {
 		haveContentToScanList []*contentToScan
 		haveScanResponseList  [][]nightfallAPI.ScanResponse
-		want                  []*Comment
+		want                  []*diffreviewer.Comment
 	}{
 		{
 			haveContentToScanList: []*contentToScan{
@@ -144,7 +146,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					apiKeyResponse,
 				},
 			},
-			want: []*Comment{
+			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 				createComment(apiKeyResponse),
 			},
@@ -163,7 +165,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					createScanResponse("low likelyhood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
 				},
 			},
-			want: []*Comment{
+			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 			},
 		},
@@ -184,7 +186,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					apiKeyResponse,
 				},
 			},
-			want: []*Comment{
+			want: []*diffreviewer.Comment{
 				createComment(apiKeyResponse),
 			},
 		},
@@ -197,7 +199,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 }
 
 func TestFoundSensitiveData(t *testing.T) {
-	detectorConfigs := DetectorConfig{
+	detectorConfigs := nightfallconfig.DetectorConfig{
 		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 	}
 	tests := []struct {
@@ -276,10 +278,10 @@ func createScanResponse(fragment string, detector nightfallAPI.Detector, likelih
 	}
 }
 
-func createLine(content string) *Line {
-	return &Line{
-		Content:    content,
-		LineNumber: lineNumber,
+func createLine(content string) *diffreviewer.Line {
+	return &diffreviewer.Line{
+		Content: content,
+		LnumNew: lineNumber,
 	}
 }
 
@@ -291,8 +293,8 @@ func createContentToScan(content string) *contentToScan {
 	}
 }
 
-func createComment(finding nightfallAPI.ScanResponse) *Comment {
-	return &Comment{
+func createComment(finding nightfallAPI.ScanResponse) *diffreviewer.Comment {
+	return &diffreviewer.Comment{
 		Body:       getCommentMsg(finding),
 		FilePath:   filePath,
 		LineNumber: lineNumber,

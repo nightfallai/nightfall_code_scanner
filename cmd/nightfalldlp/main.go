@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -8,19 +9,48 @@ import (
 
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/nightfall"
 )
 
 const (
-	githubActionsEnvVar = "GITHUB_ACTIONS"
+	nightfallConfigFileName = ".nightfalldlp/config.json"
+	githubActionsEnvVar     = "GITHUB_ACTIONS"
 )
 
 // main starts the service process.
 func main() {
-	_, err := CreateDiffReviewerClient(&http.Client{})
-	if err != nil {
-		fmt.Printf("Error Getting Client %v", err)
-	}
 	fmt.Println("Running NightfallDLP Action")
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "nightfalldlp: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Done NightfallDLP Action")
+}
+
+func run() error {
+	ctx := context.Background()
+	diffReviewClient, err := CreateDiffReviewerClient(&http.Client{})
+	if err != nil {
+		return err
+	}
+
+	nightfallConfig, err := diffReviewClient.LoadConfig(nightfallConfigFileName)
+	if err != nil {
+		return err
+	}
+	nightfallClient := nightfall.NewClient(*nightfallConfig)
+
+	fileDiffs, err := diffReviewClient.GetDiff()
+	if err != nil {
+		return err
+	}
+
+	comments, err := nightfallClient.ReviewDiff(ctx, fileDiffs)
+	if err != nil {
+		return err
+	}
+
+	return diffReviewClient.WriteComments(comments)
 }
 
 // usingGithubAction determine if nightfalldpl is being run by

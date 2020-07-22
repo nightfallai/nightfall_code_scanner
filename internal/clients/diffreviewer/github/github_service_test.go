@@ -331,6 +331,7 @@ func (g *githubTestSuite) TestWriteComments() {
 				Output: &github.CheckRunOutput{
 					Title:       &checkName,
 					Annotations: annotations[startCommentIdx:endCommentIdx],
+					Summary:     github.String(""),
 				},
 			}
 			expectedUpdatedCheckRun := &github.CheckRun{

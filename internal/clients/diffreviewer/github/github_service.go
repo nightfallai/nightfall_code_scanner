@@ -313,6 +313,7 @@ func (s *Service) WriteComments(
 			Output: &github.CheckRunOutput{
 				Title:       github.String(getCheckName(s.CheckRequest.Name)),
 				Annotations: annotations,
+				Summary:     github.String(""),
 			},
 		}
 		_, _, err := s.Client.UpdateCheckRun(context.Background(),

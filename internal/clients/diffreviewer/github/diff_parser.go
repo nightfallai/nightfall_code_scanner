@@ -21,6 +21,8 @@ const (
 	tokenAddedLine      = "+"          // +added line
 	tokenDeletedLine    = "-"          // -deleted line
 	tokenNoNewlineAtEOF = `\`          // \ No newline at end of file
+	oldFilePrefix       = "a/"         // --- a/sample.old.txt
+	newFilePrefix       = "b/"         // +++ b/sample.new.txt
 )
 
 var (
@@ -78,13 +80,13 @@ func (p *fileParser) parse() (*diffreviewer.FileDiff, error) {
 	if bytes.HasPrefix(b, []byte(tokenOldFile)) {
 		// parse `--- sample.old.txt	2016-10-13 05:09:35.820791185 +0900`
 		oldline, _ := readline(p.r) // ignore err because we know it can read something
-		fd.PathOld, fd.TimeOld = parseFileHeader(oldline)
+		fd.PathOld, fd.TimeOld = parseFileHeader(oldline, oldFilePrefix)
 		// parse `+++ sample.new.txt	2016-10-13 05:09:35.820791185 +0900`
 		if b, err := p.r.Peek(len(tokenNewFile)); err != nil || !bytes.HasPrefix(b, []byte(tokenNewFile)) {
 			return nil, ErrNoNewFile
 		}
 		newline, _ := readline(p.r) // ignore err because we know it can read something
-		fd.PathNew, fd.TimeNew = parseFileHeader(newline)
+		fd.PathNew, fd.TimeNew = parseFileHeader(newline, newFilePrefix)
 	}
 	// parse hunks
 	fd.Hunks, err = p.parseHunks()
@@ -128,14 +130,23 @@ func (p *fileParser) parseHunks() ([]*diffreviewer.Hunk, error) {
 
 // parseFileHeader parses file header line and returns filename and timestamp.
 // timestamp may be empty.
-func parseFileHeader(line string) (filename, timestamp string) {
+func parseFileHeader(line, fileNamePrefix string) (filename, timestamp string) {
 	// strip `+++ ` or `--- `
 	ss := line[len(tokenOldFile)+1:]
+	ss = parseFileNamePrefix(ss, fileNamePrefix)
 	tabi := strings.LastIndex(ss, "\t")
 	if tabi == -1 {
 		return ss, ""
 	}
 	return ss[:tabi], ss[tabi+1:]
+}
+
+// parseFileNamePrefix removes the file prefix from the filename
+func parseFileNamePrefix(fileName, prefix string) string {
+	if strings.HasPrefix(fileName, prefix) {
+		return fileName[len(prefix):]
+	}
+	return fileName
 }
 
 func parseExtendedHeader(r *bufio.Reader) []string {

@@ -50,8 +50,8 @@ index e0fe924..0405bc6 100644
  }`
 
 var expectedFileDiff1 = &diffreviewer.FileDiff{
-	PathOld: "a/README.md",
-	PathNew: "b/README.md",
+	PathOld: "README.md",
+	PathNew: "README.md",
 	Hunks: []*diffreviewer.Hunk{{
 		StartLineOld:  2,
 		LineLengthOld: 4,
@@ -69,7 +69,7 @@ var expectedFileDiff1 = &diffreviewer.FileDiff{
 }
 var expectedFileDiff2 = &diffreviewer.FileDiff{
 	PathOld: "/dev/null",
-	PathNew: "b/blah.txt",
+	PathNew: "blah.txt",
 	Hunks: []*diffreviewer.Hunk{{
 		StartLineOld:  0,
 		LineLengthOld: 0,
@@ -86,8 +86,8 @@ var expectedFileDiff2 = &diffreviewer.FileDiff{
 	Extended: []string{"diff --git a/blah.txt b/blah.txt", "new file mode 100644", "index 0000000..e9ea42a"},
 }
 var expectedFileDiff3 = &diffreviewer.FileDiff{
-	PathOld: "a/main.go",
-	PathNew: "b/main.go",
+	PathOld: "main.go",
+	PathNew: "main.go",
 	Hunks: []*diffreviewer.Hunk{{
 		StartLineOld:  3,
 		LineLengthOld: 5,

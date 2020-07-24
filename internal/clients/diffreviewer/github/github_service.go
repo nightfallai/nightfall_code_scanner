@@ -33,6 +33,7 @@ const (
 
 	nightfallGithubWorkflowName = "nightfalldlp"
 	githubActionAppName         = "github actions"
+	summaryString               = "Nightfall DLP has found %d potentially sensitive items"
 )
 
 var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
@@ -304,22 +305,20 @@ func (s *Service) WriteComments(
 	if err != nil {
 		return err
 	}
-	conclusionStatus := checkRunConclusionFailure
 	if len(comments) == 0 {
-		conclusionStatus = checkRunConclusionSuccess
+		return s.updateSuccessfulCheckRun(checkRun.GetID())
 	}
-	summaryString := fmt.Sprintf("Nightfall DLP has found %d findings", len(comments))
-	numUpdateRequests := int(math.Ceil(float64(len(comments)) / MaxAnnotationsPerRequest))
-	for i := 0; i < numUpdateRequests; i++ {
+	annotations := createAnnotations(comments)
+	// numIntermediateUpdateRequests contains the number of intermediate requests to be made prior to the final update request
+	numIntermediateUpdateRequests := int(math.Ceil(float64(len(comments))/MaxAnnotationsPerRequest)) - 1
+	for i := 0; i < numIntermediateUpdateRequests; i++ {
 		startCommentIdx := i * MaxAnnotationsPerRequest
 		endCommentIdx := min(startCommentIdx+MaxAnnotationsPerRequest, len(comments))
-		annotations := createAnnotations(comments[startCommentIdx:endCommentIdx])
 		opt := github.UpdateCheckRunOptions{
 			Name: getCheckName(s.CheckRequest.Name),
 			Output: &github.CheckRunOutput{
 				Title:       github.String(getCheckName(s.CheckRequest.Name)),
-				Annotations: annotations,
-				Summary:     github.String(summaryString),
+				Annotations: annotations[startCommentIdx:endCommentIdx],
 			},
 		}
 		_, _, err := s.Client.UpdateCheckRun(context.Background(),
@@ -329,25 +328,51 @@ func (s *Service) WriteComments(
 			opt,
 		)
 		if err != nil {
-			log.Printf("error posting batch #%d of comments: %s", i, err)
+			log.Printf("Unable to write some comments to Github: %s", err)
 		}
 	}
-	completedOpt := github.UpdateCheckRunOptions{
+	summaryNumFindings := fmt.Sprintf(summaryString, len(comments))
+	opt := github.UpdateCheckRunOptions{
+		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
-		Conclusion: &conclusionStatus,
+		Conclusion: &checkRunConclusionFailure,
 		Output: &github.CheckRunOutput{
-			Title:   github.String(getCheckName(s.CheckRequest.Name)),
-			Summary: github.String(summaryString),
+			Title:       github.String(getCheckName(s.CheckRequest.Name)),
+			Annotations: annotations[numIntermediateUpdateRequests*MaxAnnotationsPerRequest : len(comments)],
+			Summary:     github.String(summaryNumFindings),
 		},
 	}
 	_, _, err = s.Client.UpdateCheckRun(context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRun.GetID(),
-		completedOpt,
+		opt,
 	)
 	if err != nil {
+		log.Printf("Unable to write some comments to Github: %s", err)
 		return err
+	}
+	return nil
+}
+
+func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
+	successfulSummary := fmt.Sprintf(summaryString, 0)
+	opt := github.UpdateCheckRunOptions{
+		Status:     &checkRunCompletedStatus,
+		Conclusion: &checkRunConclusionSuccess,
+		Output: &github.CheckRunOutput{
+			Title:   github.String(getCheckName(s.CheckRequest.Name)),
+			Summary: github.String(successfulSummary),
+		},
+	}
+	_, _, err := s.Client.UpdateCheckRun(context.Background(),
+		s.CheckRequest.Owner,
+		s.CheckRequest.Repo,
+		checkRunID,
+		opt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create check: %v", err)
 	}
 	return nil
 }

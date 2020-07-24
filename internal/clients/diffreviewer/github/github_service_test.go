@@ -263,7 +263,7 @@ func (g *githubTestSuite) TestWriteComments() {
 	multiBatchComments, multiBatchAnnotations := makeTestCommentsAndAnnotations(
 		"testComment",
 		"/comments.txt",
-		70,
+		120,
 	)
 	emptyComments, emptyAnnotations := []*diffreviewer.Comment{}, []*github.CheckRunAnnotation{}
 
@@ -297,6 +297,8 @@ func (g *githubTestSuite) TestWriteComments() {
 	}
 
 	checkName := "NightfallDLP"
+	checkRunInProgressStatus := "in_progress"
+	checkRunCompletedStatus := "completed"
 	anotherCheckName := "build_test"
 	checkRunInProgress := "in_progress"
 	githubAction := "Github Actions"
@@ -306,7 +308,7 @@ func (g *githubTestSuite) TestWriteComments() {
 	expectedCheckRun := github.CheckRun{
 		ID:      expectedCheckRunID,
 		HeadSHA: &testPRCheckRequest.SHA,
-		Status:  &checkRunInProgress,
+		Status:  &checkRunInProgressStatus,
 		Name:    &checkName,
 		App: &github.App{
 			Name: &githubAction,
@@ -330,7 +332,6 @@ func (g *githubTestSuite) TestWriteComments() {
 		Total:     &totalCheckRuns,
 		CheckRuns: checkRuns,
 	}
-
 	for _, tt := range tests {
 		listCheckRunsOpt := github.ListCheckRunsOptions{Status: &checkRunInProgress}
 		mockAPI.EXPECT().ListCheckRunsForRef(
@@ -342,50 +343,72 @@ func (g *githubTestSuite) TestWriteComments() {
 		).Return(&expectedListCheckRuns, nil, nil)
 
 		annotations := tt.wantAnnotations
-		summaryString := fmt.Sprintf("Nightfall DLP has found %d findings", len(annotations))
+		summaryString := fmt.Sprintf("Nightfall DLP has found %d potentially sensitive items", len(annotations))
+		if len(annotations) == 0 {
+			successfulOpt := github.UpdateCheckRunOptions{
+				Status:     &checkRunCompletedStatus,
+				Conclusion: &tt.wantConclusion,
+				Output: &github.CheckRunOutput{
+					Title:   &checkName,
+					Summary: github.String(summaryString),
+				},
+			}
+			mockAPI.EXPECT().UpdateCheckRun(
+				context.Background(),
+				testPRCheckRequest.Owner,
+				testPRCheckRequest.Repo,
+				*expectedCheckRunID,
+				successfulOpt,
+			)
+		} else {
+			numUpdateRequests := int(math.Ceil(float64(len(tt.wantAnnotations)) / githubservice.MaxAnnotationsPerRequest))
+			for i := 0; i < numUpdateRequests-1; i++ {
+				startCommentIdx := i * githubservice.MaxAnnotationsPerRequest
+				endCommentIdx := min(startCommentIdx+githubservice.MaxAnnotationsPerRequest, len(tt.wantAnnotations))
+				updateOpt := github.UpdateCheckRunOptions{
+					Name: checkName,
+					Output: &github.CheckRunOutput{
+						Title:       &checkName,
+						Annotations: tt.wantAnnotations[startCommentIdx:endCommentIdx],
+					},
+				}
+				expectedUpdatedCheckRun := &github.CheckRun{
+					Output: updateOpt.Output,
+					Name:   expectedCheckRun.Name,
+				}
+				mockAPI.EXPECT().UpdateCheckRun(
+					context.Background(),
+					testPRCheckRequest.Owner,
+					testPRCheckRequest.Repo,
+					*expectedCheckRun.ID,
+					updateOpt,
+				).Return(expectedUpdatedCheckRun, nil, nil)
+			}
 
-		numUpdateRequests := int(math.Ceil(float64(len(annotations)) / githubservice.MaxAnnotationsPerRequest))
-		for i := 0; i < numUpdateRequests; i++ {
-			startCommentIdx := i * githubservice.MaxAnnotationsPerRequest
-			endCommentIdx := min(startCommentIdx+githubservice.MaxAnnotationsPerRequest, len(annotations))
-			updateOpt := github.UpdateCheckRunOptions{
-				Name: checkName,
+			lastUpdateOpt := github.UpdateCheckRunOptions{
+				Name:       checkName,
+				Status:     &checkRunCompletedStatus,
+				Conclusion: &failureConclusion,
 				Output: &github.CheckRunOutput{
 					Title:       &checkName,
-					Annotations: annotations[startCommentIdx:endCommentIdx],
+					Annotations: tt.wantAnnotations[(numUpdateRequests-1)*githubservice.MaxAnnotationsPerRequest : len(tt.wantAnnotations)],
 					Summary:     github.String(summaryString),
 				},
 			}
-			expectedUpdatedCheckRun := &github.CheckRun{
-				Output: updateOpt.Output,
-				Name:   expectedCheckRun.Name,
+			expectedLastUpdatedCheckRun := &github.CheckRun{
+				Name:       expectedCheckRun.Name,
+				Status:     &checkRunCompletedStatus,
+				Conclusion: &failureConclusion,
+				Output:     lastUpdateOpt.Output,
 			}
 			mockAPI.EXPECT().UpdateCheckRun(
 				context.Background(),
 				testPRCheckRequest.Owner,
 				testPRCheckRequest.Repo,
 				*expectedCheckRun.ID,
-				updateOpt,
-			).Return(expectedUpdatedCheckRun, nil, nil)
+				lastUpdateOpt,
+			).Return(expectedLastUpdatedCheckRun, nil, nil)
 		}
-
-		checkRunCompletedStatus := "completed"
-		completedOpt := github.UpdateCheckRunOptions{
-			Status:     &checkRunCompletedStatus,
-			Conclusion: &tt.wantConclusion,
-			Output: &github.CheckRunOutput{
-				Title:   &checkName,
-				Summary: github.String(summaryString),
-			},
-		}
-		mockAPI.EXPECT().UpdateCheckRun(
-			context.Background(),
-			testPRCheckRequest.Owner,
-			testPRCheckRequest.Repo,
-			*expectedCheckRunID,
-			completedOpt,
-		)
-
 		err := tp.gc.WriteComments(tt.giveComments)
 		g.NoError(err, fmt.Sprintf("Error getting actions dump for %s test", tt.desc))
 	}

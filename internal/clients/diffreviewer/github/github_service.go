@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
@@ -29,15 +30,19 @@ const (
 	GithubBaseBranchEnvVar = "NIGHTFALL_GITHUB_BASE_BRANCH"
 
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
+
+	nightfallGithubWorkflowName = "nightfalldlp"
+	githubActionAppName         = "github actions"
 )
 
 var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
 var annotationLevelFailure = "failure"
-var checkRunInProgressStatus = "in_progress"
 var checkRunCompletedStatus = "completed"
+var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
 var defaultBaseBranch = "master"
+var checkRunOptsInProgressStatus = github.ListCheckRunsOptions{Status: &checkRunInProgressStatus}
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -295,7 +300,7 @@ func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 func (s *Service) WriteComments(
 	comments []*diffreviewer.Comment,
 ) error {
-	checkRun, err := s.startReview()
+	checkRun, err := s.getCheckRun()
 	if err != nil {
 		return err
 	}
@@ -342,18 +347,27 @@ func (s *Service) WriteComments(
 	return nil
 }
 
-// startReview starts a github check and returns the check run
-func (s *Service) startReview() (*github.CheckRun, error) {
-	opt := github.CreateCheckRunOptions{
-		Name:    getCheckName(s.CheckRequest.Name),
-		HeadSHA: s.CheckRequest.SHA,
-		Status:  &checkRunInProgressStatus,
-	}
-	checkRun, _, err := s.Client.CreateCheckRun(context.Background(), s.CheckRequest.Owner, s.CheckRequest.Repo, opt)
+// getCheckRun gets the github check run associated with the github action
+func (s *Service) getCheckRun() (*github.CheckRun, error) {
+	listCheckRuns, _, err := s.Client.ListCheckRunsForRef(
+		context.Background(),
+		s.CheckRequest.Owner,
+		s.CheckRequest.Repo,
+		s.CheckRequest.SHA,
+		&checkRunOptsInProgressStatus,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create check: %v", err)
+		return nil, fmt.Errorf("failed to get check run: %v", err)
 	}
-	return checkRun, nil
+	for _, run := range listCheckRuns.CheckRuns {
+		runNameLow := strings.ToLower(run.GetName())
+		appNameLow := strings.ToLower(run.App.GetName())
+		if strings.Contains(runNameLow, nightfallGithubWorkflowName) && appNameLow == githubActionAppName {
+			return run, nil
+		}
+	}
+	log.Println("Please check that your NightfallDLP job has the 'name' field filled as 'nightfalldlp'")
+	return nil, fmt.Errorf("failed to get check run from list of check runs")
 }
 
 func createAnnotations(comments []*diffreviewer.Comment) []*github.CheckRunAnnotation {
@@ -378,7 +392,7 @@ func getCheckName(name string) string {
 	if name != "" {
 		return name
 	}
-	return "Nightfall DLP"
+	return "NightfallDLP"
 }
 
 func min(x, y int) int {

@@ -296,13 +296,11 @@ func (g *githubTestSuite) TestWriteComments() {
 		},
 	}
 
-	checkName := "Nightfall DLP"
+	checkName := "NightfallDLP"
+	anotherCheckName := "build_test"
 	checkRunInProgress := "in_progress"
-	createOpt := github.CreateCheckRunOptions{
-		Name:    checkName,
-		HeadSHA: testPRCheckRequest.SHA,
-		Status:  &checkRunInProgress,
-	}
+	githubAction := "Github Actions"
+	circleCI := "Circle CI"
 
 	expectedCheckRunID := github.Int64(879322521)
 	expectedCheckRun := github.CheckRun{
@@ -310,15 +308,38 @@ func (g *githubTestSuite) TestWriteComments() {
 		HeadSHA: &testPRCheckRequest.SHA,
 		Status:  &checkRunInProgress,
 		Name:    &checkName,
+		App: &github.App{
+			Name: &githubAction,
+		},
+	}
+	anotherCheckRun := github.CheckRun{
+		ID:      expectedCheckRunID,
+		HeadSHA: &testPRCheckRequest.SHA,
+		Status:  &checkRunInProgress,
+		Name:    &anotherCheckName,
+		App: &github.App{
+			Name: &circleCI,
+		},
+	}
+	checkRuns := []*github.CheckRun{
+		&anotherCheckRun,
+		&expectedCheckRun,
+	}
+	totalCheckRuns := len(checkRuns)
+	expectedListCheckRuns := github.ListCheckRunsResults{
+		Total:     &totalCheckRuns,
+		CheckRuns: checkRuns,
 	}
 
 	for _, tt := range tests {
-		mockAPI.EXPECT().CreateCheckRun(
+		listCheckRunsOpt := github.ListCheckRunsOptions{Status: &checkRunInProgress}
+		mockAPI.EXPECT().ListCheckRunsForRef(
 			context.Background(),
 			testPRCheckRequest.Owner,
 			testPRCheckRequest.Repo,
-			createOpt,
-		).Return(&expectedCheckRun, nil, nil)
+			testPRCheckRequest.SHA,
+			&listCheckRunsOpt,
+		).Return(&expectedListCheckRuns, nil, nil)
 
 		annotations := tt.wantAnnotations
 

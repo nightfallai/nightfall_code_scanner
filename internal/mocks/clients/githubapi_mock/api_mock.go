@@ -66,6 +66,22 @@ func (mr *GithubAPIMockRecorder) GetRawBySha(ctx, owner, repo, sha, head interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRawBySha", reflect.TypeOf((*GithubAPI)(nil).GetRawBySha), ctx, owner, repo, sha, head)
 }
 
+// ListCheckRunsForRef mocks base method
+func (m *GithubAPI) ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListCheckRunsForRef", ctx, owner, repo, ref, opts)
+	ret0, _ := ret[0].(*github.ListCheckRunsResults)
+	ret1, _ := ret[1].(*github.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListCheckRunsForRef indicates an expected call of ListCheckRunsForRef
+func (mr *GithubAPIMockRecorder) ListCheckRunsForRef(ctx, owner, repo, ref, opts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCheckRunsForRef", reflect.TypeOf((*GithubAPI)(nil).ListCheckRunsForRef), ctx, owner, repo, ref, opts)
+}
+
 // CreateCheckRun mocks base method
 func (m *GithubAPI) CreateCheckRun(ctx context.Context, owner, repo string, opts github.CreateCheckRunOptions) (*github.CheckRun, *github.Response, error) {
 	m.ctrl.T.Helper()

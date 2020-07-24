@@ -36,13 +36,26 @@ func NewAuthenticatedClient(token string) *Client {
 }
 
 // GetRaw gets a single pull request in raw (diff or patch) format.
-func (c *Client) GetRaw(ctx context.Context, owner string, repo string, number int, opts github.RawOptions) (string, *github.Response, error) {
+func (c *Client) GetRaw(
+	ctx context.Context,
+	owner string,
+	repo string,
+	number int,
+	opts github.RawOptions,
+) (string, *github.Response, error) {
 	return c.Client.PullRequests.GetRaw(ctx, owner, repo, number, opts)
 }
 
-// GetRawBySha gets the diff based on base and head commit
-func (c *Client) GetRawBySha(ctx context.Context, owner string, repo string, sha string, head string) (string, *github.Response, error) {
-	u := fmt.Sprintf("repos/%v/%v/compare/%v...%v", owner, repo, sha, head)
+// GetRawBySha gets the diff based on the base and head commits (or branches)
+// https://developer.github.com/v3/repos/commits/#compare-two-commits
+func (c *Client) GetRawBySha(
+	ctx context.Context,
+	owner string,
+	repo string,
+	base string,
+	headOrSha string,
+) (string, *github.Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/compare/%v...%v", owner, repo, base, headOrSha)
 	req, err := c.Client.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return "", nil, err
@@ -62,11 +75,22 @@ func (c *Client) ListCheckRunsForRef(ctx context.Context, owner, repo, ref strin
 }
 
 // CreateCheckRun creates a new check run for a specific commit in a repository. Your GitHub App must have the checks:write permission to create check runs.
-func (c *Client) CreateCheckRun(ctx context.Context, owner, repo string, opts github.CreateCheckRunOptions) (*github.CheckRun, *github.Response, error) {
+func (c *Client) CreateCheckRun(
+	ctx context.Context,
+	owner string,
+	repo string,
+	opts github.CreateCheckRunOptions,
+) (*github.CheckRun, *github.Response, error) {
 	return c.Client.Checks.CreateCheckRun(ctx, owner, repo, opts)
 }
 
 // UpdateCheckRun updates a check run for a specific commit in a repository. Your GitHub App must have the checks:write permission to edit check runs.
-func (c *Client) UpdateCheckRun(ctx context.Context, owner, repo string, checkRunID int64, opts github.UpdateCheckRunOptions) (*github.CheckRun, *github.Response, error) {
+func (c *Client) UpdateCheckRun(
+	ctx context.Context,
+	owner string,
+	repo string,
+	checkRunID int64,
+	opts github.UpdateCheckRunOptions,
+) (*github.CheckRun, *github.Response, error) {
 	return c.Client.Checks.UpdateCheckRun(ctx, owner, repo, checkRunID, opts)
 }

@@ -238,8 +238,8 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 			ctx,
 			s.CheckRequest.Owner,
 			s.CheckRequest.Repo,
-			s.CheckRequest.SHA,
 			s.BaseBranch,
+			s.CheckRequest.SHA,
 		)
 	} else {
 		d, _, err = s.Client.GetRaw(

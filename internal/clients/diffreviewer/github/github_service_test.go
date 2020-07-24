@@ -224,8 +224,8 @@ func (g *githubTestSuite) TestGetDiff() {
 					context.Background(),
 					testPRCheckRequest.Owner,
 					testPRCheckRequest.Repo,
-					testPRCheckRequest.SHA,
 					baseBranch,
+					testPRCheckRequest.SHA,
 				).Return(tt.haveRawResponse, nil, nil)
 		} else {
 			opts := github.RawOptions{Type: github.Diff}

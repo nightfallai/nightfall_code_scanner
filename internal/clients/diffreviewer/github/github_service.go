@@ -308,6 +308,7 @@ func (s *Service) WriteComments(
 	if len(comments) == 0 {
 		conclusionStatus = checkRunConclusionSuccess
 	}
+	summaryString := fmt.Sprintf("Nightfall DLP has found %d findings", len(comments))
 	numUpdateRequests := int(math.Ceil(float64(len(comments)) / MaxAnnotationsPerRequest))
 	for i := 0; i < numUpdateRequests; i++ {
 		startCommentIdx := i * MaxAnnotationsPerRequest
@@ -318,7 +319,7 @@ func (s *Service) WriteComments(
 			Output: &github.CheckRunOutput{
 				Title:       github.String(getCheckName(s.CheckRequest.Name)),
 				Annotations: annotations,
-				Summary:     github.String(""),
+				Summary:     github.String(summaryString),
 			},
 		}
 		_, _, err := s.Client.UpdateCheckRun(context.Background(),
@@ -334,6 +335,10 @@ func (s *Service) WriteComments(
 	completedOpt := github.UpdateCheckRunOptions{
 		Status:     &checkRunCompletedStatus,
 		Conclusion: &conclusionStatus,
+		Output: &github.CheckRunOutput{
+			Title:   github.String(getCheckName(s.CheckRequest.Name)),
+			Summary: github.String(summaryString),
+		},
 	}
 	_, _, err = s.Client.UpdateCheckRun(context.Background(),
 		s.CheckRequest.Owner,

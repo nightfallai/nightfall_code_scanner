@@ -342,6 +342,7 @@ func (g *githubTestSuite) TestWriteComments() {
 		).Return(&expectedListCheckRuns, nil, nil)
 
 		annotations := tt.wantAnnotations
+		summaryString := fmt.Sprintf("Nightfall DLP has found %d findings", len(annotations))
 
 		numUpdateRequests := int(math.Ceil(float64(len(annotations)) / githubservice.MaxAnnotationsPerRequest))
 		for i := 0; i < numUpdateRequests; i++ {
@@ -352,7 +353,7 @@ func (g *githubTestSuite) TestWriteComments() {
 				Output: &github.CheckRunOutput{
 					Title:       &checkName,
 					Annotations: annotations[startCommentIdx:endCommentIdx],
-					Summary:     github.String(""),
+					Summary:     github.String(summaryString),
 				},
 			}
 			expectedUpdatedCheckRun := &github.CheckRun{
@@ -372,6 +373,10 @@ func (g *githubTestSuite) TestWriteComments() {
 		completedOpt := github.UpdateCheckRunOptions{
 			Status:     &checkRunCompletedStatus,
 			Conclusion: &tt.wantConclusion,
+			Output: &github.CheckRunOutput{
+				Title:   &checkName,
+				Summary: github.String(summaryString),
+			},
 		}
 		mockAPI.EXPECT().UpdateCheckRun(
 			context.Background(),

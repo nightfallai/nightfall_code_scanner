@@ -69,11 +69,6 @@ func (c *Client) GetRawBySha(
 	return buf.String(), resp, nil
 }
 
-// ListCheckRunsForRef lists all the check runs associated with the input ref (sha)
-func (c *Client) ListCheckRunsForRef(ctx context.Context, owner, repo, ref string, opts *github.ListCheckRunsOptions) (*github.ListCheckRunsResults, *github.Response, error) {
-	return c.Client.Checks.ListCheckRunsForRef(ctx, owner, repo, ref, opts)
-}
-
 // CreateCheckRun creates a new check run for a specific commit in a repository. Your GitHub App must have the checks:write permission to create check runs.
 func (c *Client) CreateCheckRun(
 	ctx context.Context,

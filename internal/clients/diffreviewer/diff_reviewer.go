@@ -16,6 +16,7 @@ type DiffReviewer interface {
 
 // Comment holds the info required to write a comment to the code host
 type Comment struct {
+	Title      string
 	Body       string
 	FilePath   string
 	LineNumber int

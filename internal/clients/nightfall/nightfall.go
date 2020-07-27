@@ -85,6 +85,10 @@ func getCommentMsg(finding nightfallAPI.ScanResponse) string {
 	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.Detector)
 }
 
+func getCommentTitle(finding nightfallAPI.ScanResponse) string {
+	return fmt.Sprintf("Detected %s", finding.Detector)
+}
+
 // wordSplitter is of type bufio.SplitFunc (https://golang.org/pkg/bufio/#SplitFunc)
 // this function is used to determine how to chunk the reader input into bufio.Scanner.
 // This function will create chunks of input buffer size, but will not chunk in the middle of
@@ -158,10 +162,12 @@ func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfal
 				// Create comment
 				correspondingContent := inputContent[j]
 				findingMsg := getCommentMsg(finding)
+				findingTitle := getCommentTitle(finding)
 				c := diffreviewer.Comment{
 					FilePath:   correspondingContent.FilePath,
 					LineNumber: correspondingContent.LineNumber,
 					Body:       findingMsg,
+					Title:      findingTitle,
 				}
 				comments = append(comments, &c)
 			}

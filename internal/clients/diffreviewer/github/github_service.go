@@ -9,7 +9,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
@@ -31,6 +30,8 @@ const (
 
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
+	imageURL                    = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageAlt                    = "Nightfall Logo"
 	nightfallGithubWorkflowName = "nightfalldlp"
 	githubActionAppName         = "github actions"
 	summaryString               = "Nightfall DLP has found %d potentially sensitive items"
@@ -43,7 +44,6 @@ var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
 var defaultBaseBranch = "master"
-var checkRunOptsInProgressStatus = github.ListCheckRunsOptions{Status: &checkRunInProgressStatus}
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -301,7 +301,7 @@ func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 func (s *Service) WriteComments(
 	comments []*diffreviewer.Comment,
 ) error {
-	checkRun, err := s.getCheckRun()
+	checkRun, err := s.createCheckRun()
 	if err != nil {
 		return err
 	}
@@ -331,22 +331,29 @@ func (s *Service) WriteComments(
 			log.Printf("Unable to write some comments to Github: %s", err)
 		}
 	}
-	summaryNumFindings := fmt.Sprintf(summaryString, len(comments))
-	opt := github.UpdateCheckRunOptions{
+	annotationLength := len(comments)
+	summaryNumFindings := fmt.Sprintf(summaryString, annotationLength)
+	completedOpt := github.UpdateCheckRunOptions{
 		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
 		Conclusion: &checkRunConclusionFailure,
 		Output: &github.CheckRunOutput{
 			Title:       github.String(getCheckName(s.CheckRequest.Name)),
-			Annotations: annotations[numIntermediateUpdateRequests*MaxAnnotationsPerRequest : len(comments)],
 			Summary:     github.String(summaryNumFindings),
+			Annotations: annotations[numIntermediateUpdateRequests*MaxAnnotationsPerRequest:],
+			Images: []*github.CheckRunImage{
+				&github.CheckRunImage{
+					Alt:      github.String(imageAlt),
+					ImageURL: github.String(imageURL),
+				},
+			},
 		},
 	}
 	_, _, err = s.Client.UpdateCheckRun(context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRun.GetID(),
-		opt,
+		completedOpt,
 	)
 	if err != nil {
 		log.Printf("Unable to write some comments to Github: %s", err)
@@ -356,13 +363,21 @@ func (s *Service) WriteComments(
 }
 
 func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
-	successfulSummary := fmt.Sprintf(summaryString, 0)
+	annotationLength := 0
+	successfulSummary := fmt.Sprintf(summaryString, annotationLength)
 	opt := github.UpdateCheckRunOptions{
+		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
 		Conclusion: &checkRunConclusionSuccess,
 		Output: &github.CheckRunOutput{
 			Title:   github.String(getCheckName(s.CheckRequest.Name)),
 			Summary: github.String(successfulSummary),
+			Images: []*github.CheckRunImage{
+				&github.CheckRunImage{
+					Alt:      github.String(imageAlt),
+					ImageURL: github.String(imageURL),
+				},
+			},
 		},
 	}
 	_, _, err := s.Client.UpdateCheckRun(context.Background(),
@@ -377,27 +392,23 @@ func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
 	return nil
 }
 
-// getCheckRun gets the github check run associated with the github action
-func (s *Service) getCheckRun() (*github.CheckRun, error) {
-	listCheckRuns, _, err := s.Client.ListCheckRunsForRef(
+// createCheckRun creates a new check run
+func (s *Service) createCheckRun() (*github.CheckRun, error) {
+	opt := github.CreateCheckRunOptions{
+		Name:    getCheckName(s.CheckRequest.Name),
+		HeadSHA: s.CheckRequest.SHA,
+		Status:  &checkRunInProgressStatus,
+	}
+	checkRun, _, err := s.Client.CreateCheckRun(
 		context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
-		s.CheckRequest.SHA,
-		&checkRunOptsInProgressStatus,
+		opt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get check run: %v", err)
+		return nil, fmt.Errorf("failed to create check: %v", err)
 	}
-	for _, run := range listCheckRuns.CheckRuns {
-		runNameLow := strings.ToLower(run.GetName())
-		appNameLow := strings.ToLower(run.App.GetName())
-		if strings.Contains(runNameLow, nightfallGithubWorkflowName) && appNameLow == githubActionAppName {
-			return run, nil
-		}
-	}
-	log.Println("Please check that your NightfallDLP job has the 'name' field filled as 'nightfalldlp'")
-	return nil, fmt.Errorf("failed to get check run from list of check runs")
+	return checkRun, nil
 }
 
 func createAnnotations(comments []*diffreviewer.Comment) []*github.CheckRunAnnotation {
@@ -413,6 +424,7 @@ func convertCommentToAnnotation(comment *diffreviewer.Comment) *github.CheckRunA
 		Path:            &comment.FilePath,
 		StartLine:       &comment.LineNumber,
 		EndLine:         &comment.LineNumber,
+		Title:           &comment.Title,
 		Message:         &comment.Body,
 		AnnotationLevel: &annotationLevelFailure,
 	}
@@ -422,7 +434,7 @@ func getCheckName(name string) string {
 	if name != "" {
 		return name
 	}
-	return "NightfallDLP"
+	return "Nightfall DLP"
 }
 
 func min(x, y int) int {

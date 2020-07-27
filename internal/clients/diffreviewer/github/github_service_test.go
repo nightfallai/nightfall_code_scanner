@@ -296,13 +296,17 @@ func (g *githubTestSuite) TestWriteComments() {
 		},
 	}
 
-	checkName := "NightfallDLP"
+	imageURL := "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageAlt := "Nightfall Logo"
+	checkName := "Nightfall DLP"
 	checkRunInProgressStatus := "in_progress"
 	checkRunCompletedStatus := "completed"
-	anotherCheckName := "build_test"
 	checkRunInProgress := "in_progress"
-	githubAction := "Github Actions"
-	circleCI := "Circle CI"
+	createOpt := github.CreateCheckRunOptions{
+		Name:    checkName,
+		HeadSHA: testPRCheckRequest.SHA,
+		Status:  &checkRunInProgress,
+	}
 
 	expectedCheckRunID := github.Int64(879322521)
 	expectedCheckRun := github.CheckRun{
@@ -310,47 +314,32 @@ func (g *githubTestSuite) TestWriteComments() {
 		HeadSHA: &testPRCheckRequest.SHA,
 		Status:  &checkRunInProgressStatus,
 		Name:    &checkName,
-		App: &github.App{
-			Name: &githubAction,
-		},
-	}
-	anotherCheckRun := github.CheckRun{
-		ID:      expectedCheckRunID,
-		HeadSHA: &testPRCheckRequest.SHA,
-		Status:  &checkRunInProgress,
-		Name:    &anotherCheckName,
-		App: &github.App{
-			Name: &circleCI,
-		},
-	}
-	checkRuns := []*github.CheckRun{
-		&anotherCheckRun,
-		&expectedCheckRun,
-	}
-	totalCheckRuns := len(checkRuns)
-	expectedListCheckRuns := github.ListCheckRunsResults{
-		Total:     &totalCheckRuns,
-		CheckRuns: checkRuns,
 	}
 	for _, tt := range tests {
-		listCheckRunsOpt := github.ListCheckRunsOptions{Status: &checkRunInProgress}
-		mockAPI.EXPECT().ListCheckRunsForRef(
+		mockAPI.EXPECT().CreateCheckRun(
 			context.Background(),
 			testPRCheckRequest.Owner,
 			testPRCheckRequest.Repo,
-			testPRCheckRequest.SHA,
-			&listCheckRunsOpt,
-		).Return(&expectedListCheckRuns, nil, nil)
+			createOpt,
+		).Return(&expectedCheckRun, nil, nil)
 
 		annotations := tt.wantAnnotations
-		summaryString := fmt.Sprintf("Nightfall DLP has found %d potentially sensitive items", len(annotations))
+		annotationLength := len(annotations)
+		summaryString := fmt.Sprintf("Nightfall DLP has found %d potentially sensitive items", annotationLength)
 		if len(annotations) == 0 {
 			successfulOpt := github.UpdateCheckRunOptions{
+				Name:       checkName,
 				Status:     &checkRunCompletedStatus,
 				Conclusion: &tt.wantConclusion,
 				Output: &github.CheckRunOutput{
 					Title:   &checkName,
 					Summary: github.String(summaryString),
+					Images: []*github.CheckRunImage{
+						&github.CheckRunImage{
+							Alt:      github.String(imageAlt),
+							ImageURL: github.String(imageURL),
+						},
+					},
 				},
 			}
 			mockAPI.EXPECT().UpdateCheckRun(
@@ -384,15 +373,21 @@ func (g *githubTestSuite) TestWriteComments() {
 					updateOpt,
 				).Return(expectedUpdatedCheckRun, nil, nil)
 			}
-
+			lastAnnotations := annotations[(numUpdateRequests-1)*githubservice.MaxAnnotationsPerRequest:]
 			lastUpdateOpt := github.UpdateCheckRunOptions{
 				Name:       checkName,
 				Status:     &checkRunCompletedStatus,
 				Conclusion: &failureConclusion,
 				Output: &github.CheckRunOutput{
 					Title:       &checkName,
-					Annotations: tt.wantAnnotations[(numUpdateRequests-1)*githubservice.MaxAnnotationsPerRequest : len(tt.wantAnnotations)],
 					Summary:     github.String(summaryString),
+					Annotations: lastAnnotations,
+					Images: []*github.CheckRunImage{
+						&github.CheckRunImage{
+							Alt:      github.String(imageAlt),
+							ImageURL: github.String(imageURL),
+						},
+					},
 				},
 			}
 			expectedLastUpdatedCheckRun := &github.CheckRun{
@@ -420,6 +415,7 @@ func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffrev
 	annotationLevelFailure := "failure"
 	for i := 0; i < size; i++ {
 		comments[i] = &diffreviewer.Comment{
+			Title:      "title",
 			Body:       body,
 			FilePath:   filePath,
 			LineNumber: i + 1,
@@ -430,6 +426,7 @@ func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffrev
 			EndLine:         &comments[i].LineNumber,
 			AnnotationLevel: &annotationLevelFailure,
 			Message:         &body,
+			Title:           &comments[i].Title,
 		}
 	}
 	return comments, annotations

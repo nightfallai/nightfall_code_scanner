@@ -298,5 +298,6 @@ func createComment(finding nightfallAPI.ScanResponse) *diffreviewer.Comment {
 		Body:       getCommentMsg(finding),
 		FilePath:   filePath,
 		LineNumber: lineNumber,
+		Title:      getCommentTitle(finding),
 	}
 }

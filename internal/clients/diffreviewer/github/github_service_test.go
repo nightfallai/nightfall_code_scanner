@@ -358,6 +358,7 @@ func (g *githubTestSuite) TestWriteComments() {
 					Name: checkName,
 					Output: &github.CheckRunOutput{
 						Title:       &checkName,
+						Summary:     github.String(summaryString),
 						Annotations: tt.wantAnnotations[startCommentIdx:endCommentIdx],
 					},
 				}

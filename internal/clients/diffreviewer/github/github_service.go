@@ -309,6 +309,8 @@ func (s *Service) WriteComments(
 		return s.updateSuccessfulCheckRun(checkRun.GetID())
 	}
 	annotations := createAnnotations(comments)
+	annotationLength := len(comments)
+	summaryNumFindings := fmt.Sprintf(summaryString, annotationLength)
 	// numIntermediateUpdateRequests contains the number of intermediate requests to be made prior to the final update request
 	numIntermediateUpdateRequests := int(math.Ceil(float64(len(comments))/MaxAnnotationsPerRequest)) - 1
 	for i := 0; i < numIntermediateUpdateRequests; i++ {
@@ -319,6 +321,7 @@ func (s *Service) WriteComments(
 			Output: &github.CheckRunOutput{
 				Title:       github.String(getCheckName(s.CheckRequest.Name)),
 				Annotations: annotations[startCommentIdx:endCommentIdx],
+				Summary:     github.String(summaryNumFindings),
 			},
 		}
 		_, _, err := s.Client.UpdateCheckRun(context.Background(),
@@ -331,8 +334,6 @@ func (s *Service) WriteComments(
 			log.Printf("Unable to write some comments to Github: %s", err)
 		}
 	}
-	annotationLength := len(comments)
-	summaryNumFindings := fmt.Sprintf(summaryString, annotationLength)
 	completedOpt := github.UpdateCheckRunOptions{
 		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,

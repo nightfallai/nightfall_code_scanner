@@ -16,7 +16,9 @@ import (
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
 	githubservice "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
-	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubapi_mock"
+	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubchecks_mock"
+	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubclient_mock"
+	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubpullrequest_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
@@ -191,7 +193,9 @@ func (g *githubTestSuite) TestGetDiff() {
 	tp := g.initTestParams()
 	ctrl := gomock.NewController(g.T())
 	defer ctrl.Finish()
-	mockAPI := githubapi_mock.NewGithubAPI(tp.ctrl)
+	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
+	mockPullRequest := githubpullrequest_mock.NewGithubPullRequest(tp.ctrl)
+	baseBranch := "master"
 
 	tests := []struct {
 		haveCheckRequest *githubservice.CheckRequest
@@ -212,14 +216,13 @@ func (g *githubTestSuite) TestGetDiff() {
 
 	for _, tt := range tests {
 		testGithubService := &githubservice.Service{
-			Client:       mockAPI,
+			Client:       mockClient,
 			CheckRequest: tt.haveCheckRequest,
+			BaseBranch:   baseBranch,
 		}
 		tp.gc = testGithubService
-		baseBranch := "master"
-		tp.gc.BaseBranch = baseBranch
 		if tt.haveCheckRequest.PullRequest == 0 {
-			mockAPI.EXPECT().
+			mockClient.EXPECT().
 				GetRawBySha(
 					context.Background(),
 					testPRCheckRequest.Owner,
@@ -229,7 +232,8 @@ func (g *githubTestSuite) TestGetDiff() {
 				).Return(tt.haveRawResponse, nil, nil)
 		} else {
 			opts := github.RawOptions{Type: github.Diff}
-			mockAPI.EXPECT().
+			mockClient.EXPECT().PullRequestService().Return(mockPullRequest)
+			mockPullRequest.EXPECT().
 				GetRaw(
 					context.Background(),
 					testPRCheckRequest.Owner,
@@ -248,9 +252,10 @@ func (g *githubTestSuite) TestWriteComments() {
 	tp := g.initTestParams()
 	ctrl := gomock.NewController(g.T())
 	defer ctrl.Finish()
-	mockAPI := githubapi_mock.NewGithubAPI(tp.ctrl)
+	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
+	mockChecks := githubchecks_mock.NewGithubChecks(tp.ctrl)
 	testGithubService := &githubservice.Service{
-		Client:       mockAPI,
+		Client:       mockClient,
 		CheckRequest: testPRCheckRequest,
 	}
 	tp.gc = testGithubService
@@ -316,7 +321,8 @@ func (g *githubTestSuite) TestWriteComments() {
 		Name:    &checkName,
 	}
 	for _, tt := range tests {
-		mockAPI.EXPECT().CreateCheckRun(
+		mockClient.EXPECT().ChecksService().Return(mockChecks)
+		mockChecks.EXPECT().CreateCheckRun(
 			context.Background(),
 			testPRCheckRequest.Owner,
 			testPRCheckRequest.Repo,
@@ -342,7 +348,8 @@ func (g *githubTestSuite) TestWriteComments() {
 					},
 				},
 			}
-			mockAPI.EXPECT().UpdateCheckRun(
+			mockClient.EXPECT().ChecksService().Return(mockChecks)
+			mockChecks.EXPECT().UpdateCheckRun(
 				context.Background(),
 				testPRCheckRequest.Owner,
 				testPRCheckRequest.Repo,
@@ -366,7 +373,8 @@ func (g *githubTestSuite) TestWriteComments() {
 					Output: updateOpt.Output,
 					Name:   expectedCheckRun.Name,
 				}
-				mockAPI.EXPECT().UpdateCheckRun(
+				mockClient.EXPECT().ChecksService().Return(mockChecks)
+				mockChecks.EXPECT().UpdateCheckRun(
 					context.Background(),
 					testPRCheckRequest.Owner,
 					testPRCheckRequest.Repo,
@@ -397,7 +405,8 @@ func (g *githubTestSuite) TestWriteComments() {
 				Conclusion: &failureConclusion,
 				Output:     lastUpdateOpt.Output,
 			}
-			mockAPI.EXPECT().UpdateCheckRun(
+			mockClient.EXPECT().ChecksService().Return(mockChecks)
+			mockChecks.EXPECT().UpdateCheckRun(
 				context.Background(),
 				testPRCheckRequest.Owner,
 				testPRCheckRequest.Repo,

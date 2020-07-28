@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
+	"github.com/watchtowerai/nightfall_dlp/internal/interfaces/githubintf"
 	"golang.org/x/oauth2"
 )
 
@@ -25,6 +26,7 @@ func NewClient(httpClientInterface interfaces.HTTPClient) *Client {
 	return &Client{githubClient}
 }
 
+// NewAuthenticatedClient generates an authenticated github client
 func NewAuthenticatedClient(token string) *Client {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -35,15 +37,19 @@ func NewAuthenticatedClient(token string) *Client {
 	return &Client{githubClient}
 }
 
-// GetRaw gets a single pull request in raw (diff or patch) format.
-func (c *Client) GetRaw(
-	ctx context.Context,
-	owner string,
-	repo string,
-	number int,
-	opts github.RawOptions,
-) (string, *github.Response, error) {
-	return c.Client.PullRequests.GetRaw(ctx, owner, repo, number, opts)
+// PullRequestService gets the github clients pull request service
+func (c *Client) PullRequestService() githubintf.GithubPullRequest {
+	return c.Client.PullRequests
+}
+
+// ChecksService gets the github clients checks service
+func (c *Client) ChecksService() githubintf.GithubChecks {
+	return c.Client.Checks
+}
+
+// Do completes a request to the github API
+func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*github.Response, error) {
+	return c.Client.Do(ctx, req, v)
 }
 
 // GetRawBySha gets the diff based on the base and head commits (or branches)
@@ -62,30 +68,9 @@ func (c *Client) GetRawBySha(
 	}
 	req.Header.Set("Accept", mediaTypeV3Diff)
 	var buf bytes.Buffer
-	resp, err := c.Client.Do(ctx, req, &buf)
+	resp, err := c.Do(ctx, req, &buf)
 	if err != nil {
 		return "", nil, err
 	}
 	return buf.String(), resp, nil
-}
-
-// CreateCheckRun creates a new check run for a specific commit in a repository. Your GitHub App must have the checks:write permission to create check runs.
-func (c *Client) CreateCheckRun(
-	ctx context.Context,
-	owner string,
-	repo string,
-	opts github.CreateCheckRunOptions,
-) (*github.CheckRun, *github.Response, error) {
-	return c.Client.Checks.CreateCheckRun(ctx, owner, repo, opts)
-}
-
-// UpdateCheckRun updates a check run for a specific commit in a repository. Your GitHub App must have the checks:write permission to edit check runs.
-func (c *Client) UpdateCheckRun(
-	ctx context.Context,
-	owner string,
-	repo string,
-	checkRunID int64,
-	opts github.UpdateCheckRunOptions,
-) (*github.CheckRun, *github.Response, error) {
-	return c.Client.Checks.UpdateCheckRun(ctx, owner, repo, checkRunID, opts)
 }

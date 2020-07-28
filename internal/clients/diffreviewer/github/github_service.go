@@ -15,6 +15,7 @@ import (
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
 	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
 	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
+	"github.com/watchtowerai/nightfall_dlp/internal/interfaces/githubintf"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
@@ -32,11 +33,9 @@ const (
 
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
-	imageURL                    = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
-	imageAlt                    = "Nightfall Logo"
-	nightfallGithubWorkflowName = "nightfalldlp"
-	githubActionAppName         = "github actions"
-	summaryString               = "Nightfall DLP has found %d potentially sensitive items"
+	imageURL      = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageAlt      = "Nightfall Logo"
+	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )
 
 var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
@@ -154,7 +153,7 @@ type Annotation struct {
 
 // Service contains the github client that makes Github api calls
 type Service struct {
-	Client       interfaces.GithubAPI
+	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
 	BaseBranch   string
@@ -251,7 +250,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 			s.CheckRequest.SHA,
 		)
 	} else {
-		d, _, err = s.Client.GetRaw(
+		d, _, err = s.Client.PullRequestService().GetRaw(
 			ctx,
 			s.CheckRequest.Owner,
 			s.CheckRequest.Repo,
@@ -332,7 +331,7 @@ func (s *Service) WriteComments(
 				Summary:     github.String(summaryNumFindings),
 			},
 		}
-		_, _, err := s.Client.UpdateCheckRun(context.Background(),
+		_, _, err := s.Client.ChecksService().UpdateCheckRun(context.Background(),
 			s.CheckRequest.Owner,
 			s.CheckRequest.Repo,
 			checkRun.GetID(),
@@ -358,7 +357,7 @@ func (s *Service) WriteComments(
 			},
 		},
 	}
-	_, _, err = s.Client.UpdateCheckRun(context.Background(),
+	_, _, err = s.Client.ChecksService().UpdateCheckRun(context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRun.GetID(),
@@ -389,7 +388,7 @@ func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
 			},
 		},
 	}
-	_, _, err := s.Client.UpdateCheckRun(context.Background(),
+	_, _, err := s.Client.ChecksService().UpdateCheckRun(context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRunID,
@@ -408,7 +407,7 @@ func (s *Service) createCheckRun() (*github.CheckRun, error) {
 		HeadSHA: s.CheckRequest.SHA,
 		Status:  &checkRunInProgressStatus,
 	}
-	checkRun, _, err := s.Client.CreateCheckRun(
+	checkRun, _, err := s.Client.ChecksService().CreateCheckRun(
 		context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,

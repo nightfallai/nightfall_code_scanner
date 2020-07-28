@@ -7,6 +7,7 @@ package diffreviewer_mock
 import (
 	gomock "github.com/golang/mock/gomock"
 	diffreviewer "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	logger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
 	nightfallconfig "github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 	reflect "reflect"
 )
@@ -76,4 +77,18 @@ func (m *DiffReviewer) WriteComments(comments []*diffreviewer.Comment) error {
 func (mr *DiffReviewerMockRecorder) WriteComments(comments interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteComments", reflect.TypeOf((*DiffReviewer)(nil).WriteComments), comments)
+}
+
+// GetLogger mocks base method
+func (m *DiffReviewer) GetLogger() logger.Logger {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLogger")
+	ret0, _ := ret[0].(logger.Logger)
+	return ret0
+}
+
+// GetLogger indicates an expected call of GetLogger
+func (mr *DiffReviewerMockRecorder) GetLogger() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLogger", reflect.TypeOf((*DiffReviewer)(nil).GetLogger))
 }

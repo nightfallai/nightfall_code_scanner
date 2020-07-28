@@ -12,6 +12,8 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
+	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
 	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
@@ -153,23 +155,24 @@ type Annotation struct {
 // Service contains the github client that makes Github api calls
 type Service struct {
 	Client       interfaces.GithubAPI
+	Logger       logger.Logger
 	CheckRequest *CheckRequest
 	BaseBranch   string
 }
 
 // NewGithubService creates a new github service with the given httpClient
 func NewGithubService(httpClientInterface interfaces.HTTPClient) diffreviewer.DiffReviewer {
-	githubClient := NewClient(httpClientInterface)
 	return &Service{
-		Client: githubClient,
+		Client: NewClient(httpClientInterface),
+		Logger: githublogger.NewDefaultGithubLogger(),
 	}
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
 func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer {
-	githubClient := NewAuthenticatedClient(githubToken)
 	return &Service{
-		Client: githubClient,
+		Client: NewAuthenticatedClient(githubToken),
+		Logger: githublogger.NewDefaultGithubLogger(),
 	}
 }
 
@@ -184,6 +187,11 @@ func getEventFile(eventPath string) (*event, error) {
 		return nil, err
 	}
 	return &event, nil
+}
+
+// GetLogger gets the github service logger
+func (s *Service) GetLogger() logger.Logger {
+	return s.Logger
 }
 
 // LoadConfig gets all config values from files or environment and creates a config

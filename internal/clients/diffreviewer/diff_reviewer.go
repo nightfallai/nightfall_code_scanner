@@ -1,6 +1,9 @@
 package diffreviewer
 
-import "github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+import (
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
+	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+)
 
 //go:generate go run github.com/golang/mock/mockgen -destination=../../mocks/clients/diffreviewer_mock/diffreviewer_mock.go -source=../../clients/diffreviewer/diff_reviewer.go -package=diffreviewer_mock -mock_names=DiffReviewer=DiffReviewer
 
@@ -12,6 +15,8 @@ type DiffReviewer interface {
 	GetDiff() ([]*FileDiff, error)
 	// WriteComments posts the Nightfall DLP findings as comments/a review to the diff
 	WriteComments(comments []*Comment) error
+	// GetLogger gets the logger for the diff reviewer
+	GetLogger() logger.Logger
 }
 
 // Comment holds the info required to write a comment to the code host

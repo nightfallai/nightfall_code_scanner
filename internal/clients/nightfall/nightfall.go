@@ -10,6 +10,7 @@ import (
 
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
@@ -192,7 +193,7 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 }
 
 // Scan send /scan request to Nightfall API and return findings
-func (n *Client) Scan(ctx context.Context, items []string) ([][]nightfallAPI.ScanResponse, error) {
+func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string) ([][]nightfallAPI.ScanResponse, error) {
 	APIKey := nightfallAPI.APIKey{
 		Key:    n.APIKey,
 		Prefix: "",
@@ -201,6 +202,7 @@ func (n *Client) Scan(ctx context.Context, items []string) ([][]nightfallAPI.Sca
 	request := n.createScanRequest(items)
 	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
 	if err != nil {
+		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
 		return nil, err
 	}
 	return resp, nil
@@ -209,7 +211,7 @@ func (n *Client) Scan(ctx context.Context, items []string) ([][]nightfallAPI.Sca
 // ReviewDiff will take in a diff, chunk the contents of the diff
 // and send the chunks to the Nightfall API to determine if it
 // contains sensitive data
-func (n *Client) ReviewDiff(ctx context.Context, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
+func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
@@ -217,6 +219,7 @@ func (n *Client) ReviewDiff(ctx context.Context, fileDiffs []*diffreviewer.FileD
 			for _, line := range hunk.Lines {
 				chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.PathNew)
 				if err != nil {
+					logger.Error("Error chunking git diff")
 					return nil, err
 				}
 				contentToScanList = append(contentToScanList, chunkedContent...)
@@ -238,7 +241,7 @@ func (n *Client) ReviewDiff(ctx context.Context, fileDiffs []*diffreviewer.FileD
 		}
 
 		// send API request
-		resp, err := n.Scan(ctx, items)
+		resp, err := n.Scan(ctx, logger, items)
 		if err != nil {
 			return nil, err
 		}

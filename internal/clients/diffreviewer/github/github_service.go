@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"os"
 
@@ -197,14 +196,17 @@ func (s *Service) GetLogger() logger.Logger {
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("Missing env var for workspace path")
 	}
 	eventPath, ok := os.LookupEnv(EventPathEnvVar)
 	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", EventPathEnvVar))
 		return nil, errors.New("Missing env var for event path")
 	}
 	event, err := getEventFile(eventPath)
 	if err != nil {
+		s.Logger.Error("Error getting Github event file")
 		return nil, err
 	}
 	s.CheckRequest = &CheckRequest{
@@ -223,10 +225,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
+		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json")
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok {
+		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
 	return &nightfallconfig.Config{
@@ -259,10 +263,12 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		)
 	}
 	if err != nil {
+		s.Logger.Error("Error getting the raw diff from Github")
 		return nil, err
 	}
 	fileDiffs, err := ParseMultiFile(bytes.NewReader([]byte(d)))
 	if err != nil {
+		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err
 	}
 	fileDiffs = filterFileDiffs(fileDiffs)
@@ -310,10 +316,16 @@ func (s *Service) WriteComments(
 ) error {
 	checkRun, err := s.createCheckRun()
 	if err != nil {
+		s.Logger.Error("Error creating a Github check run")
 		return err
 	}
 	if len(comments) == 0 {
-		return s.updateSuccessfulCheckRun(checkRun.GetID())
+		err := s.updateSuccessfulCheckRun(checkRun.GetID())
+		if err != nil {
+			s.Logger.Error("Error updating check run to success")
+			return err
+		}
+		return nil
 	}
 	annotations := createAnnotations(comments)
 	annotationLength := len(comments)
@@ -338,9 +350,10 @@ func (s *Service) WriteComments(
 			opt,
 		)
 		if err != nil {
-			log.Printf("Unable to write some comments to Github: %s", err)
+			s.Logger.Warning("Unable to write 50 annotations to Github")
 		}
 	}
+	remainingAnnotations := annotations[numIntermediateUpdateRequests*MaxAnnotationsPerRequest:]
 	completedOpt := github.UpdateCheckRunOptions{
 		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
@@ -348,7 +361,7 @@ func (s *Service) WriteComments(
 		Output: &github.CheckRunOutput{
 			Title:       github.String(getCheckName(s.CheckRequest.Name)),
 			Summary:     github.String(summaryNumFindings),
-			Annotations: annotations[numIntermediateUpdateRequests*MaxAnnotationsPerRequest:],
+			Annotations: remainingAnnotations,
 			Images: []*github.CheckRunImage{
 				&github.CheckRunImage{
 					Alt:      github.String(imageAlt),
@@ -364,7 +377,7 @@ func (s *Service) WriteComments(
 		completedOpt,
 	)
 	if err != nil {
-		log.Printf("Unable to write some comments to Github: %s", err)
+		s.Logger.Error(fmt.Sprintf("Unable to update check run to failed and submit %d annotations", len(remainingAnnotations)))
 		return err
 	}
 	return nil

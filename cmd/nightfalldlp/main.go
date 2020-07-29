@@ -46,7 +46,7 @@ func run() error {
 		return err
 	}
 
-	comments, err := nightfallClient.ReviewDiff(ctx, fileDiffs)
+	comments, err := nightfallClient.ReviewDiff(ctx, diffReviewClient.GetLogger(), fileDiffs)
 	if err != nil {
 		return err
 	}

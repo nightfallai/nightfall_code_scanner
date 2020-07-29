@@ -18,7 +18,6 @@ import (
 	githubservice "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
 	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubchecks_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubclient_mock"
-	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubpullrequest_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
@@ -114,11 +113,6 @@ var testPRCheckRequest = &githubservice.CheckRequest{
 	PullRequest: 2,
 	SHA:         "7b46da6e4d3259b1a1c470ee468e2cb3d9733802",
 }
-var testPRCheckRequestNoPR = &githubservice.CheckRequest{
-	Owner: "alan20854",
-	Repo:  "TestRepo",
-	SHA:   "7b46da6e4d3259b1a1c470ee468e2cb3d9733802",
-}
 
 type githubTestSuite struct {
 	suite.Suite
@@ -191,61 +185,14 @@ func (g *githubTestSuite) TestLoadConfig() {
 
 func (g *githubTestSuite) TestGetDiff() {
 	tp := g.initTestParams()
-	ctrl := gomock.NewController(g.T())
-	defer ctrl.Finish()
-	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
-	mockPullRequest := githubpullrequest_mock.NewGithubPullRequest(tp.ctrl)
-	baseBranch := "master"
+	testDiffFilePath := githubservice.NightfallDiffFileName
+	f, _ := os.Create(testDiffFilePath)
+	defer os.Remove(f.Name())
+	_, _ = f.Write([]byte(expectedDiffResponseStr))
+	fileDiffs, err := tp.gc.GetDiff()
+	g.NoError(err, "unexpected error in GetDiff")
+	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 
-	tests := []struct {
-		haveCheckRequest *githubservice.CheckRequest
-		haveRawResponse  string
-		wantFileDiffs    []*diffreviewer.FileDiff
-	}{
-		{
-			haveCheckRequest: testPRCheckRequest,
-			haveRawResponse:  expectedDiffResponseStr,
-			wantFileDiffs:    expectedFileDiffs,
-		},
-		{
-			haveCheckRequest: testPRCheckRequestNoPR,
-			haveRawResponse:  expectedDiffResponseStr,
-			wantFileDiffs:    expectedFileDiffs,
-		},
-	}
-
-	for _, tt := range tests {
-		testGithubService := &githubservice.Service{
-			Client:       mockClient,
-			CheckRequest: tt.haveCheckRequest,
-			BaseBranch:   baseBranch,
-		}
-		tp.gc = testGithubService
-		if tt.haveCheckRequest.PullRequest == 0 {
-			mockClient.EXPECT().
-				GetRawBySha(
-					context.Background(),
-					testPRCheckRequest.Owner,
-					testPRCheckRequest.Repo,
-					baseBranch,
-					testPRCheckRequest.SHA,
-				).Return(tt.haveRawResponse, nil, nil)
-		} else {
-			opts := github.RawOptions{Type: github.Diff}
-			mockClient.EXPECT().PullRequestService().Return(mockPullRequest)
-			mockPullRequest.EXPECT().
-				GetRaw(
-					context.Background(),
-					testPRCheckRequest.Owner,
-					testPRCheckRequest.Repo,
-					testPRCheckRequest.PullRequest,
-					opts,
-				).Return(tt.haveRawResponse, nil, nil)
-		}
-		fileDiffs, err := tp.gc.GetDiff()
-		g.NoError(err, "unexpected error in GetDiff")
-		g.Equal(tt.wantFileDiffs, fileDiffs, "invalid fileDiff return value")
-	}
 }
 
 func (g *githubTestSuite) TestWriteComments() {

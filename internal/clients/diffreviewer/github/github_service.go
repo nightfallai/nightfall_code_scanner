@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 
@@ -25,11 +26,10 @@ const (
 	WarningLevel Level = "warning"
 	ErrorLevel   Level = "error"
 
-	WorkspacePathEnvVar    = "GITHUB_WORKSPACE"
-	EventPathEnvVar        = "GITHUB_EVENT_PATH"
-	NightfallAPIKeyEnvVar  = "NIGHTFALL_API_KEY"
-	GithubBaseBranchEnvVar = "NIGHTFALL_GITHUB_BASE_BRANCH"
-
+	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
+	EventPathEnvVar          = "GITHUB_EVENT_PATH"
+	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
+	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
 	imageURL      = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
@@ -37,13 +37,11 @@ const (
 	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )
 
-var rawOptionsTypeDiff = github.RawOptions{Type: github.Diff}
 var annotationLevelFailure = "failure"
 var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
-var defaultBaseBranch = "master"
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -99,7 +97,7 @@ type pullRequest struct {
 	Base   pullRequestBase `json:"base"`
 }
 
-// CheckRequest represents nightfallDLP GitHub check request.
+// CheckRequest represents a nightfallDLP GitHub check request.
 type CheckRequest struct {
 	// Commit SHA.
 	// Required.
@@ -114,40 +112,9 @@ type CheckRequest struct {
 	// Required.
 	Repo string `json:"repo,omitempty"`
 
-	// Annotations associated with the repository's commit and Pull Request.
-	Annotations []*Annotation `json:"annotations,omitempty"`
-
 	// Name of the annotation tool.
 	// Optional.
 	Name string `json:"name,omitempty"`
-
-	// Level is report level for this request.
-	// One of ["info", "warning", "error"]. Default is "error".
-	// Optional.
-	Level Level `json:"level"`
-
-	// FilterMode represents a way to filter checks results
-	// Optional. TODO check to see if this is necessary
-	// FilterMode difffilter.Mode `json:"filter_mode"`
-}
-
-// CheckResponse represents nightfallDLP GitHub check response.
-type CheckResponse struct {
-	// ReportURL is report URL of check run.
-	ReportURL string `json:"report_url,omitempty"`
-	// CheckedResults is checked annotations result.
-	CheckedResults []*Annotation `json:"checked_results"`
-	// Conclusion of check result https://developer.github.com/v3/checks/runs/#parameters-1
-	Conclusion string `json:"conclusion,omitempty"`
-}
-
-// Annotation represents an annotation to file or specific line.
-// https://developer.github.com/v3/checks/runs/#annotations-object
-type Annotation struct {
-	Path       string `json:"path,omitempty"`
-	Line       int    `json:"line,omitempty"`
-	Message    string `json:"message,omitempty"`
-	RawMessage string `json:"raw_message,omitempty"`
 }
 
 // Service contains the github client that makes Github api calls
@@ -155,7 +122,6 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
-	BaseBranch   string
 }
 
 // NewGithubService creates a new github service with the given httpClient
@@ -218,11 +184,6 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	if baseBranch, ok := os.LookupEnv(GithubBaseBranchEnvVar); ok {
-		s.BaseBranch = baseBranch
-	} else {
-		s.BaseBranch = defaultBaseBranch
-	}
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json")
@@ -241,32 +202,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
-	// TODO look into how we can retrieve the diff through the github action yaml file
-	ctx := context.Background()
-	var d string
-	var err error
-	if s.CheckRequest.PullRequest == 0 {
-		d, _, err = s.Client.GetRawBySha(
-			ctx,
-			s.CheckRequest.Owner,
-			s.CheckRequest.Repo,
-			s.BaseBranch,
-			s.CheckRequest.SHA,
-		)
-	} else {
-		d, _, err = s.Client.PullRequestService().GetRaw(
-			ctx,
-			s.CheckRequest.Owner,
-			s.CheckRequest.Repo,
-			s.CheckRequest.PullRequest,
-			rawOptionsTypeDiff,
-		)
-	}
+	content, err := ioutil.ReadFile(NightfallDiffFileName)
 	if err != nil {
 		s.Logger.Error("Error getting the raw diff from Github")
 		return nil, err
 	}
-	fileDiffs, err := ParseMultiFile(bytes.NewReader([]byte(d)))
+	fileDiffs, err := ParseMultiFile(bytes.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err

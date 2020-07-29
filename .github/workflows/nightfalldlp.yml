@@ -39,6 +39,7 @@ jobs:
         run: |
           go install ./cmd/nightfalldlp
 
+      # update how we're running the action
       - name: Run nightfalldlp (github-pr-check)
         continue-on-error: true
         env:

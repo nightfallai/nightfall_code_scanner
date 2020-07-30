@@ -160,6 +160,7 @@ func (s *Service) GetLogger() logger.Logger {
 
 // LoadConfig gets all config values from files or environment and creates a config
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
+	s.Logger.Debug("Loading configuration")
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
@@ -202,6 +203,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
+	s.Logger.Debug("Getting diff from Github")
 	content, err := ioutil.ReadFile(NightfallDiffFileName)
 	if err != nil {
 		s.Logger.Error("Error getting the raw diff from Github")
@@ -255,6 +257,7 @@ func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 func (s *Service) WriteComments(
 	comments []*diffreviewer.Comment,
 ) error {
+	s.Logger.Debug(fmt.Sprintf("Writting %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {
 		s.Logger.Error("Error creating a Github check run")

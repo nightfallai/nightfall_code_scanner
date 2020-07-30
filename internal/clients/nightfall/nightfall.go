@@ -230,6 +230,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	comments := []*diffreviewer.Comment{}
 	// Integer round up division
 	numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
 	for i := 0; i < numRequestsRequired; i++ {
 		// Use max number of items to determine content to send in request
 		cts := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
@@ -243,6 +244,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 		// send API request
 		resp, err := n.Scan(ctx, logger, items)
 		if err != nil {
+			logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", i+1, len(items)))
 			return nil, err
 		}
 

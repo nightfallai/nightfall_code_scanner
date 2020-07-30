@@ -20,12 +20,10 @@ const (
 
 // main starts the service process.
 func main() {
-	fmt.Println("Running NightfallDLP Action")
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "nightfalldlp: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("Done NightfallDLP Action")
 }
 
 func run() error {

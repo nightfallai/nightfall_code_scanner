@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
@@ -16,6 +15,7 @@ import (
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
 	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
 	githubservice "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
+	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
 	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubchecks_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubclient_mock"
 	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
@@ -50,6 +50,7 @@ index e0fe924..0405bc6 100644
 +	fmt.Println("This is a test: My name is Tom Cruise")
  }`
 
+var logger = githublogger.NewDefaultGithubLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
 	PathNew: "README.md",
@@ -128,6 +129,9 @@ func (g *githubTestSuite) initTestParams() *testParams {
 	tp := &testParams{}
 	tp.ctrl = gomock.NewController(g.T())
 	tp.w = httptest.NewRecorder()
+	tp.gc = &githubservice.Service{
+		Logger: logger,
+	}
 	return tp
 }
 
@@ -147,6 +151,7 @@ func (g *githubTestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (g *githubTestSuite) TestLoadConfig() {
+	tp := g.initTestParams()
 	apiKey := "api-key"
 	sha := "1234"
 	owner := "nightfallai"
@@ -174,13 +179,10 @@ func (g *githubTestSuite) TestLoadConfig() {
 		PullRequest: pullRequest,
 	}
 
-	diffReviewer := githubservice.NewGithubService(&http.Client{})
-	nightfallConfig, err := diffReviewer.LoadConfig(testConfigFileName)
+	nightfallConfig, err := tp.gc.LoadConfig(testConfigFileName)
 	g.NoError(err, "Error in LoadConfig")
-	gh, ok := diffReviewer.(*githubservice.Service)
-	g.Equal(true, ok, "Error casting to github.Client")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
-	g.Equal(expectedGithubCheckRequest, gh.CheckRequest, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect nightfall config")
 }
 
 func (g *githubTestSuite) TestGetDiff() {
@@ -192,7 +194,6 @@ func (g *githubTestSuite) TestGetDiff() {
 	fileDiffs, err := tp.gc.GetDiff()
 	g.NoError(err, "unexpected error in GetDiff")
 	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
-
 }
 
 func (g *githubTestSuite) TestWriteComments() {
@@ -204,6 +205,7 @@ func (g *githubTestSuite) TestWriteComments() {
 	testGithubService := &githubservice.Service{
 		Client:       mockClient,
 		CheckRequest: testPRCheckRequest,
+		Logger:       logger,
 	}
 	tp.gc = testGithubService
 

@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 )
 
@@ -15,19 +16,21 @@ const (
 
 // GithubLogger logger for Github Actions
 type GithubLogger struct {
-	log *log.Logger
+	log   *log.Logger
+	debug bool
 }
 
 // NewDefaultGithubLogger creates a github logger
 // with the default log.Logger set
-func NewDefaultGithubLogger() logger.Logger {
-	return NewGithubLogger(log.New(os.Stdout, "", 0))
+func NewDefaultGithubLogger(flagValues *flag.Values) logger.Logger {
+	return NewGithubLogger(log.New(os.Stdout, "", 0), flagValues)
 }
 
 // NewGithubLogger creates a new GithubLogger
-func NewGithubLogger(logger *log.Logger) logger.Logger {
+func NewGithubLogger(logger *log.Logger, flagValues *flag.Values) logger.Logger {
 	return &GithubLogger{
-		log: logger,
+		log:   logger,
+		debug: flagValues.Debug,
 	}
 }
 

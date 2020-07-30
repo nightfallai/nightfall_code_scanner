@@ -29,9 +29,9 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	flageValues := flag.Parse()
+	flagValues := flag.Parse()
 
-	diffReviewClient, err := CreateDiffReviewerClient(flageValues)
+	diffReviewClient, err := CreateDiffReviewerClient(flagValues)
 	if err != nil {
 		return err
 	}

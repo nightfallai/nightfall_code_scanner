@@ -74,7 +74,7 @@ func CreateDiffReviewerClient(flagValues *flag.Values) (diffreviewer.DiffReviewe
 		if !ok {
 			return nil, errors.New("missing github token in env")
 		}
-		return github.NewAuthenticatedGithubService(githubToken), nil
+		return github.NewAuthenticatedGithubService(githubToken, flagValues), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

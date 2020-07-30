@@ -3,10 +3,10 @@ package nightfall
 import (
 	"testing"
 
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	"github.com/stretchr/testify/assert"
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
 const (

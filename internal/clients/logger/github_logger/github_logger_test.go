@@ -7,8 +7,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
-	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
+	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"gotest.tools/assert"
 )
 

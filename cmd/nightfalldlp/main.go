@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/nightfall"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
+	"github.com/nightfallai/jenkins_test/internal/clients/nightfall"
 )
 
 const (

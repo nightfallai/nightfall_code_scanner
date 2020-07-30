@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
+	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 )
 
 const (

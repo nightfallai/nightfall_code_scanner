@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 )
 
 const (

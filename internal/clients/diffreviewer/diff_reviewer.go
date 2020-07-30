@@ -1,8 +1,8 @@
 package diffreviewer
 
 import (
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
-	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -destination=../../mocks/clients/diffreviewer_mock/diffreviewer_mock.go -source=../../clients/diffreviewer/diff_reviewer.go -package=diffreviewer_mock -mock_names=DiffReviewer=DiffReviewer

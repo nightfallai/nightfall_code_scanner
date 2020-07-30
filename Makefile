@@ -1,5 +1,3 @@
-# Let Go know that our modules are private
-export GOPRIVATE=github.com/watchtowerai
 .PHONY: test
 
 # Go parameters
@@ -15,7 +13,7 @@ GO_TEST_ENV?=test
 
 all: clean build start
 build:
-	$(GOBUILD) -o $(BINARY_NAME) -v
+	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/nightfalldlp/main.go
 test:
 	GO_ENV=$(GO_TEST_ENV) $(GOTEST) ./... -count=1 -coverprofile=coverage.out
 clean:

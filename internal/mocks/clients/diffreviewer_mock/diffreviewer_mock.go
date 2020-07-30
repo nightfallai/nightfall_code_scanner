@@ -5,11 +5,12 @@
 package diffreviewer_mock
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	diffreviewer "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	logger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
-	nightfallconfig "github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	diffreviewer "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	logger "github.com/nightfallai/jenkins_test/internal/clients/logger"
+	nightfallconfig "github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 )
 
 // DiffReviewer is a mock of DiffReviewer interface

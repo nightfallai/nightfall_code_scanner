@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
-	"github.com/watchtowerai/nightfall_dlp/internal/interfaces/githubintf"
+	"github.com/nightfallai/jenkins_test/internal/interfaces"
+	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
 	"golang.org/x/oauth2"
 )
 

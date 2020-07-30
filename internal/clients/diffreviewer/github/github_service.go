@@ -11,12 +11,12 @@ import (
 	"os"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
-	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
-	"github.com/watchtowerai/nightfall_dlp/internal/interfaces"
-	"github.com/watchtowerai/nightfall_dlp/internal/interfaces/githubintf"
-	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
+	"github.com/nightfallai/jenkins_test/internal/interfaces"
+	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
+	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 )
 
 type Level string

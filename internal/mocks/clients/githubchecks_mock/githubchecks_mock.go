@@ -6,9 +6,10 @@ package githubchecks_mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	github "github.com/google/go-github/v31/github"
-	reflect "reflect"
 )
 
 // GithubChecks is a mock of GithubChecks interface

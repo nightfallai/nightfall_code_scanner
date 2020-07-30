@@ -8,10 +8,10 @@ import (
 	"io"
 	"unicode/utf8"
 
-	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/logger"
-	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 const (

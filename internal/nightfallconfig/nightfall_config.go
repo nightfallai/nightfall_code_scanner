@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 // DetectorConfig struct containing all detectors being used and their

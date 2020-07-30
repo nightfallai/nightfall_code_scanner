@@ -11,14 +11,14 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	githubservice "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
+	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
+	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
+	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	"github.com/stretchr/testify/suite"
 	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	githubservice "github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
-	githublogger "github.com/watchtowerai/nightfall_dlp/internal/clients/logger/github_logger"
-	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubchecks_mock"
-	"github.com/watchtowerai/nightfall_dlp/internal/mocks/clients/githubclient_mock"
-	"github.com/watchtowerai/nightfall_dlp/internal/nightfallconfig"
 )
 
 const expectedDiffResponseStr = `diff --git a/README.md b/README.md

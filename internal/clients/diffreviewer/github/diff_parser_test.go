@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
 	"github.com/stretchr/testify/suite"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer"
-	"github.com/watchtowerai/nightfall_dlp/internal/clients/diffreviewer/github"
 )
 
 type diffParserTestSuite struct {

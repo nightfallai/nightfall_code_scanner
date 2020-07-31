@@ -2,6 +2,12 @@ package flag
 
 import "github.com/spf13/pflag"
 
+const (
+	debugFlag        = "debug"
+	debugShorthand   = "d"
+	debugDescription = "Enable debug logs"
+)
+
 // Values contains all values parsed from command line flags
 type Values struct {
 	Debug bool
@@ -11,7 +17,7 @@ type Values struct {
 func Parse() *Values {
 	values := Values{}
 
-	pflag.BoolVarP(&values.Debug, "debug", "d", false, "Enable debug logs")
+	pflag.BoolVarP(&values.Debug, debugFlag, debugShorthand, false, debugDescription)
 
 	pflag.Parse()
 

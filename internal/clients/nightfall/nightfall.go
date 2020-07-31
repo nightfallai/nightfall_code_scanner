@@ -201,6 +201,9 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
 	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
+	for i := 1; i < 150; i++ {
+		go n.APIClient.ScanApi.ScanPayload(newCtx, request)
+	}
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
 		return nil, err
@@ -243,12 +246,6 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 		// send API request
 		resp, err := n.Scan(ctx, logger, items)
-		for i := 1; i <= 150; i++ {
-			_, error := n.Scan(ctx, logger, items)
-			if error != nil {
-				logger.Error(error.Error())
-			}
-		}
 		if err != nil {
 			logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", i+1, len(items)))
 			return nil, err

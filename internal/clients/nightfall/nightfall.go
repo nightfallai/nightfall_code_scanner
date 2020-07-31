@@ -200,9 +200,6 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
-	for i := 1; i < 250; i++ {
-		go n.APIClient.ScanApi.ScanPayload(newCtx, request)
-	}
 	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
 
 	if err != nil {

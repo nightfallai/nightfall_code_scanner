@@ -243,6 +243,12 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 		// send API request
 		resp, err := n.Scan(ctx, logger, items)
+		for i := 1; i <= 150; i++ {
+			_, error := n.Scan(ctx, logger, items)
+			if error != nil {
+				logger.Error(error.Error())
+			}
+		}
 		if err != nil {
 			logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", i+1, len(items)))
 			return nil, err

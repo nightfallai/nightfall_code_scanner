@@ -15,8 +15,7 @@ const (
 
 // GithubLogger logger for Github Actions
 type GithubLogger struct {
-	log   *log.Logger
-	debug bool
+	log *log.Logger
 }
 
 // NewDefaultGithubLogger creates a github logger

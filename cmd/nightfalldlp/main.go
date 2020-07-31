@@ -27,6 +27,7 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
+
 	diffReviewClient, err := CreateDiffReviewerClient()
 	if err != nil {
 		return err

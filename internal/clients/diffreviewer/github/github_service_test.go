@@ -17,8 +17,8 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
-	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
 )
 
 const expectedDiffResponseStr = `diff --git a/README.md b/README.md

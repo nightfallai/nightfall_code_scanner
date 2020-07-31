@@ -14,7 +14,6 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/interfaces"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 )
@@ -122,14 +121,6 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
-}
-
-// NewGithubService creates a new github service with the given httpClient
-func NewGithubService(httpClientInterface interfaces.HTTPClient) diffreviewer.DiffReviewer {
-	return &Service{
-		Client: NewClient(httpClientInterface),
-		Logger: githublogger.NewDefaultGithubLogger(),
-	}
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token

@@ -6,7 +6,7 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	"github.com/stretchr/testify/assert"
-	nightfallAPI "github.com/watchtowerai/nightfall_api/generated"
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 const (

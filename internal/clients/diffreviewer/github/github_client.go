@@ -2,10 +2,8 @@ package github
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/interfaces"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
 	"golang.org/x/oauth2"
 )
@@ -13,13 +11,6 @@ import (
 // Client is a wrapper around github.Client
 type Client struct {
 	*github.Client
-}
-
-// NewClient generates a new github client
-func NewClient(httpClientInterface interfaces.HTTPClient) *Client {
-	httpClient := httpClientInterface.(*http.Client)
-	githubClient := github.NewClient(httpClient)
-	return &Client{githubClient}
 }
 
 // NewAuthenticatedClient generates an authenticated github client

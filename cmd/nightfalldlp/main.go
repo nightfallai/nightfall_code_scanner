@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
@@ -28,7 +27,8 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	diffReviewClient, err := CreateDiffReviewerClient(&http.Client{})
+
+	diffReviewClient, err := CreateDiffReviewerClient()
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func usingGithubAction() bool {
 
 // CreateDiffReviewerClient determines the current environment that is running nightfalldlp
 // and returns the corresponding DiffReviewer client
-func CreateDiffReviewerClient(httpClient *http.Client) (diffreviewer.DiffReviewer, error) {
+func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 	switch {
 	case usingGithubAction():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)

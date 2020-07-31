@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 )
 
@@ -22,15 +21,14 @@ type GithubLogger struct {
 
 // NewDefaultGithubLogger creates a github logger
 // with the default log.Logger set
-func NewDefaultGithubLogger(flagValues *flag.Values) logger.Logger {
-	return NewGithubLogger(log.New(os.Stdout, "", 0), flagValues)
+func NewDefaultGithubLogger() logger.Logger {
+	return NewGithubLogger(log.New(os.Stdout, "", 0))
 }
 
 // NewGithubLogger creates a new GithubLogger
-func NewGithubLogger(logger *log.Logger, flagValues *flag.Values) logger.Logger {
+func NewGithubLogger(logger *log.Logger) logger.Logger {
 	return &GithubLogger{
-		log:   logger,
-		debug: flagValues.Debug,
+		log: logger,
 	}
 }
 

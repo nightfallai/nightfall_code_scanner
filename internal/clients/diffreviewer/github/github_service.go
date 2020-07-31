@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
@@ -125,10 +124,10 @@ type Service struct {
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
-func NewAuthenticatedGithubService(githubToken string, flagValues *flag.Values) diffreviewer.DiffReviewer {
+func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer {
 	return &Service{
 		Client: NewAuthenticatedClient(githubToken),
-		Logger: githublogger.NewDefaultGithubLogger(flagValues),
+		Logger: githublogger.NewDefaultGithubLogger(),
 	}
 }
 

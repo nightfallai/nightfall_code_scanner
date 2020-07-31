@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
-
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/nightfall"
@@ -29,9 +27,8 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	flagValues := flag.Parse()
 
-	diffReviewClient, err := CreateDiffReviewerClient(flagValues)
+	diffReviewClient, err := CreateDiffReviewerClient()
 	if err != nil {
 		return err
 	}
@@ -67,14 +64,14 @@ func usingGithubAction() bool {
 
 // CreateDiffReviewerClient determines the current environment that is running nightfalldlp
 // and returns the corresponding DiffReviewer client
-func CreateDiffReviewerClient(flagValues *flag.Values) (diffreviewer.DiffReviewer, error) {
+func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 	switch {
 	case usingGithubAction():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok {
 			return nil, errors.New("missing github token in env")
 		}
-		return github.NewAuthenticatedGithubService(githubToken, flagValues), nil
+		return github.NewAuthenticatedGithubService(githubToken), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

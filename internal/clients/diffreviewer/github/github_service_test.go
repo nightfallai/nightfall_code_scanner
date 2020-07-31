@@ -13,7 +13,6 @@ import (
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	githubservice "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
@@ -51,7 +50,7 @@ index e0fe924..0405bc6 100644
 +	fmt.Println("This is a test: My name is Tom Cruise")
  }`
 
-var logger = githublogger.NewDefaultGithubLogger(&flag.Values{})
+var logger = githublogger.NewDefaultGithubLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
 	PathNew: "README.md",

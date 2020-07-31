@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"gotest.tools/assert"
@@ -27,7 +26,7 @@ func setupTest() (logger.Logger, *bytes.Buffer) {
 	logger := log.New(os.Stdout, "", 0)
 	logger.SetOutput(&buf)
 
-	ghLogger := githublogger.NewGithubLogger(logger, &flag.Values{})
+	ghLogger := githublogger.NewGithubLogger(logger)
 	return ghLogger, &buf
 }
 

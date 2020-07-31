@@ -69,7 +69,7 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 	case usingGithubAction():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok {
-			return nil, errors.New("missing github token in env")
+			return nil, fmt.Errorf("could not find required %s environment variable", githubTokenEnvVar)
 		}
 		return github.NewAuthenticatedGithubService(githubToken), nil
 	default:

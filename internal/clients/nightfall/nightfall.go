@@ -252,6 +252,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 	comments := []*diffreviewer.Comment{}
 	commentCh := make(chan []*diffreviewer.Comment)
+	allSent := make(chan bool)
 	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*10000))
 	defer cancel()
 
@@ -283,14 +284,23 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 				<-blockingCh
 			}(i, contentSlice)
 		}
+		allSent <- true
 		wg.Wait()
 		close(commentCh)
 	}()
 
+	select {
+	case <-allSent:
+		break
+	case <-newCtx.Done():
+		logger.Error(fmt.Sprintf("Context error: %v", newCtx.Err()))
+		return nil, newCtx.Err()
+	}
+
 	for {
 		select {
-		case c, done := <-commentCh:
-			if done {
+		case c, chClosed := <-commentCh:
+			if chClosed {
 				return comments, nil
 			}
 			comments = append(comments, c...)

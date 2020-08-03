@@ -280,12 +280,12 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 					return
 				}
 
-				c, err := n.scanContent(ctx, cts, loopCount+1, logger)
-				if err != nil {
-					cancel()
-				} else {
-					commentCh <- c
-				}
+				n.scanContent(ctx, cts, loopCount+1, logger)
+				// if err != nil {
+				// 	cancel()
+				// } else {
+				// 	commentCh <- c
+				// }
 				sem.Release(1)
 				// <-blockingCh
 			}(i, contentSlice)

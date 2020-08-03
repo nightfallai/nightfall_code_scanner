@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
@@ -192,6 +194,24 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	}
 }
 
+func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, reqestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
+	// Pull out content strings for request
+	items := make([]string, len(cts))
+	for i, item := range cts {
+		items[i] = item.Content
+	}
+
+	// send API request
+	resp, err := n.Scan(ctx, logger, items)
+	if err != nil {
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", reqestNum, len(items)))
+		return nil, err
+	}
+
+	// Determine findings from response and create comments
+	return createCommentsFromScanResp(cts, resp, n.DetectorConfigs), nil
+}
+
 // Scan send /scan request to Nightfall API and return findings
 func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string) ([][]nightfallAPI.ScanResponse, error) {
 	APIKey := nightfallAPI.APIKey{
@@ -228,30 +248,51 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	}
 
 	comments := []*diffreviewer.Comment{}
-	// Integer round up division
-	numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
-	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
-	for i := 0; i < numRequestsRequired; i++ {
-		// Use max number of items to determine content to send in request
-		cts := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
+	commentCh := make(chan []*diffreviewer.Comment)
+	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute))
+	defer cancel()
 
-		// Pull out content strings for request
-		items := make([]string, len(cts))
-		for i, item := range cts {
-			items[i] = item.Content
+	go func() {
+		blockingCh := make(chan int, 2)
+		var wg sync.WaitGroup
+
+		// Integer round up division
+		numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+		logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
+		for i := 0; i < numRequestsRequired; i++ {
+			// Use max number of items to determine content to send in request
+			contentSlice := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
+
+			blockingCh <- 0
+			wg.Add(1)
+			go func(loopCount int, cts []*contentToScan) {
+				defer wg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				c, err := n.scanContent(newCtx, cts, loopCount+1, logger)
+				if err != nil {
+					cancel()
+				} else {
+					commentCh <- c
+				}
+				<-blockingCh
+			}(i, contentSlice)
 		}
+		wg.Wait()
+		close(commentCh)
+	}()
 
-		// send API request
-		resp, err := n.Scan(ctx, logger, items)
-		if err != nil {
-			logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", i+1, len(items)))
-			return nil, err
+	for {
+		select {
+		case c, done := <-commentCh:
+			if done {
+				return comments, nil
+			}
+			comments = append(comments, c...)
+		case <-newCtx.Done():
+			return nil, ctx.Err()
 		}
-
-		// Determine findings from response and create comments
-		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs)
-		comments = append(comments, createdComments...)
 	}
-
-	return comments, nil
 }

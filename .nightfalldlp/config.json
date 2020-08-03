@@ -1,6 +1,3 @@
 {
-    "detectors": {
-        "CREDIT_CARD_NUMBER": "POSSIBLE",
-        "PHONE_NUMBER": "LIKELY"
-    }
+    
 }

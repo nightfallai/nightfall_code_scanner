@@ -8,6 +8,7 @@ import (
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
+	"github.com/nightfallai/jenkins_test/internal/clients/flag"
 	"github.com/nightfallai/jenkins_test/internal/clients/nightfall"
 )
 
@@ -27,6 +28,7 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
+	_ = flag.Parse()
 
 	diffReviewClient, err := CreateDiffReviewerClient()
 	if err != nil {

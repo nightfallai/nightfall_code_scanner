@@ -209,7 +209,9 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, reqestNu
 	}
 
 	// Determine findings from response and create comments
-	return createCommentsFromScanResp(cts, resp, n.DetectorConfigs), nil
+	c := createCommentsFromScanResp(cts, resp, n.DetectorConfigs)
+	logger.Debug(fmt.Sprintf("Get %d annotations for request #%d", len(c), reqestNum))
+	return c, nil
 }
 
 // Scan send /scan request to Nightfall API and return findings

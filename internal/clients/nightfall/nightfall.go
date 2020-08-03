@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"golang.org/x/sync/semaphore"
+
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
@@ -258,7 +260,8 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 	go func() {
 		maxGoroutines := 2
-		blockingCh := make(chan struct{}, maxGoroutines)
+		// blockingCh := make(chan struct{}, maxGoroutines)
+		sem := semaphore.NewWeighted(int64(maxGoroutines))
 		var wg sync.WaitGroup
 
 		// Integer round up division
@@ -268,7 +271,8 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			// Use max number of items to determine content to send in request
 			contentSlice := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
 
-			blockingCh <- struct{}{}
+			// blockingCh <- struct{}{}
+			sem.Acquire(ctx, 1)
 			wg.Add(1)
 			go func(loopCount int, cts []*contentToScan) {
 				defer wg.Done()
@@ -282,7 +286,8 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 				} else {
 					commentCh <- c
 				}
-				<-blockingCh
+				sem.Release(1)
+				// <-blockingCh
 			}(i, contentSlice)
 		}
 		allSent <- true

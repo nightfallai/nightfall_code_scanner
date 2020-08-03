@@ -274,7 +274,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 				c, err := n.scanContent(newCtx, cts, loopCount+1, logger)
 				if err != nil {
-					// cancel()
+					cancel()
 				} else {
 					commentCh <- c
 				}

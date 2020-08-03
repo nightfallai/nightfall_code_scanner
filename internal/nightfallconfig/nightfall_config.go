@@ -2,6 +2,7 @@ package nightfallconfig
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path"
@@ -39,6 +40,9 @@ func GetConfigFile(workspacePath, fileName string) (*NightfallConfigFileStructur
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
 		return nil, err
+	}
+	if len(nightfallConfig.Detectors) < 1 {
+		return nil, errors.New("Nightfall config file is missing detectors")
 	}
 
 	return &nightfallConfig, nil

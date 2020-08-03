@@ -268,7 +268,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			wg.Add(1)
 			go func(loopCount int, cts []*contentToScan) {
 				defer wg.Done()
-				if ctx.Err() != nil {
+				if newCtx.Err() != nil {
 					return
 				}
 

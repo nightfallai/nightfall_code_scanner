@@ -258,6 +258,9 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 	go func() {
 		blockingCh := make(chan int, 2)
+		for i := 0; i < 2; i++ {
+			blockingCh <- 0
+		}
 		var wg sync.WaitGroup
 
 		// Integer round up division
@@ -267,7 +270,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			// Use max number of items to determine content to send in request
 			contentSlice := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
 
-			blockingCh <- 0
+			<-blockingCh
 			wg.Add(1)
 			go func(loopCount int, cts []*contentToScan) {
 				defer wg.Done()
@@ -281,7 +284,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 				} else {
 					commentCh <- c
 				}
-				<-blockingCh
+				blockingCh <- 0
 			}(i, contentSlice)
 		}
 		allSent <- true

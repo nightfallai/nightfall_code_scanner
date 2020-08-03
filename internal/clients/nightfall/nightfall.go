@@ -250,7 +250,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 
 	comments := []*diffreviewer.Comment{}
 	commentCh := make(chan []*diffreviewer.Comment)
-	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute))
+	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*10000))
 	defer cancel()
 
 	go func() {
@@ -293,7 +293,8 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			}
 			comments = append(comments, c...)
 		case <-newCtx.Done():
-			return nil, ctx.Err()
+			logger.Error(fmt.Sprintf("Context error: %v", newCtx.Err()))
+			return nil, newCtx.Err()
 		}
 	}
 }

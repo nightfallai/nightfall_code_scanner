@@ -222,7 +222,8 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	request := n.createScanRequest(items)
 	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
+		logger.Error(fmt.Sprintf("Error from n API: %v", err))
+		// logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
 		return nil, err
 	}
 	return resp, nil

@@ -272,7 +272,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 					return
 				}
 
-				c, err := n.scanContent(newCtx, cts, loopCount+1, logger)
+				c, err := n.scanContent(ctx, cts, loopCount+1, logger)
 				if err != nil {
 					cancel()
 				} else {

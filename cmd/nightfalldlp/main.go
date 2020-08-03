@@ -28,7 +28,10 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	_ = flag.Parse()
+	_, done := flag.Parse()
+	if done {
+		return nil
+	}
 
 	diffReviewClient, err := CreateDiffReviewerClient()
 	if err != nil {

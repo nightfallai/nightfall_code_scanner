@@ -21,27 +21,25 @@ type Values struct {
 	Debug bool
 }
 
-func usage() {
-	fmt.Fprint(os.Stderr, "Usage: Nightfall DLP is used to scan content for sensitive information\n\n")
-	pflag.PrintDefaults()
-	os.Exit(2)
-}
-
 // Parse parses flags from command line
-func Parse() *Values {
-	pflag.Usage = usage
+func Parse() (*Values, bool) {
+	fs := pflag.NewFlagSet("all flags", pflag.ContinueOnError)
 
 	values := Values{}
 	var help bool
 
-	pflag.BoolVar(&help, helpFlag, false, helpDescription)
-	pflag.BoolVarP(&values.Debug, debugFlag, debugShorthand, false, debugDescription)
+	fs.BoolVar(&help, helpFlag, false, helpDescription)
+	fs.BoolVarP(&values.Debug, debugFlag, debugShorthand, false, debugDescription)
 
-	pflag.Parse()
-
-	if help {
-		pflag.Usage()
+	err := fs.Parse(os.Args[1:])
+	if err != nil || help {
+		if err != nil {
+			fmt.Fprint(os.Stderr, err, "\n")
+		}
+		fmt.Fprint(os.Stderr, "Usage: Nightfall DLP is used to scan content for sensitive information\n\n")
+		fs.PrintDefaults()
+		return nil, true
 	}
 
-	return &values
+	return &values, false
 }

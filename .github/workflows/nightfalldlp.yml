@@ -39,4 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTIONS: "true"
         run: |
-          docker run nightfallai/nightfall-dlp:9e1d565d7c4437e24770478d3eda5edfafe5c2af
+          docker run \
+          -e GITHUB_ACTIONS='true'
+          -e GITHUB_TOKEN=$GITHUB_TOKEN
+          nightfallai/nightfall-dlp:9e1d565d7c4437e24770478d3eda5edfafe5c2af

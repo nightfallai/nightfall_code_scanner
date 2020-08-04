@@ -13,6 +13,7 @@ import (
 const (
 	exampleCreditCardNumber  = "4916-6734-7572-5015"
 	exampleCreditCardNumber2 = "4242-4242-4242-4242"
+	exampleCreditCardNumber3 = "4916-6734-7572-5016"
 	exampleAPIKey            = "yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
 	filePath                 = "file/path"
 	lineNumber               = 0

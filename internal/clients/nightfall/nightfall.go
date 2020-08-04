@@ -196,7 +196,7 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	}
 }
 
-func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, reqestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
+func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
 	// Pull out content strings for request
 	items := make([]string, len(cts))
 	for i, item := range cts {
@@ -206,13 +206,13 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, reqestNu
 	// send API request
 	resp, err := n.Scan(ctx, logger, items)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", reqestNum, len(items)))
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", requestNum, len(items)))
 		return nil, err
 	}
 
 	// Determine findings from response and create comments
 	c := createCommentsFromScanResp(cts, resp, n.DetectorConfigs)
-	logger.Debug(fmt.Sprintf("Get %d annotations for request #%d", len(c), reqestNum))
+	logger.Debug(fmt.Sprintf("Get %d annotations for request #%d", len(c), requestNum))
 	return c, nil
 }
 

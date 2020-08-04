@@ -22,7 +22,7 @@ type Values struct {
 }
 
 // Parse parses flags from command line
-func Parse() (*Values, bool) {
+func Parse(args []string) (*Values, bool) {
 	fs := pflag.NewFlagSet("all flags", pflag.ContinueOnError)
 
 	values := Values{}
@@ -31,7 +31,7 @@ func Parse() (*Values, bool) {
 	fs.BoolVar(&help, helpFlag, false, helpDescription)
 	fs.BoolVarP(&values.Debug, debugFlag, debugShorthand, false, debugDescription)
 
-	err := fs.Parse(os.Args[1:])
+	err := fs.Parse(args)
 	if err != nil || help {
 		if err != nil {
 			fmt.Fprint(os.Stderr, err, "\n")

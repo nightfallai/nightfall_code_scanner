@@ -28,7 +28,7 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
-	_, done := flag.Parse()
+	_, done := flag.Parse(os.Args[1:])
 	if done {
 		return nil
 	}

@@ -11,6 +11,11 @@ SERVICE_NAME=nightfall_dlp
 BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 
+NAME=nightfallai/nightfall-dlp
+TAG=$(shell git log -1 --pretty=format:"%H")
+VERSION=$(NAME):$(TAG)
+LATEST=$(NAME):latest
+
 all: clean build start
 build:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/nightfalldlp/main.go
@@ -21,6 +26,9 @@ clean:
 	rm -f $(BINARY_NAME)
 start:
 	./$(BINARY_NAME)
+dockertag:
+	docker tag nightfall_dlp:latest $(VERSION)
+	docker tag nightfall_dlp:latest $(LATEST)
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)

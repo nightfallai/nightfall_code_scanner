@@ -51,6 +51,28 @@ jobs:
           name: Clean up reusable Docker
           command: clean_up_reusable_docker
 
+  push-to-dockerhub:
+    docker:
+      - image: deliveroo/circleci:0.2.8
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: build
+          command: ci build
+      - run:
+          name: Tag docker container
+          command: make dockertag
+      - run:
+          name: Push image to docker hub
+          command: |
+            push_image_to_docker_hub \
+            nightfallai/$CONTAINER_NAME:$CIRCLE_SHA1 \
+            nightfallai/$CONTAINER_NAME:latest
+          environment:
+            CONTAINER_NAME: nightfall-dlp
+
 workflows:
   version: 2
   build_and_test:
@@ -59,3 +81,10 @@ workflows:
           context: build
       - lint:
           context: build
+      - push-to-dockerhub:
+          requires:
+            - build
+            - lint
+          filters:
+            branches:
+              only: master

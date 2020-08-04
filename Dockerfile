@@ -13,7 +13,7 @@ RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/master/in
 
 COPY . .
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfalldlp ./cmd/nightfalldlp/
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_dlp ./cmd/nightfalldlp/
 
 FROM alpine:3.8
 
@@ -21,6 +21,7 @@ RUN apk add bash --no-cache
 
 WORKDIR /projects/nightfall_dlp
 
-COPY --from=builder /projects/nightfall_dlp/nightfalldlp .
+COPY --from=builder /projects/nightfall_dlp/nightfall_dlp .
+COPY --from=builder /projects/nightfall_dlp/Makefile .
 
-CMD ["./nightfalldlp"]
+CMD ["./nightfall_dlp"]

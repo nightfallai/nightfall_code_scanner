@@ -22,6 +22,5 @@ RUN apk add bash --no-cache
 WORKDIR /projects/nightfall_dlp
 
 COPY --from=builder /projects/nightfall_dlp/nightfall_dlp .
-COPY --from=builder /projects/nightfall_dlp/Makefile .
 
 CMD ["./nightfall_dlp"]

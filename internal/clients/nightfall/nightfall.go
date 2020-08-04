@@ -12,6 +12,7 @@ import (
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
@@ -41,7 +42,7 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient         *nightfallAPI.APIClient
+	APIClient         nightfallintf.NightfallAPI
 	APIKey            string
 	DetectorConfigs   nightfallconfig.DetectorConfig
 	MaxNumberRoutines int
@@ -49,9 +50,8 @@ type Client struct {
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
-	APIConfig := nightfallAPI.NewConfiguration()
 	n := Client{
-		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
+		APIClient:         NewAPIClient(),
 		APIKey:            config.NightfallAPIKey,
 		DetectorConfigs:   config.NightfallDetectors,
 		MaxNumberRoutines: config.NightfallMaxNumberRoutines,
@@ -224,7 +224,7 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
-	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
+	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error from n API: %v", err))
 		// logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))

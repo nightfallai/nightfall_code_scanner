@@ -85,6 +85,6 @@ workflows:
           requires:
             - build
             - lint
-          # filters:
-          #   branches:
-          #     only: master
+          filters:
+            branches:
+              only: master

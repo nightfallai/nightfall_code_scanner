@@ -6,11 +6,13 @@ import (
 	"testing"
 
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
-	"github.com/stretchr/testify/assert"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+	"github.com/stretchr/testify/assert"
 )
 
 const testFileName = "nightfall_test_config.json"
+const whitelistedCreditCard = "4242-4242-4242-4242"
+const whitelistedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 
 func TestGetNightfallConfig(t *testing.T) {
 	workspaceConfig, err := os.Getwd()
@@ -21,6 +23,7 @@ func TestGetNightfallConfig(t *testing.T) {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
+		TokenWhitelist: []string{whitelistedCreditCard, whitelistedApiToken},
 	}
 	actualConfig, err := nightfallconfig.GetConfigFile(workspacePath, testFileName)
 	assert.NoError(t, err, "Unexpected error when GetNightfallConfig")

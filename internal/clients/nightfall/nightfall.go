@@ -10,8 +10,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"golang.org/x/sync/semaphore"
-
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
@@ -252,61 +250,49 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 		}
 	}
 
-	comments := []*diffreviewer.Comment{}
 	commentCh := make(chan []*diffreviewer.Comment)
-	allSent := make(chan bool)
 	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*10000))
 	defer cancel()
 
 	go func() {
 		maxGoroutines := 2
-		// blockingCh := make(chan struct{}, maxGoroutines)
-		sem := semaphore.NewWeighted(int64(maxGoroutines))
+		blockingCh := make(chan struct{}, maxGoroutines)
 		var wg sync.WaitGroup
 
 		// Integer round up division
 		numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+
 		logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
 		for i := 0; i < numRequestsRequired; i++ {
 			// Use max number of items to determine content to send in request
 			contentSlice := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
 
-			// blockingCh <- struct{}{}
-			sem.Acquire(ctx, 1)
 			wg.Add(1)
+			blockingCh <- struct{}{}
 			go func(loopCount int, cts []*contentToScan) {
 				defer wg.Done()
 				if newCtx.Err() != nil {
 					return
 				}
 
-				n.scanContent(ctx, cts, loopCount+1, logger)
-				// if err != nil {
-				// 	cancel()
-				// } else {
-				// 	commentCh <- c
-				// }
-				sem.Release(1)
-				// <-blockingCh
+				c, err := n.scanContent(newCtx, cts, loopCount+1, logger)
+				if err != nil {
+					cancel()
+				} else {
+					commentCh <- c
+				}
+				<-blockingCh
 			}(i, contentSlice)
 		}
-		allSent <- true
 		wg.Wait()
 		close(commentCh)
 	}()
 
-	select {
-	case <-allSent:
-		break
-	case <-newCtx.Done():
-		logger.Error(fmt.Sprintf("Context error: %v", newCtx.Err()))
-		return nil, newCtx.Err()
-	}
-
+	comments := []*diffreviewer.Comment{}
 	for {
 		select {
-		case c, chClosed := <-commentCh:
-			if chClosed {
+		case c, chOpen := <-commentCh:
+			if !chOpen {
 				return comments, nil
 			}
 			comments = append(comments, c...)

@@ -29,6 +29,11 @@ start:
 dockertag:
 	docker tag nightfall_dlp:latest $(VERSION)
 	docker tag nightfall_dlp:latest $(LATEST)
+dockerbuild:
+	docker build -t $(VERSION) -t $(LATEST) .
+dockerpush:
+	docker push $(VERSION)
+	docker push $(LATEST)
 run:
 	$(GOBUILD) -o $(BINARY_NAME) -v ./...
 	./$(BINARY_NAME)

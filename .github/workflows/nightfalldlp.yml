@@ -1,49 +1,16 @@
 name: nightfalldlp
-on: [pull_request]
-
+on: [push, pull_request]
 jobs:
-  nightfalldlp-pr:
-    name: nightfalldlp on Pull Request
+  nightfalldlp:
+    name: nightfalldlp
     runs-on: ubuntu-latest
     steps:
-      - name: Add $GOPATH/bin
-        run: |
-          echo ::add-path::$(go env GOPATH)/bin
-
-      - name: Download repo (and action since it's currently in a private repo)
+      - name: Checkout Repo Action
         uses: actions/checkout@v2
 
-      # https://github.com/actions/cache/blob/master/examples.md#go---modules
-      - name: Cache Go Modules
-        id: cache
-        uses: actions/cache@v1
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Update git url (since has private dependency)
-        shell: bash
+      - name: nightfallDLP action step
+        uses: nightfallai/nightfall_dlp_action@FixInitialCommitDiff
         env:
-          GIT_USER: ${{ secrets.NIGHTFALL_GITHUB_USER }}
-          GIT_PASS: ${{ secrets.NIGHTFALL_GITHUB_PASS }}
-        run: |
-          git config --global url."https://$GIT_USER:$GIT_PASS@github.com/".insteadOf "https://github.com/"
-
-      - name: Download Go Modules
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: go mod download
-
-      - name: Setup nightfalldlp
-        run: |
-          go install ./cmd/nightfalldlp
-
-      # update how we're running the action
-      - name: Run nightfalldlp (github-pr-check)
-        continue-on-error: true
-        env:
-          NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          nightfalldlp
+          NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
+          EVENT_BEFORE: ${{ github.event.before }}

@@ -171,6 +171,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
+		NightfallMaxNumberRoutines: 20,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

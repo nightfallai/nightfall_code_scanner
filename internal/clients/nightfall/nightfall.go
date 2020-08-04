@@ -41,18 +41,20 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient       *nightfallAPI.APIClient
-	APIKey          string
-	DetectorConfigs nightfallconfig.DetectorConfig
+	APIClient         *nightfallAPI.APIClient
+	APIKey            string
+	DetectorConfigs   nightfallconfig.DetectorConfig
+	MaxNumberRoutines int
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
 	n := Client{
-		APIClient:       nightfallAPI.NewAPIClient(APIConfig),
-		APIKey:          config.NightfallAPIKey,
-		DetectorConfigs: config.NightfallDetectors,
+		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
+		APIKey:            config.NightfallAPIKey,
+		DetectorConfigs:   config.NightfallDetectors,
+		MaxNumberRoutines: config.NightfallMaxNumberRoutines,
 	}
 	return &n
 }
@@ -251,12 +253,11 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	}
 
 	commentCh := make(chan []*diffreviewer.Comment)
-	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*10000))
+	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*20))
 	defer cancel()
 
 	go func() {
-		maxGoroutines := 2
-		blockingCh := make(chan struct{}, maxGoroutines)
+		blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 		var wg sync.WaitGroup
 
 		// Integer round up division
@@ -297,7 +298,6 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			}
 			comments = append(comments, c...)
 		case <-newCtx.Done():
-			logger.Error(fmt.Sprintf("Context error: %v", newCtx.Err()))
 			return nil, newCtx.Err()
 		}
 	}

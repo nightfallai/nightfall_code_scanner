@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
-	"github.com/stretchr/testify/assert"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+	"github.com/stretchr/testify/assert"
 )
 
 const testFileName = "nightfall_test_config.json"
@@ -21,6 +21,7 @@ func TestGetNightfallConfig(t *testing.T) {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
+		MaxNumberRoutines: 20,
 	}
 	actualConfig, err := nightfallconfig.GetConfigFile(workspacePath, testFileName)
 	assert.NoError(t, err, "Unexpected error when GetNightfallConfig")

@@ -10,19 +10,23 @@ import (
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
+const defaultMaxNumberRoutines = 30
+
 // DetectorConfig struct containing all detectors being used and their
 // associated minimum acceptable likelihood level
 type DetectorConfig map[nightfallAPI.Detector]nightfallAPI.Likelihood
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
-	Detectors DetectorConfig `json:"detectors"`
+	Detectors         DetectorConfig `json:"detectors"`
+	MaxNumberRoutines int            `json:"max_number_concurrent_routines"`
 }
 
 // Config general config  struct
 type Config struct {
-	NightfallAPIKey    string
-	NightfallDetectors DetectorConfig
+	NightfallAPIKey            string
+	NightfallDetectors         DetectorConfig
+	NightfallMaxNumberRoutines int
 }
 
 // GetConfigFile loads nightfall config from file
@@ -43,6 +47,9 @@ func GetConfigFile(workspacePath, fileName string) (*NightfallConfigFileStructur
 	}
 	if len(nightfallConfig.Detectors) < 1 {
 		return nil, errors.New("Nightfall config file is missing detectors")
+	}
+	if nightfallConfig.MaxNumberRoutines == 0 {
+		nightfallConfig.MaxNumberRoutines = defaultMaxNumberRoutines
 	}
 
 	return &nightfallConfig, nil

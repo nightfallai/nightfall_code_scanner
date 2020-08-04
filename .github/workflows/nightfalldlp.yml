@@ -23,14 +23,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Update git url (since has private dependency)
-        shell: bash
-        env:
-          GIT_USER: ${{ secrets.NIGHTFALL_GITHUB_USER }}
-          GIT_PASS: ${{ secrets.NIGHTFALL_GITHUB_PASS }}
-        run: |
-          git config --global url."https://$GIT_USER:$GIT_PASS@github.com/".insteadOf "https://github.com/"
-
       - name: Download Go Modules
         if: steps.cache.outputs.cache-hit != 'true'
         run: go mod download
@@ -46,4 +38,4 @@ jobs:
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          nightfalldlp
+          docker run nightfallai/nightfall-dlp:9e1d565d7c4437e24770478d3eda5edfafe5c2af

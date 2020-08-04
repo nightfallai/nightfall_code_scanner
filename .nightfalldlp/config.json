@@ -3,5 +3,5 @@
         "CREDIT_CARD_NUMBER": "POSSIBLE",
         "PHONE_NUMBER": "LIKELY"
     },
-    "max_number_concurrent_routines": 20
+    "max_number_concurrent_routines": 5
 }

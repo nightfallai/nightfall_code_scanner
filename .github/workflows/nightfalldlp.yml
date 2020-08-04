@@ -37,6 +37,6 @@ jobs:
         env:
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTIONS: true
+          GITHUB_ACTIONS: "true"
         run: |
           docker run nightfallai/nightfall-dlp:9e1d565d7c4437e24770478d3eda5edfafe5c2af

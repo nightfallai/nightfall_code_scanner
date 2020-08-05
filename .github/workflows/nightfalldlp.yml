@@ -16,7 +16,13 @@ jobs:
       - name: Download libgit
         shell: bash
         run: |
-          sudo apt-get install libgit2
+          sudo apt-get install -y wget
+          wget https://github.com/libgit2/libgit2/archive/v1.0.0.tar.gz && \
+          tar xzf v1.0.0.tar.gz && \
+          cd libgit2-1.0.0/ && \
+          cmake . && \
+          make && \
+          make install
 
       # - name: Download diff locally
       #   shell: bash

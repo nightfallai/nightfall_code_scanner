@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"unicode/utf8"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
@@ -43,17 +44,21 @@ type Client struct {
 	APIKey            string
 	DetectorConfigs   nightfallconfig.DetectorConfig
 	TokenWhitelistMap map[string]bool
+	FileInclusionList []string
+	FileExclusionList []string
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
-	tokenWhitelistMap := makeStrMap(config.TokenWhitelist)
+	tokenWhitelistMap := makeStrMap(config.TokenExclusionList)
 	n := Client{
 		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
 		APIKey:            config.NightfallAPIKey,
 		DetectorConfigs:   config.NightfallDetectors,
 		TokenWhitelistMap: tokenWhitelistMap,
+		FileInclusionList: config.FileInclusionList,
+		FileExclusionList: config.FileExclusionList,
 	}
 	return &n
 }
@@ -235,6 +240,7 @@ func (n *Client) ReviewDiff(
 	logger logger.Logger,
 	fileDiffs []*diffreviewer.FileDiff,
 ) ([]*diffreviewer.Comment, error) {
+	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList)
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
@@ -277,6 +283,37 @@ func (n *Client) ReviewDiff(
 	}
 
 	return comments, nil
+}
+
+func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string) []*diffreviewer.FileDiff {
+	filteredFileDiffs := fileDiffs
+	if fileIncludeList != nil && len(fileIncludeList) > 0 {
+		filteredFileDiffs = filterByFilePath(filteredFileDiffs, fileIncludeList, true)
+	}
+	if fileExcludeList != nil && len(fileExcludeList) > 0 {
+		filteredFileDiffs = filterByFilePath(filteredFileDiffs, fileExcludeList, false)
+	}
+	return filteredFileDiffs
+}
+
+func filterByFilePath(ss []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
+	filteredFileDiffs := []*diffreviewer.FileDiff{}
+	for _, s := range ss {
+		if (matchRegex(s.PathNew, regexPatterns) && include) ||
+			(!matchRegex(s.PathNew, regexPatterns) && !include) {
+			filteredFileDiffs = append(filteredFileDiffs, s)
+		}
+	}
+	return filteredFileDiffs
+}
+
+func matchRegex(filePath string, regexPatterns []string) bool {
+	for _, pattern := range regexPatterns {
+		if matched, _ := filepath.Match(pattern, filePath); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func makeStrMap(strSlice []string) map[string]bool {

@@ -300,6 +300,37 @@ func TestBlurContent(t *testing.T) {
 	}
 }
 
+func TestFilterFileDiffs(t *testing.T) {
+	tests := []struct {
+		haveFileDiffs         []*diffreviewer.FileDiff
+		haveInclusionFileList []string
+		haveExclusionFileList []string
+		wantFileDiffs         []*diffreviewer.FileDiff
+		desc                  string
+	}{
+		{
+			have: exampleCreditCardNumber,
+			want: "49********",
+		},
+		{
+			have: exampleAPIKey,
+			want: "yr********",
+		},
+		{
+			have: "汉字 Hello 123",
+			want: "汉字********",
+		},
+		{
+			have: "SHORT",
+			want: "SH***",
+		},
+	}
+	for _, tt := range tests {
+		actual := blurContent(tt.have)
+		assert.Equal(t, tt.want, actual, "Incorrect response from blurContent")
+	}
+}
+
 func createScanResponse(fragment string, detector nightfallAPI.Detector, likelihood nightfallAPI.Likelihood) nightfallAPI.ScanResponse {
 	return nightfallAPI.ScanResponse{
 		Fragment: fragment,

@@ -13,6 +13,11 @@ jobs:
       - name: Download repo (and action since it's currently in a private repo)
         uses: actions/checkout@v2
 
+      - name: Download libgit 1
+        shell: bash
+        run: |
+          sudo apt-get libgit2-dev
+
       - name: Download libgit
         shell: bash
         run: |
@@ -21,8 +26,8 @@ jobs:
           tar xzf v1.0.0.tar.gz && \
           cd libgit2-1.0.0/ && \
           cmake . && \
-          make && \
-          make install
+          sudo make && \
+          sudo make install
 
       # - name: Download diff locally
       #   shell: bash

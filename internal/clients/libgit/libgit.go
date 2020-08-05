@@ -81,7 +81,7 @@ func convertDiffToFileDiffs(diff *libgit2.Diff) ([]*diffreviewer.FileDiff, error
 			fileDiff.Hunks = append(fileDiff.Hunks, hunk)
 			lineCb = func(fileLine libgit2.DiffLine) error {
 				// We only care about line addtions or line contexts
-				if isDiffLineAdditionOrDiffLineDeleteOrDiffLineContext(fileLine) {
+				if isDiffLineAdditionOrDiffLineDelete(fileLine) {
 					return nil
 				}
 				fileType, err := convertFileLineOriginToLineType(fileLine.Origin)
@@ -127,8 +127,8 @@ func getTreeByHash(repo *libgit2.Repository, hash string) (*libgit2.Tree, error)
 	return tree, nil
 }
 
-func isDiffLineAdditionOrDiffLineDeleteOrDiffLineContext(fileLine libgit2.DiffLine) bool {
-	return (fileLine.Origin != libgit2.DiffLineAddition) && (fileLine.Origin != libgit2.DiffLineDeletion) && (fileLine.Origin != libgit2.DiffLineContext)
+func isDiffLineAdditionOrDiffLineDelete(fileLine libgit2.DiffLine) bool {
+	return (fileLine.Origin != libgit2.DiffLineAddition) && (fileLine.Origin != libgit2.DiffLineDeletion)
 }
 
 func convertFileLineOriginToLineType(origin libgit2.DiffLineType) (diffreviewer.LineType, error) {
@@ -137,8 +137,6 @@ func convertFileLineOriginToLineType(origin libgit2.DiffLineType) (diffreviewer.
 		return diffreviewer.LineAdded, nil
 	case libgit2.DiffLineDeletion:
 		return diffreviewer.LineDeleted, nil
-	case libgit2.DiffLineContext:
-		return diffreviewer.LineUnchanged, nil
 	}
 	return 0, errors.New("Unknown file line origin type")
 }

@@ -58,6 +58,7 @@ type headCommit struct {
 // event represents github event webhook file
 type event struct {
 	Before      string      `json:"before"`
+	BaseRef     string      `json:"base_ref"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
 	HeadCommit  headCommit  `json:"head_commit"`
@@ -162,9 +163,15 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
+	base := event.BaseRef
+	fmt.Printf("Base ref %s", base)
+	if base == "" {
+		base = event.Before
+	}
+	fmt.Printf("Final base %s", base)
 	s.repoParams = &repoParams{
 		gitURL: event.Repository.GitURL,
-		base:   event.Before,
+		base:   base,
 	}
 	s.Logger.Debug(fmt.Sprintf("GitURL %s", s.repoParams.gitURL))
 	s.Logger.Debug(fmt.Sprintf("Base %s", s.repoParams.base))

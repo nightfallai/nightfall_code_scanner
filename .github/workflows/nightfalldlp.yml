@@ -13,11 +13,6 @@ jobs:
       - name: Download repo (and action since it's currently in a private repo)
         uses: actions/checkout@v2
 
-      - name: Download libgit 1
-        shell: bash
-        run: |
-          sudo apt-get libgit2-dev
-
       - name: Download libgit
         shell: bash
         run: |

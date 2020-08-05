@@ -199,15 +199,16 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	if err != nil {
 		return nil, err
 	}
+	fileDiffs = filterFileDiffs(fileDiffs)
 	for _, fd := range fileDiffs {
 		fmt.Println("FileName:", fd.PathNew)
 		for _, h := range fd.Hunks {
 			for _, l := range h.Lines {
-				fmt.Println("Line:", l.Content)
+				fmt.Println("Line:", l.Content, l.)
 			}
 		}
 	}
-	return filterFileDiffs(fileDiffs), nil
+	return fileDiffs, nil
 }
 
 func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff) []*diffreviewer.FileDiff {

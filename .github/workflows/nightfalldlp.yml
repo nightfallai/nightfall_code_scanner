@@ -16,7 +16,7 @@ jobs:
       - name: Download libgit
         shell: bash
         run: |
-          apt-get install libgit2
+          sudo apt-get install libgit2
 
       # - name: Download diff locally
       #   shell: bash

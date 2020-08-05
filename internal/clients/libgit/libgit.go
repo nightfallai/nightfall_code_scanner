@@ -31,7 +31,7 @@ func NewClient(accessToken, base, head, repoURL string) *Client {
 
 // GetDiff gets the diff from the base to the head on the given repo
 func (c *Client) GetDiff() ([]*diffreviewer.FileDiff, error) {
-	filePath := ""
+	filePath := "./testRepo"
 	repo, err := c.cloner.Clone(filePath)
 	if err != nil {
 		return nil, err
@@ -72,9 +72,8 @@ func convertDiffToFileDiffs(diff *libgit2.Diff) ([]*diffreviewer.FileDiff, error
 			PathNew: delta.NewFile.Path,
 			Hunks:   []*diffreviewer.Hunk{},
 		}
+		fileDiffs = append(fileDiffs, fileDiff)
 		hunkCb = func(fileHunk libgit2.DiffHunk) (libgit2.DiffForEachLineCallback, error) {
-			hunkTotalLines := fileHunk.NewLines + fileHunk.OldLines
-			hunkLineNum := 0
 			hunk := &diffreviewer.Hunk{
 				StartLineOld:  fileHunk.OldStart,
 				LineLengthOld: fileHunk.OldLines,
@@ -83,12 +82,12 @@ func convertDiffToFileDiffs(diff *libgit2.Diff) ([]*diffreviewer.FileDiff, error
 				Section:       fileHunk.Header,
 				Lines:         []*diffreviewer.Line{},
 			}
+			fileDiff.Hunks = append(fileDiff.Hunks, hunk)
 			lineCb = func(fileLine libgit2.DiffLine) error {
 				// We only care about line addtions or line contexts
 				if isDiffLineAdditionOrDiffLineDeleteOrDiffLineContext(fileLine) {
 					return nil
 				}
-				hunkLineNum++
 				fileType, err := convertFileLineOriginToLineType(fileLine.Origin)
 				if err != nil {
 					return err
@@ -101,10 +100,6 @@ func convertDiffToFileDiffs(diff *libgit2.Diff) ([]*diffreviewer.FileDiff, error
 					LnumNew:  fileLine.NewLineno,
 				}
 				hunk.Lines = append(hunk.Lines, line)
-				// if we have appended all the lines to the hunk append hunk to file diff map
-				if hunkLineNum == hunkTotalLines {
-					fileDiff.Hunks = append(fileDiff.Hunks, hunk)
-				}
 				return nil
 			}
 			return lineCb, nil

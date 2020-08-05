@@ -10,8 +10,6 @@ import (
 
 // Client is a wrapper around libgit2
 type Client struct {
-	base   string
-	head   string
 	cloner libgitintf.LibgitCloner
 }
 
@@ -21,27 +19,25 @@ type fileDiffHolder struct {
 }
 
 // NewClient creates a libgit client
-func NewClient(accessToken, base, head, repoURL string) *Client {
+func NewClient(accessToken string) *Client {
 	return &Client{
-		base:   base,
-		head:   head,
-		cloner: NewCloner(accessToken, repoURL),
+		cloner: NewCloner(accessToken),
 	}
 }
 
 // GetDiff gets the diff from the base to the head on the given repo
-func (c *Client) GetDiff() ([]*diffreviewer.FileDiff, error) {
-	filePath := "./testRepo"
-	repo, err := c.cloner.Clone(filePath)
+func (c *Client) GetDiff(base, head, repoURL string) ([]*diffreviewer.FileDiff, error) {
+	filePath := "./temp"
+	repo, err := c.cloner.Clone(repoURL, filePath)
 	if err != nil {
 		return nil, err
 	}
 
-	baseTree, err := getTreeByHash(repo, c.base)
+	baseTree, err := getTreeByHash(repo, base)
 	if err != nil {
 		return nil, err
 	}
-	headTree, err := getTreeByHash(repo, c.head)
+	headTree, err := getTreeByHash(repo, head)
 	if err != nil {
 		return nil, err
 	}

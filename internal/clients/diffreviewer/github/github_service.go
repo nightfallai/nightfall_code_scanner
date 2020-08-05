@@ -1,17 +1,16 @@
 package github
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
+	"github.com/nightfallai/jenkins_test/internal/clients/libgit"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
@@ -95,11 +94,18 @@ type CheckRequest struct {
 	Name string `json:"name,omitempty"`
 }
 
+type repoParams struct {
+	gitURL string
+	base   string
+}
+
 // Service contains the github client that makes Github api calls
 type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
+	libgit       *libgit.Client
+	repoParams   *repoParams
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -107,6 +113,7 @@ func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer
 	return &Service{
 		Client: NewAuthenticatedClient(githubToken),
 		Logger: githublogger.NewDefaultGithubLogger(),
+		libgit: libgit.NewClient(githubToken),
 	}
 }
 
@@ -155,6 +162,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
+	s.repoParams = &repoParams{
+		gitURL: event.Repository.GitURL,
+		base:   event.Before,
+	}
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
@@ -174,17 +185,11 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-	content, err := ioutil.ReadFile(NightfallDiffFileName)
+
+	fileDiffs, err := s.libgit.GetDiff(s.repoParams.base, s.CheckRequest.SHA, s.repoParams.gitURL)
 	if err != nil {
-		s.Logger.Error("Error getting the raw diff from Github")
 		return nil, err
 	}
-	fileDiffs, err := ParseMultiFile(bytes.NewReader(content))
-	if err != nil {
-		s.Logger.Error("Error parsing the raw diff from Github")
-		return nil, err
-	}
-	fileDiffs = filterFileDiffs(fileDiffs)
 	return fileDiffs, nil
 }
 

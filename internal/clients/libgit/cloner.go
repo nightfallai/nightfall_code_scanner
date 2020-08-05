@@ -35,3 +35,12 @@ func (c *Cloner) Clone(filePath string) (*libgit2.Repository, error) {
 	}
 	return repo, nil
 }
+
+// OpenRepo opens a repo which already exists in the file system
+func (c *Cloner) OpenRepo(filePath string) (*libgit2.Repository, error) {
+	repo, err := libgit2.OpenRepository(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
+}

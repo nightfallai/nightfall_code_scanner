@@ -47,13 +47,9 @@ type ownerLogin struct {
 }
 
 type eventRepo struct {
-	Owner ownerLogin `json:"owner"`
-	Name  string     `json:"name"`
-}
-
-type checkSuite struct {
-	After        string        `json:"after"`
-	PullRequests []pullRequest `json:"pull_requests"`
+	Owner  ownerLogin `json:"owner"`
+	Name   string     `json:"name"`
+	GitURL string     `json:"git_url"`
 }
 
 type headCommit struct {
@@ -62,30 +58,14 @@ type headCommit struct {
 
 // event represents github event webhook file
 type event struct {
+	Before      string      `json:"before"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
-	CheckSuite  checkSuite  `json:"check_suite"`
 	HeadCommit  headCommit  `json:"head_commit"`
 }
 
-type ownerID struct {
-	ID int64 `json:"id"`
-}
-
-// repo contains information relevant to the
-// github repo being checked
-type repo struct {
-	Owner ownerID `json:"owner"`
-}
-
 type pullRequestHead struct {
-	Sha  string `json:"sha"`
-	Ref  string `json:"ref"`
-	Repo repo   `json:"repo"`
-}
-
-type pullRequestBase struct {
-	Repo repo `json:"repo"`
+	Sha string `json:"sha"`
 }
 
 // pullRequest contains information relevant to
@@ -93,7 +73,6 @@ type pullRequestBase struct {
 type pullRequest struct {
 	Number int             `json:"number"`
 	Head   pullRequestHead `json:"head"`
-	Base   pullRequestBase `json:"base"`
 }
 
 // CheckRequest represents a nightfallDLP GitHub check request.

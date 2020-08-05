@@ -204,7 +204,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		fmt.Println("FileName:", fd.PathNew)
 		for _, h := range fd.Hunks {
 			for _, l := range h.Lines {
-				fmt.Println("Line:", l.Content, l.)
+				fmt.Println("Line:", l.Content, l.Type)
 			}
 		}
 	}

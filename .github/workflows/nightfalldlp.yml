@@ -13,6 +13,11 @@ jobs:
       - name: Download repo (and action since it's currently in a private repo)
         uses: actions/checkout@v2
 
+      - name: Download libgit
+        shell: bash
+        run: |
+          apt-get install libgit2
+
       # - name: Download diff locally
       #   shell: bash
       #   run: |

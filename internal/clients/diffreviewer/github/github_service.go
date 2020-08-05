@@ -200,7 +200,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 			}
 		}
 	}
-	return fileDiffs, nil
+	return filterFileDiffs(fileDiffs), nil
 }
 
 func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff) []*diffreviewer.FileDiff {

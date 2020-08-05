@@ -25,6 +25,8 @@ const (
 	contentChunkByteSize = 1024
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
+
+	defaultTimeout = time.Minute * 20
 )
 
 // likelihoodThresholdMap gives each likelihood an integer value representation
@@ -212,8 +214,41 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 
 	// Determine findings from response and create comments
 	c := createCommentsFromScanResp(cts, resp, n.DetectorConfigs)
-	logger.Debug(fmt.Sprintf("Get %d annotations for request #%d", len(c), requestNum))
+	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(c), requestNum))
 	return c, nil
+}
+
+func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan []*diffreviewer.Comment) {
+	defer close(commentCh)
+	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
+	var wg sync.WaitGroup
+
+	// Integer round up division
+	numRequestsRequired := (len(cts) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+
+	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
+	for i := 0; i < numRequestsRequired; i++ {
+		// Use max number of items to determine content to send in request
+		contentSlice := sliceListBySize(i, maxItemsForAPIReq, cts)
+
+		wg.Add(1)
+		blockingCh <- struct{}{}
+		go func(loopCount int, cts []*contentToScan) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			c, err := n.scanContent(ctx, cts, loopCount+1, logger)
+			if err != nil {
+				logger.Error(fmt.Sprintf("Unable to scan %d content items", len(cts)))
+			} else {
+				commentCh <- c
+			}
+			<-blockingCh
+		}(i, contentSlice)
+	}
+	wg.Wait()
 }
 
 // Scan send /scan request to Nightfall API and return findings
@@ -252,41 +287,10 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	}
 
 	commentCh := make(chan []*diffreviewer.Comment)
-	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Minute*20))
+	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(defaultTimeout))
 	defer cancel()
 
-	go func() {
-		blockingCh := make(chan struct{}, n.MaxNumberRoutines)
-		var wg sync.WaitGroup
-
-		// Integer round up division
-		numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
-
-		logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
-		for i := 0; i < numRequestsRequired; i++ {
-			// Use max number of items to determine content to send in request
-			contentSlice := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
-
-			wg.Add(1)
-			blockingCh <- struct{}{}
-			go func(loopCount int, cts []*contentToScan) {
-				defer wg.Done()
-				if newCtx.Err() != nil {
-					return
-				}
-
-				c, err := n.scanContent(newCtx, cts, loopCount+1, logger)
-				if err != nil {
-					cancel()
-				} else {
-					commentCh <- c
-				}
-				<-blockingCh
-			}(i, contentSlice)
-		}
-		wg.Wait()
-		close(commentCh)
-	}()
+	go n.scanAllContent(newCtx, logger, contentToScanList, commentCh)
 
 	comments := []*diffreviewer.Comment{}
 	for {

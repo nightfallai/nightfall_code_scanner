@@ -136,7 +136,7 @@ func (n *nightfallTestSuite) TestScan() {
 	}
 
 	mockAPIClient.EXPECT().ScanAPI().Return(mockScanAPI)
-	mockScanAPI.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).Return(expectedScanResp, nil, nil)
+	mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).Return(expectedScanResp, nil, nil)
 
 	resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), items)
 	n.NoError(err, "Received error from Scan")

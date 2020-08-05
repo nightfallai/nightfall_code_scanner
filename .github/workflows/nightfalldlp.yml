@@ -1,21 +1,53 @@
-
 name: nightfalldlp
-on:
-  push:
-    branches:
-      - master
-  pull_request:
+on: [pull_request]
+
 jobs:
-  nightfalldlp:
-    name: nightfalldlp
+  nightfalldlp-pr:
+    name: nightfalldlp on Pull Request
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo Action
+      - name: Add $GOPATH/bin
+        run: |
+          echo ::add-path::$(go env GOPATH)/bin
+      - name: Download repo (and action since it's currently in a private repo)
         uses: actions/checkout@v2
 
-      - name: nightfallDLP action step
-        uses: nightfallai/nightfall_dlp_action@v0.0.3
+      - name: Download diff locally
+        shell: bash
+        run: |
+          diff_filename="./nightfalldlp_raw_diff.txt"
+          if [ "$GITHUB_BASE_REF" ]; then
+            git fetch origin "$GITHUB_BASE_REF" --depth=1;
+            echo "PR: fetching diff between origin/$GITHUB_BASE_REF and $GITHUB_SHA";
+            git diff origin/"$GITHUB_BASE_REF" "$GITHUB_SHA" > $diff_filename;
+          else
+            git fetch origin "$EVENT_BEFORE" --depth=1;
+            echo "PUSH: fetching diff between $EVENT_BEFORE and $GITHUB_SHA";
+            git diff "$EVENT_BEFORE" "$GITHUB_SHA" > $diff_filename;
+          fi;
+
+      # https://github.com/actions/cache/blob/master/examples.md#go---modules
+      - name: Cache Go Modules
+        id: cache
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download Go Modules
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: go mod download
+
+      - name: Setup nightfalldlp
+        run: |
+          go install ./cmd/nightfalldlp
+      # update how we're running the action
+      - name: Run nightfalldlp (github-pr-check)
+        continue-on-error: true
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
-          EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nightfalldlp

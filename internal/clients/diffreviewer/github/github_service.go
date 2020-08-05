@@ -192,6 +192,14 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	if err != nil {
 		return nil, err
 	}
+	for _, fd := range fileDiffs {
+		fmt.Println("FileName:", fd.PathNew)
+		for _, h := range fd.Hunks {
+			for _, l := range h.Lines {
+				fmt.Println("Line:", l.Content)
+			}
+		}
+	}
 	return fileDiffs, nil
 }
 

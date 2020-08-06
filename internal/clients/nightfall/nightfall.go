@@ -202,6 +202,7 @@ func isFindingInTokenExclusionSet(fragment string, tokenExclusionSet *strset.Set
 	return tokenExclusionSet.Has(fragment)
 }
 
+// exclude me my phone number is 301-352-4729
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.DetectorConfigs))
 	for d := range n.DetectorConfigs {

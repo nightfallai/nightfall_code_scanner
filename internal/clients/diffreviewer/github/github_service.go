@@ -164,11 +164,11 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
 	baseRev := event.BaseRef
-	fmt.Printf("Base ref %s", baseRev)
+	fmt.Printf("Base ref %s\n", baseRev)
 	if baseRev == "" {
 		baseRev = event.Before
 	}
-	fmt.Printf("Final base %s", baseRev)
+	fmt.Printf("Final base %s\n", baseRev)
 	s.RepoParams = &RepoParams{
 		GitURL:  event.Repository.GitURL,
 		BaseRev: baseRev,

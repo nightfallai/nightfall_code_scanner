@@ -64,7 +64,6 @@ type headCommit struct {
 // event represents github event webhook file
 type event struct {
 	Before      string      `json:"before"`
-	BaseRef     string      `json:"base_ref"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
 	HeadCommit  headCommit  `json:"head_commit"`

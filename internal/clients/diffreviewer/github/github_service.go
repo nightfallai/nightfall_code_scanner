@@ -27,6 +27,7 @@ const (
 
 	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
+	BaseRefEnvVar            = "GITHUB_BASE_REF"
 	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
@@ -163,9 +164,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	baseRev := event.BaseRef
+	baseRev, ok := os.LookupEnv(BaseRefEnvVar)
 	fmt.Printf("Base ref %s\n", baseRev)
-	if baseRev == "" {
+	if !ok || baseRev == "" {
+		s.Logger.Debug(fmt.Sprintf("Could not get environment variable %s so using ${event.Before}", BaseRefEnvVar))
 		baseRev = event.Before
 	}
 	fmt.Printf("Final base %s\n", baseRev)

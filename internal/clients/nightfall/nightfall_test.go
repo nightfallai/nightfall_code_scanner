@@ -301,6 +301,15 @@ func TestBlurContent(t *testing.T) {
 }
 
 func TestFilterFileDiffs(t *testing.T) {
+	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "test.py"}
+	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))
+	for _, filePath := range filePaths {
+		fileDiff := &diffreviewer.FileDiff{
+			PathNew: filePath,
+		}
+		fileDiffs = append(fileDiffs, fileDiff)
+	}
+
 	tests := []struct {
 		haveFileDiffs         []*diffreviewer.FileDiff
 		haveInclusionFileList []string
@@ -309,25 +318,37 @@ func TestFilterFileDiffs(t *testing.T) {
 		desc                  string
 	}{
 		{
-			have: exampleCreditCardNumber,
-			want: "49********",
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "empty inclusion and exclusion list",
 		},
 		{
-			have: exampleAPIKey,
-			want: "yr********",
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"path/*"},
+			haveExclusionFileList: nil,
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[4]},
+			desc:                  "inclusion list only",
 		},
 		{
-			have: "汉字 Hello 123",
-			want: "汉字********",
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{"test*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[1], fileDiffs[2], fileDiffs[3], fileDiffs[5]},
+			desc:                  "exclusion list only",
 		},
 		{
-			have: "SHORT",
-			want: "SH***",
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*.go"},
+			haveExclusionFileList: nil,
+			wantFileDiffs:         []*diffreviewer.FileDiff{},
+			desc:                  "inclusion and exclusion list",
 		},
 	}
 	for _, tt := range tests {
-		actual := blurContent(tt.have)
-		assert.Equal(t, tt.want, actual, "Incorrect response from blurContent")
+		actual := filterFileDiffs(tt.haveFileDiffs, tt.haveInclusionFileList, tt.haveExclusionFileList)
+		assert.Equal(t, tt.wantFileDiffs, actual, fmt.Sprintf("Incorrect response from filter file diffs %s test", tt.desc))
 	}
 }
 

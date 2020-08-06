@@ -301,8 +301,8 @@ func TestBlurContent(t *testing.T) {
 }
 
 func TestFilterFileDiffs(t *testing.T) {
-	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "test.py"}
-	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))
+	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "path/test.py"}
+	var fileDiffs []*diffreviewer.FileDiff
 	for _, filePath := range filePaths {
 		fileDiff := &diffreviewer.FileDiff{
 			PathNew: filePath,
@@ -328,22 +328,36 @@ func TestFilterFileDiffs(t *testing.T) {
 			haveFileDiffs:         fileDiffs,
 			haveInclusionFileList: []string{"path/*"},
 			haveExclusionFileList: nil,
-			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[4]},
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[4], fileDiffs[5]},
 			desc:                  "inclusion list only",
 		},
 		{
 			haveFileDiffs:         fileDiffs,
 			haveInclusionFileList: nil,
 			haveExclusionFileList: []string{"test*"},
-			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[1], fileDiffs[2], fileDiffs[3], fileDiffs[5]},
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[1], fileDiffs[2], fileDiffs[4]},
 			desc:                  "exclusion list only",
 		},
 		{
 			haveFileDiffs:         fileDiffs,
-			haveInclusionFileList: []string{"*.go"},
-			haveExclusionFileList: nil,
-			wantFileDiffs:         []*diffreviewer.FileDiff{},
+			haveInclusionFileList: []string{"\\.go$", "path*"},
+			haveExclusionFileList: []string{"/secondary_path/*"},
+			wantFileDiffs:         fileDiffs[1:6],
 			desc:                  "inclusion and exclusion list",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{".*"},
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "include everything",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{".*"},
+			haveExclusionFileList: []string{".*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{},
+			desc:                  "include and then exclude everything",
 		},
 	}
 	for _, tt := range tests {

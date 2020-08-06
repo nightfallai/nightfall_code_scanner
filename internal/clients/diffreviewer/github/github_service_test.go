@@ -173,7 +173,9 @@ func (g *githubTestSuite) TestLoadConfig() {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
-		TokenWhitelist: []string{whitelistedCreditCard, whitelistedApiToken},
+		TokenExclusionList: []string{whitelistedCreditCard, whitelistedApiToken},
+		FileInclusionList:  []string{".*"},
+		FileExclusionList:  []string{"exclude\\.txt"},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

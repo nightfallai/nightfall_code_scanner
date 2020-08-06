@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
+	"regexp"
 	"unicode/utf8"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
@@ -296,12 +296,12 @@ func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileEx
 	return filteredFileDiffs
 }
 
-func filterByFilePath(ss []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
+func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
 	filteredFileDiffs := []*diffreviewer.FileDiff{}
-	for _, s := range ss {
-		if (matchRegex(s.PathNew, regexPatterns) && include) ||
-			(!matchRegex(s.PathNew, regexPatterns) && !include) {
-			filteredFileDiffs = append(filteredFileDiffs, s)
+	for _, fd := range fileDiffs {
+		if (matchRegex(fd.PathNew, regexPatterns) && include) ||
+			(!matchRegex(fd.PathNew, regexPatterns) && !include) {
+			filteredFileDiffs = append(filteredFileDiffs, fd)
 		}
 	}
 	return filteredFileDiffs
@@ -309,7 +309,7 @@ func filterByFilePath(ss []*diffreviewer.FileDiff, regexPatterns []string, inclu
 
 func matchRegex(filePath string, regexPatterns []string) bool {
 	for _, pattern := range regexPatterns {
-		if matched, _ := filepath.Match(pattern, filePath); matched {
+		if matched, _ := regexp.MatchString(pattern, filePath); matched {
 			return true
 		}
 	}

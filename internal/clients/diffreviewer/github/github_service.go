@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/libgit"
+	"github.com/nightfallai/jenkins_test/internal/clients/gitdiff"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
@@ -105,16 +105,16 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
-	libgit       *libgit.Client
+	gitdiff      *gitdiff.Client
 	repoParams   *repoParams
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
 func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer {
 	return &Service{
-		Client: NewAuthenticatedClient(githubToken),
-		Logger: githublogger.NewDefaultGithubLogger(),
-		libgit: libgit.NewClient(githubToken),
+		Client:  NewAuthenticatedClient(githubToken),
+		Logger:  githublogger.NewDefaultGithubLogger(),
+		gitdiff: gitdiff.NewClient(githubToken),
 	}
 }
 
@@ -195,11 +195,15 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
 
-	fileDiffs, err := s.libgit.GetDiff(s.repoParams.base, s.CheckRequest.SHA, s.repoParams.gitURL)
+	diffOpts := &gitdiff.DiffOptions{
+		Filter: map[diffreviewer.LineType]bool{
+			diffreviewer.LineAdded: true,
+		},
+	}
+	fileDiffs, err := s.gitdiff.GetDiff(s.repoParams.base, s.CheckRequest.SHA, s.repoParams.gitURL, diffOpts)
 	if err != nil {
 		return nil, err
 	}
-	fileDiffs = filterFileDiffs(fileDiffs)
 	for _, fd := range fileDiffs {
 		fmt.Println("FileName:", fd.PathNew)
 		for _, h := range fd.Hunks {
@@ -209,41 +213,6 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		}
 	}
 	return fileDiffs, nil
-}
-
-func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff) []*diffreviewer.FileDiff {
-	if len(fileDiffs) == 0 {
-		return fileDiffs
-	}
-	filteredFileDiffs := []*diffreviewer.FileDiff{}
-	for _, fileDiff := range fileDiffs {
-		fileDiff.Hunks = filterHunks(fileDiff.Hunks)
-		if len(fileDiff.Hunks) > 0 {
-			filteredFileDiffs = append(filteredFileDiffs, fileDiff)
-		}
-	}
-	return filteredFileDiffs
-}
-
-func filterHunks(hunks []*diffreviewer.Hunk) []*diffreviewer.Hunk {
-	filteredHunks := []*diffreviewer.Hunk{}
-	for _, hunk := range hunks {
-		hunk.Lines = filterLines(hunk.Lines)
-		if len(hunk.Lines) > 0 {
-			filteredHunks = append(filteredHunks, hunk)
-		}
-	}
-	return filteredHunks
-}
-
-func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
-	filteredLines := []*diffreviewer.Line{}
-	for _, line := range lines {
-		if line.Type == diffreviewer.LineAdded {
-			filteredLines = append(filteredLines, line)
-		}
-	}
-	return filteredLines
 }
 
 // WriteComments posts the findings as annotations to the github check

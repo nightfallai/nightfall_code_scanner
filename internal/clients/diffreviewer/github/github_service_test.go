@@ -23,35 +23,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const expectedDiffResponseStr = `diff --git a/README.md b/README.md
-index c8bdd38..47a0095 100644
---- a/README.md
-+++ b/README.md
-@@ -2,4 +2,4 @@
- 
- Blah Blah Blah this is a test 123
- 
--Hello Tom Cruise 4242-4242-4242-4242
-+Hello John Wick
-diff --git a/blah.txt b/blah.txt
-new file mode 100644
-index 0000000..e9ea42a
---- /dev/null
-+++ b/blah.txt
-@@ -0,0 +1 @@
-+this is a text file
-diff --git a/main.go b/main.go
-index e0fe924..0405bc6 100644
---- a/main.go
-+++ b/main.go
-@@ -3,5 +3,5 @@ package TestRepo
- import "fmt"
- 
- func main() {
--	fmt.Println("This is a test")
-+	fmt.Println("This is a test: My name is Tom Cruise")
- }`
-
 var logger = githublogger.NewDefaultGithubLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
@@ -89,26 +60,6 @@ var expectedFileDiff2 = &diffreviewer.FileDiff{
 	}},
 	Extended: []string{"diff --git a/blah.txt b/blah.txt", "new file mode 100644", "index 0000000..e9ea42a"},
 }
-var expectedFileDiff3 = &diffreviewer.FileDiff{
-	PathOld: "main.go",
-	PathNew: "main.go",
-	Hunks: []*diffreviewer.Hunk{{
-		StartLineOld:  3,
-		LineLengthOld: 5,
-		StartLineNew:  3,
-		LineLengthNew: 5,
-		Section:       "package TestRepo",
-		Lines: []*diffreviewer.Line{{
-			Type: diffreviewer.LineAdded,
-			Content: "	fmt.Println(\"This is a test: My name is Tom Cruise\")",
-			LnumDiff: 5,
-			LnumOld:  0,
-			LnumNew:  6,
-		}},
-	}},
-	Extended: []string{"diff --git a/main.go b/main.go", "index e0fe924..0405bc6 100644"},
-}
-var expectedFileDiffs = []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2, expectedFileDiff3}
 
 var testPRCheckRequest = &githubservice.CheckRequest{
 	Owner:       "alan20854",
@@ -192,9 +143,9 @@ func (g *githubTestSuite) TestGetDiff() {
 	ctrl := gomock.NewController(g.T())
 	defer ctrl.Finish()
 	mockGitDiff := gitdiff_mock.NewGitDiff(ctrl)
-	repoURL := "test repo url"
-	baseRev := "base rev"
-	sha := "sha"
+	repoURL := "git://github.com/nightfall_testing/running_test.git"
+	baseRev := "1234"
+	sha := "56789"
 	diffOpts := &gitdiff.DiffOptions{
 		Filter: map[diffreviewer.LineType]bool{
 			diffreviewer.LineAdded: true,

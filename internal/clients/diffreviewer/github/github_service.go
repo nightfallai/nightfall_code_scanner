@@ -114,7 +114,7 @@ func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer
 	return &Service{
 		Client:  NewAuthenticatedClient(githubToken),
 		Logger:  githublogger.NewDefaultGithubLogger(),
-		Gitdiff: gitdiff.NewClient(githubToken),
+		Gitdiff: gitdiff.NewClient(githubToken, "./temp"),
 	}
 }
 

@@ -9,7 +9,8 @@ import (
 
 // Client is a wrapper around the libgit interface
 type Client struct {
-	libgit libgitintf.Libgit
+	Libgit       libgitintf.Libgit
+	RepoFilePath string
 }
 
 // DiffOptions options specifying the file diffs to be returned
@@ -18,26 +19,26 @@ type DiffOptions struct {
 }
 
 // NewClient creates a libgit client
-func NewClient(accessToken string) *Client {
+func NewClient(accessToken, repoFilePath string) *Client {
 	return &Client{
-		libgit: NewLibgit(accessToken),
+		Libgit:       NewLibgit(accessToken),
+		RepoFilePath: repoFilePath,
 	}
 }
 
 // GetDiff gets the diff from the base to the head on the given repo
 func (c *Client) GetDiff(baseRev, headRev, repoURL string, diffOpts *DiffOptions) ([]*diffreviewer.FileDiff, error) {
-	filePath := "./temp"
-	repo, err := c.libgit.Clone(repoURL, filePath)
+	repo, err := c.Libgit.Clone(repoURL, c.RepoFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	diff, err := c.libgit.DiffRevToRev(repo, baseRev, headRev)
+	diff, err := c.Libgit.DiffRevToRev(repo, baseRev, headRev)
 	if err != nil {
 		return nil, err
 	}
 
-	fileDiffBytes, err := c.libgit.ConvertDiffToPatch(diff)
+	fileDiffBytes, err := c.Libgit.ConvertDiffToPatch(diff)
 	if err != nil {
 		return nil, err
 	}

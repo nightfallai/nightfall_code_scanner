@@ -13,6 +13,7 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/clients/gitdiff"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
+	"github.com/nightfallai/jenkins_test/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 )
@@ -27,7 +28,6 @@ const (
 	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
 	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
-	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
 	imageURL      = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
@@ -95,9 +95,9 @@ type CheckRequest struct {
 	Name string `json:"name,omitempty"`
 }
 
-type repoParams struct {
-	gitURL string
-	base   string
+type RepoParams struct {
+	GitURL  string
+	BaseRev string
 }
 
 // Service contains the github client that makes Github api calls
@@ -105,8 +105,8 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
-	gitdiff      *gitdiff.Client
-	repoParams   *repoParams
+	Gitdiff      gitdiffintf.GitDiff
+	RepoParams   *RepoParams
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -114,7 +114,7 @@ func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer
 	return &Service{
 		Client:  NewAuthenticatedClient(githubToken),
 		Logger:  githublogger.NewDefaultGithubLogger(),
-		gitdiff: gitdiff.NewClient(githubToken),
+		Gitdiff: gitdiff.NewClient(githubToken),
 	}
 }
 
@@ -163,18 +163,18 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	base := event.BaseRef
-	fmt.Printf("Base ref %s", base)
-	if base == "" {
-		base = event.Before
+	baseRev := event.BaseRef
+	fmt.Printf("Base ref %s", baseRev)
+	if baseRev == "" {
+		baseRev = event.Before
 	}
-	fmt.Printf("Final base %s", base)
-	s.repoParams = &repoParams{
-		gitURL: event.Repository.GitURL,
-		base:   base,
+	fmt.Printf("Final base %s", baseRev)
+	s.RepoParams = &RepoParams{
+		GitURL:  event.Repository.GitURL,
+		BaseRev: baseRev,
 	}
-	s.Logger.Debug(fmt.Sprintf("GitURL %s", s.repoParams.gitURL))
-	s.Logger.Debug(fmt.Sprintf("Base %s", s.repoParams.base))
+	s.Logger.Debug(fmt.Sprintf("GitURL %s", s.RepoParams.GitURL))
+	s.Logger.Debug(fmt.Sprintf("Base %s", s.RepoParams.BaseRev))
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
@@ -200,7 +200,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 			diffreviewer.LineAdded: true,
 		},
 	}
-	fileDiffs, err := s.gitdiff.GetDiff(s.repoParams.base, s.CheckRequest.SHA, s.repoParams.gitURL, diffOpts)
+	fileDiffs, err := s.Gitdiff.GetDiff(s.RepoParams.BaseRev, s.CheckRequest.SHA, s.RepoParams.GitURL, diffOpts)
 	if err != nil {
 		return nil, err
 	}

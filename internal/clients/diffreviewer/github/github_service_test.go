@@ -13,7 +13,9 @@ import (
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	githubservice "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
+	"github.com/nightfallai/jenkins_test/internal/clients/gitdiff"
 	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
+	"github.com/nightfallai/jenkins_test/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
@@ -187,10 +189,30 @@ func (g *githubTestSuite) TestLoadConfig() {
 
 func (g *githubTestSuite) TestGetDiff() {
 	tp := g.initTestParams()
-	testDiffFilePath := githubservice.NightfallDiffFileName
-	f, _ := os.Create(testDiffFilePath)
-	defer os.Remove(f.Name())
-	_, _ = f.Write([]byte(expectedDiffResponseStr))
+	ctrl := gomock.NewController(g.T())
+	defer ctrl.Finish()
+	mockGitDiff := gitdiff_mock.NewGitDiff(ctrl)
+	repoURL := "test repo url"
+	baseRev := "base rev"
+	sha := "sha"
+	diffOpts := &gitdiff.DiffOptions{
+		Filter: map[diffreviewer.LineType]bool{
+			diffreviewer.LineAdded: true,
+		},
+	}
+	tp.gc.RepoParams = &githubservice.RepoParams{
+		GitURL:  repoURL,
+		BaseRev: baseRev,
+	}
+	tp.gc.CheckRequest = &githubservice.CheckRequest{
+		SHA: sha,
+	}
+	tp.gc.Gitdiff = mockGitDiff
+
+	expectedFileDiffs := []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2}
+
+	mockGitDiff.EXPECT().GetDiff(baseRev, sha, repoURL, diffOpts).Return(expectedFileDiffs, nil)
+
 	fileDiffs, err := tp.gc.GetDiff()
 	g.NoError(err, "unexpected error in GetDiff")
 	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")

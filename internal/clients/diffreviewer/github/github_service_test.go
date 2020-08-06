@@ -136,6 +136,8 @@ func (g *githubTestSuite) initTestParams() *testParams {
 }
 
 const testConfigFileName = "nightfall_test_config.json"
+const excludedCreditCard = "4242-4242-4242-4242"
+const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 
 var envVars = []string{
 	githubservice.WorkspacePathEnvVar,
@@ -172,6 +174,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
 		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCard, excludedApiToken},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

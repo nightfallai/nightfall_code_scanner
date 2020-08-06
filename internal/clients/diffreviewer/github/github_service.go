@@ -190,6 +190,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		NightfallAPIKey:            nightfallAPIKey,
 		NightfallDetectors:         nightfallConfig.Detectors,
 		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
+		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 	}, nil
 }
 

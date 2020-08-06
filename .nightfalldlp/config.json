@@ -3,5 +3,9 @@
         "CREDIT_CARD_NUMBER": "POSSIBLE",
         "PHONE_NUMBER": "LIKELY"
     },
-    "max_number_concurrent_routines": 5
+    "max_number_concurrent_routines": 5,
+    "tokenExclusionList": [
+        "4242-4242-4242-4242",
+        "4916-6734-7572-5015"
+    ]
 }

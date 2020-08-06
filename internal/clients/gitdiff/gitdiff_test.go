@@ -109,7 +109,7 @@ func (gd *gitdiffTestSuite) TestGetDiff() {
 	headRev := "56789"
 	repoFilePath := "/test/repo/path"
 	diffOpts := &gitdiff.DiffOptions{
-		Filter: map[diffreviewer.LineType]bool{
+		FilterLineType: map[diffreviewer.LineType]bool{
 			diffreviewer.LineAdded: true,
 		},
 	}

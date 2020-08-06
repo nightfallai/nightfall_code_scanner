@@ -147,7 +147,7 @@ func (g *githubTestSuite) TestGetDiff() {
 	baseRev := "1234"
 	sha := "56789"
 	diffOpts := &gitdiff.DiffOptions{
-		Filter: map[diffreviewer.LineType]bool{
+		FilterLineType: map[diffreviewer.LineType]bool{
 			diffreviewer.LineAdded: true,
 		},
 	}

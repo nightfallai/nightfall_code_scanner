@@ -36,6 +36,11 @@ const (
 	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )
 
+var defaultDiffOpts = gitdiff.DiffOptions{
+	FilterLineType: map[diffreviewer.LineType]bool{
+		diffreviewer.LineAdded: true,
+	},
+}
 var annotationLevelFailure = "failure"
 var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
@@ -197,12 +202,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
 
-	diffOpts := &gitdiff.DiffOptions{
-		Filter: map[diffreviewer.LineType]bool{
-			diffreviewer.LineAdded: true,
-		},
-	}
-	fileDiffs, err := s.Gitdiff.GetDiff(s.RepoParams.BaseRev, s.CheckRequest.SHA, s.RepoParams.GitURL, diffOpts)
+	fileDiffs, err := s.Gitdiff.GetDiff(s.RepoParams.BaseRev, s.CheckRequest.SHA, s.RepoParams.GitURL, &defaultDiffOpts)
 	if err != nil {
 		return nil, err
 	}

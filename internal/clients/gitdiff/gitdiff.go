@@ -15,7 +15,7 @@ type Client struct {
 
 // DiffOptions options specifying the file diffs to be returned
 type DiffOptions struct {
-	Filter map[diffreviewer.LineType]bool
+	FilterLineType map[diffreviewer.LineType]bool
 }
 
 // NewClient creates a libgit client
@@ -80,7 +80,7 @@ func filterHunks(hunks []*diffreviewer.Hunk, diffOpts *DiffOptions) []*diffrevie
 func filterLines(lines []*diffreviewer.Line, diffOpts *DiffOptions) []*diffreviewer.Line {
 	filteredLines := []*diffreviewer.Line{}
 	for _, line := range lines {
-		if val, ok := diffOpts.Filter[line.Type]; ok && val {
+		if val, ok := diffOpts.FilterLineType[line.Type]; ok && val {
 			filteredLines = append(filteredLines, line)
 		}
 	}

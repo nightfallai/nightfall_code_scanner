@@ -304,12 +304,12 @@ func TestBlurContent(t *testing.T) {
 
 func TestFilterFileDiffs(t *testing.T) {
 	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "path/test.py"}
-	var fileDiffs []*diffreviewer.FileDiff
-	for _, filePath := range filePaths {
+	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))
+	for i, filePath := range filePaths {
 		fileDiff := &diffreviewer.FileDiff{
 			PathNew: filePath,
 		}
-		fileDiffs = append(fileDiffs, fileDiff)
+		fileDiffs[i] = fileDiff
 	}
 
 	tests := []struct {

@@ -299,8 +299,8 @@ func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileEx
 func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
 	filteredFileDiffs := []*diffreviewer.FileDiff{}
 	for _, fd := range fileDiffs {
-		if (matchRegex(fd.PathNew, regexPatterns) && include) ||
-			(!matchRegex(fd.PathNew, regexPatterns) && !include) {
+		matched := matchRegex(fd.PathNew, regexPatterns)
+		if (matched && include) || (!matched && !include) {
 			filteredFileDiffs = append(filteredFileDiffs, fd)
 		}
 	}

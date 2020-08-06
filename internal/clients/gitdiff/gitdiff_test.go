@@ -3,13 +3,11 @@ package gitdiff_test
 import (
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	libgit2 "github.com/libgit2/git2go/v30"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/gitdiff"
-
 	"github.com/nightfallai/jenkins_test/internal/mocks/clients/libgit_mock"
-
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/suite"
 )
 

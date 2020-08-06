@@ -11,7 +11,7 @@ SERVICE_NAME=nightfall_dlp
 BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 
-NAME=nightfallai/nightfall-dlp
+NAME=nightfallai/nightfall_dlp
 TAG=$(shell git log -1 --pretty=format:"%H")
 VERSION=$(NAME):$(TAG)
 LATEST=$(NAME):latest

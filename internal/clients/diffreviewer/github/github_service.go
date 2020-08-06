@@ -170,18 +170,14 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
 	baseRev, ok := os.LookupEnv(BaseRefEnvVar)
-	fmt.Printf("Base ref %s\n", baseRev)
 	if !ok || baseRev == "" {
-		s.Logger.Debug(fmt.Sprintf("Could not get environment variable %s so using ${event.Before}", BaseRefEnvVar))
+		s.Logger.Debug(fmt.Sprintf("Could not get environment variable %s so using Before from the event object", BaseRefEnvVar))
 		baseRev = event.Before
 	}
-	fmt.Printf("Final base %s\n", baseRev)
 	s.RepoParams = &RepoParams{
 		GitURL:  event.Repository.GitURL,
 		BaseRev: baseRev,
 	}
-	s.Logger.Debug(fmt.Sprintf("GitURL %s", s.RepoParams.GitURL))
-	s.Logger.Debug(fmt.Sprintf("Base %s", s.RepoParams.BaseRev))
 	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
@@ -201,18 +197,9 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-
 	fileDiffs, err := s.Gitdiff.GetDiff(s.RepoParams.BaseRev, s.CheckRequest.SHA, s.RepoParams.GitURL, &defaultDiffOpts)
 	if err != nil {
 		return nil, err
-	}
-	for _, fd := range fileDiffs {
-		fmt.Println("FileName:", fd.PathNew)
-		for _, h := range fd.Hunks {
-			for _, l := range h.Lines {
-				fmt.Println("Line:", l.Content, l.Type)
-			}
-		}
 	}
 	return fileDiffs, nil
 }

@@ -1,21 +1,27 @@
 package nightfall
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/scylladb/go-set/strset"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
-	"github.com/stretchr/testify/assert"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
-	exampleCreditCardNumber = "4916-6734-7572-5015"
-	exampleAPIKey           = "yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
-	filePath                = "file/path"
-	lineNumber              = 0
-	creditCardNumberContent = "4916-6734-7572-5015 is my credit card number"
-	apiKeyContent           = "my api key is yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
+	exampleCreditCardNumber  = "4916-6734-7572-5015"
+	exampleCreditCardNumber2 = "4242-4242-4242-4242"
+	exampleCreditCardNumber3 = "4916-6734-7572-5016"
+	exampleAPIKey            = "yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
+	filePath                 = "file/path"
+	lineNumber               = 0
+	creditCardNumberContent  = "4916-6734-7572-5015 is my credit card number"
+	creditCardNumber2Content = "this is my card num 4242-4242-4242-4242 - spend wisely"
+	apiKeyContent            = "my api key is yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
 )
 
 var allLikelihoods = []nightfallAPI.Likelihood{
@@ -124,18 +130,24 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 	detectorConfigs := nightfallconfig.DetectorConfig{
 		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
 	}
+	emptyTokenExclusionSet := &strset.Set{}
+	tokenExclusionSet := strset.New(exampleCreditCardNumber2)
 	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
-	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
+	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
+	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY, nightfallAPI.VERY_LIKELY)
 	tests := []struct {
 		haveContentToScanList []*contentToScan
 		haveScanResponseList  [][]nightfallAPI.ScanResponse
+		haveTokenExclusionSet *strset.Set
 		want                  []*diffreviewer.Comment
+		desc                  string
 	}{
 		{
 			haveContentToScanList: []*contentToScan{
 				createContentToScan(creditCardNumberContent),
 				createContentToScan("nothing in here"),
 				createContentToScan(apiKeyContent),
+				createContentToScan(creditCardNumber2Content),
 			},
 			haveScanResponseList: [][]nightfallAPI.ScanResponse{
 				{
@@ -145,11 +157,16 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				{
 					apiKeyResponse,
 				},
+				{
+					creditCard2Response,
+				},
 			},
+			haveTokenExclusionSet: emptyTokenExclusionSet,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
-				createComment(apiKeyResponse),
+				createComment(creditCard2Response),
 			},
+			desc: "credit cards omit api finding",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
@@ -162,12 +179,14 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					creditCardResponse,
 				},
 				{
-					createScanResponse("low likelyhood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
+					createScanResponse("low likelihood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
 				},
 			},
+			haveTokenExclusionSet: emptyTokenExclusionSet,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 			},
+			desc: "single credit card passing likelihood threshold",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
@@ -186,15 +205,40 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					apiKeyResponse,
 				},
 			},
-			want: []*diffreviewer.Comment{
-				createComment(apiKeyResponse),
+			haveTokenExclusionSet: emptyTokenExclusionSet,
+			want:                  []*diffreviewer.Comment{},
+			desc:                  "no comments",
+		},
+		{
+			haveContentToScanList: []*contentToScan{
+				createContentToScan(creditCardNumberContent),
+				createContentToScan("nothing in here"),
+				createContentToScan(apiKeyContent),
+				createContentToScan(creditCardNumber2Content),
 			},
+			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+				{
+					creditCardResponse,
+				},
+				{},
+				{
+					apiKeyResponse,
+				},
+				{
+					creditCard2Response,
+				},
+			},
+			haveTokenExclusionSet: tokenExclusionSet,
+			want: []*diffreviewer.Comment{
+				createComment(creditCardResponse),
+			},
+			desc: "single credit card excluded",
 		},
 	}
 
 	for _, tt := range tests {
-		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs)
-		assert.Equal(t, tt.want, actual, "Incorrect response from createCommentsFromScanResp")
+		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs, tt.haveTokenExclusionSet)
+		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: %s test", tt.desc))
 	}
 }
 

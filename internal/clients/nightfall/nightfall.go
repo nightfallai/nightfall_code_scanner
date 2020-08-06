@@ -12,6 +12,7 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+	"github.com/scylladb/go-set/strset"
 )
 
 const (
@@ -39,18 +40,21 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient       *nightfallAPI.APIClient
-	APIKey          string
-	DetectorConfigs nightfallconfig.DetectorConfig
+	APIClient         *nightfallAPI.APIClient
+	APIKey            string
+	DetectorConfigs   nightfallconfig.DetectorConfig
+	TokenExclusionSet *strset.Set
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
+	tokenExclusionSet := strset.New(config.TokenExclusionList...)
 	n := Client{
-		APIClient:       nightfallAPI.NewAPIClient(APIConfig),
-		APIKey:          config.NightfallAPIKey,
-		DetectorConfigs: config.NightfallDetectors,
+		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
+		APIKey:            config.NightfallAPIKey,
+		DetectorConfigs:   config.NightfallDetectors,
+		TokenExclusionSet: tokenExclusionSet,
 	}
 	return &n
 }
@@ -62,9 +66,11 @@ type contentToScan struct {
 }
 
 func foundSensitiveData(finding nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) bool {
-	minimumLikelihoodForDetector := detectorConfigs[nightfallAPI.Detector(finding.Detector)]
+	minimumLikelihoodForDetector, ok := detectorConfigs[nightfallAPI.Detector(finding.Detector)]
+	if !ok {
+		return false
+	}
 	findingLikelihood := nightfallAPI.Likelihood(finding.Confidence.Bucket)
-
 	return likelihoodThresholdMap[findingLikelihood] >= likelihoodThresholdMap[minimumLikelihoodForDetector]
 }
 
@@ -154,13 +160,19 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 	return contentToScanList[startIndex:endIndex]
 }
 
-func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) []*diffreviewer.Comment {
+func createCommentsFromScanResp(
+	inputContent []*contentToScan,
+	resp [][]nightfallAPI.ScanResponse,
+	detectorConfigs nightfallconfig.DetectorConfig,
+	tokenExclusionSet *strset.Set,
+) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
-			if foundSensitiveData(finding, detectorConfigs) {
+			if foundSensitiveData(finding, detectorConfigs) &&
+				!isFindingInTokenExclusionSet(finding.Fragment, tokenExclusionSet) {
 				// Found sensitive info
-				// Create comment
+				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
 				findingMsg := getCommentMsg(finding)
 				findingTitle := getCommentTitle(finding)
@@ -175,6 +187,13 @@ func createCommentsFromScanResp(inputContent []*contentToScan, resp [][]nightfal
 		}
 	}
 	return comments
+}
+
+func isFindingInTokenExclusionSet(fragment string, tokenExclusionSet *strset.Set) bool {
+	if tokenExclusionSet == nil {
+		return false
+	}
+	return tokenExclusionSet.Has(fragment)
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
@@ -211,7 +230,11 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 // ReviewDiff will take in a diff, chunk the contents of the diff
 // and send the chunks to the Nightfall API to determine if it
 // contains sensitive data
-func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
+func (n *Client) ReviewDiff(
+	ctx context.Context,
+	logger logger.Logger,
+	fileDiffs []*diffreviewer.FileDiff,
+) ([]*diffreviewer.Comment, error) {
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
@@ -249,7 +272,7 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 		}
 
 		// Determine findings from response and create comments
-		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs)
+		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionSet)
 		comments = append(comments, createdComments...)
 	}
 

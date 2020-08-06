@@ -286,20 +286,21 @@ func (n *Client) ReviewDiff(
 }
 
 func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string) []*diffreviewer.FileDiff {
-	filteredFileDiffs := fileDiffs
 	if fileIncludeList != nil && len(fileIncludeList) > 0 {
-		filteredFileDiffs = filterByFilePath(filteredFileDiffs, fileIncludeList, true)
+		fileDiffs = filterByFilePath(fileDiffs, fileIncludeList, true)
 	}
 	if fileExcludeList != nil && len(fileExcludeList) > 0 {
-		filteredFileDiffs = filterByFilePath(filteredFileDiffs, fileExcludeList, false)
+		fileDiffs = filterByFilePath(fileDiffs, fileExcludeList, false)
 	}
-	return filteredFileDiffs
+	return fileDiffs
 }
 
 func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
-	filteredFileDiffs := []*diffreviewer.FileDiff{}
+	filteredFileDiffs := make([]*diffreviewer.FileDiff, 0, len(fileDiffs))
 	for _, fd := range fileDiffs {
 		matched := matchRegex(fd.PathNew, regexPatterns)
+		// if include (file inclusion), append if the filename matches a regex pattern
+		// if !include (file exclusion), append if the filename does not match any pattern
 		if (matched && include) || (!matched && !include) {
 			filteredFileDiffs = append(filteredFileDiffs, fd)
 		}

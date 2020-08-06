@@ -23,6 +23,7 @@ func TestGetNightfallConfig(t *testing.T) {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
+		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCard, excludedApiToken},
 	}
 	actualConfig, err := nightfallconfig.GetConfigFile(workspacePath, testFileName)

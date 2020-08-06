@@ -187,9 +187,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
 	return &nightfallconfig.Config{
-		NightfallAPIKey:    nightfallAPIKey,
-		NightfallDetectors: nightfallConfig.Detectors,
-		TokenExclusionList: nightfallConfig.TokenExclusionList,
+		NightfallAPIKey:            nightfallAPIKey,
+		NightfallDetectors:         nightfallConfig.Detectors,
+		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
+		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 	}, nil
 }
 

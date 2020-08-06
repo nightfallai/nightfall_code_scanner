@@ -173,7 +173,8 @@ func (g *githubTestSuite) TestLoadConfig() {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
-		TokenExclusionList: []string{excludedCreditCard, excludedApiToken},
+		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCard, excludedApiToken},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

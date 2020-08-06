@@ -13,8 +13,9 @@ import (
 const (
 	exampleCreditCardNumber  = "4916-6734-7572-5015"
 	exampleCreditCardNumber2 = "4242-4242-4242-4242"
-	exampleCreditCardNumber3 = "4916-6734-7572-5016"
 	exampleAPIKey            = "yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
+	exampleIP                = "53.166.90.118"
+	exampleLocalHostIP       = "127.0.0.1"
 	filePath                 = "file/path"
 	lineNumber               = 0
 	creditCardNumberContent  = "4916-6734-7572-5015 is my credit card number"
@@ -127,13 +128,17 @@ func TestSliceListBySize(t *testing.T) {
 func TestCreateCommentsFromScanResp(t *testing.T) {
 	detectorConfigs := nightfallconfig.DetectorConfig{
 		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
+		nightfallAPI.IP_ADDRESS:         nightfallAPI.LIKELY,
 	}
 	emptyTokenExclusionList := []string{}
 	creditCard2Regex := "4242-4242-4242-[0-9]{4}"
-	tokenExclusionList := []string{creditCard2Regex}
+	localIpRegex := "^127\\."
+	tokenExclusionList := []string{creditCard2Regex, localIpRegex}
 	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
 	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
 	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY, nightfallAPI.VERY_LIKELY)
+	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.IP_ADDRESS, nightfallAPI.VERY_LIKELY)
+
 	tests := []struct {
 		haveContentToScanList  []*contentToScan
 		haveScanResponseList   [][]nightfallAPI.ScanResponse
@@ -232,6 +237,32 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createComment(creditCardResponse),
 			},
 			desc: "single credit card excluded",
+		},
+		{
+			haveContentToScanList: []*contentToScan{
+				createContentToScan("4242-4242-4242-abcd"),
+				createContentToScan(exampleCreditCardNumber),
+				createContentToScan(exampleCreditCardNumber2),
+				createContentToScan(exampleLocalHostIP),
+				createContentToScan(exampleIP),
+			},
+			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+				{},
+				{
+					creditCardResponse,
+				},
+				{},
+				{},
+				{
+					ipAddressResponse,
+				},
+			},
+			haveTokenExclusionList: tokenExclusionList,
+			want: []*diffreviewer.Comment{
+				createComment(creditCardResponse),
+				createComment(ipAddressResponse),
+			},
+			desc: "credit card and ip regex",
 		},
 	}
 

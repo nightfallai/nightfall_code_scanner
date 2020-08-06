@@ -1,7 +1,8 @@
 {
     "detectors": {
         "CREDIT_CARD_NUMBER": "POSSIBLE",
-        "PHONE_NUMBER": "LIKELY"
+        "PHONE_NUMBER": "LIKELY",
+        "IP_ADDRESS": "POSSIBLE"
     },
-    "tokenExclusionList": ["4242-4242-4242-4242", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"]
+    "tokenExclusionList": ["4242-4242-4242-[0-9]{4}", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv", "^127\\."]
 }

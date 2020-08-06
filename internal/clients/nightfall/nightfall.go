@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
@@ -23,6 +26,8 @@ const (
 	contentChunkByteSize = 1024
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
+
+	defaultTimeout = time.Minute * 20
 )
 
 // likelihoodThresholdMap gives each likelihood an integer value representation
@@ -40,19 +45,20 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient          *nightfallAPI.APIClient
+	APIClient          nightfallintf.NightfallAPI
 	APIKey             string
 	DetectorConfigs    nightfallconfig.DetectorConfig
+	MaxNumberRoutines  int
 	TokenExclusionList []string
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
-	APIConfig := nightfallAPI.NewConfiguration()
 	n := Client{
-		APIClient:          nightfallAPI.NewAPIClient(APIConfig),
+		APIClient:          NewAPIClient(),
 		APIKey:             config.NightfallAPIKey,
 		DetectorConfigs:    config.NightfallDetectors,
+		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
 		TokenExclusionList: config.TokenExclusionList,
 	}
 	return &n
@@ -215,6 +221,59 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	}
 }
 
+func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
+	// Pull out content strings for request
+	items := make([]string, len(cts))
+	for i, item := range cts {
+		items[i] = item.Content
+	}
+
+	// send API request
+	resp, err := n.Scan(ctx, logger, items)
+	if err != nil {
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", requestNum, len(items)))
+		return nil, err
+	}
+
+	// Determine findings from response and create comments
+	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionList)
+	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
+	return createdComments, nil
+}
+
+func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan<- []*diffreviewer.Comment) {
+	defer close(commentCh)
+	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
+	var wg sync.WaitGroup
+
+	// Integer round up division
+	numRequestsRequired := (len(cts) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+
+	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
+	for i := 0; i < numRequestsRequired; i++ {
+		// Use max number of items to determine content to send in request
+		contentSlice := sliceListBySize(i, maxItemsForAPIReq, cts)
+
+		wg.Add(1)
+		blockingCh <- struct{}{}
+		go func(loopCount int, cts []*contentToScan) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			c, err := n.scanContent(ctx, cts, loopCount+1, logger)
+			if err != nil {
+				logger.Error(fmt.Sprintf("Unable to scan %d content items", len(cts)))
+			} else {
+				commentCh <- c
+			}
+			<-blockingCh
+		}(i, contentSlice)
+	}
+	wg.Wait()
+}
+
 // Scan send /scan request to Nightfall API and return findings
 func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string) ([][]nightfallAPI.ScanResponse, error) {
 	APIKey := nightfallAPI.APIKey{
@@ -223,7 +282,7 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
-	resp, _, err := n.APIClient.ScanApi.ScanPayload(newCtx, request)
+	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
 		return nil, err
@@ -254,31 +313,22 @@ func (n *Client) ReviewDiff(
 		}
 	}
 
+	commentCh := make(chan []*diffreviewer.Comment)
+	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(defaultTimeout))
+	defer cancel()
+
+	go n.scanAllContent(newCtx, logger, contentToScanList, commentCh)
+
 	comments := []*diffreviewer.Comment{}
-	// Integer round up division
-	numRequestsRequired := (len(contentToScanList) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
-	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
-	for i := 0; i < numRequestsRequired; i++ {
-		// Use max number of items to determine content to send in request
-		cts := sliceListBySize(i, maxItemsForAPIReq, contentToScanList)
-
-		// Pull out content strings for request
-		items := make([]string, len(cts))
-		for i, item := range cts {
-			items[i] = item.Content
+	for {
+		select {
+		case c, chOpen := <-commentCh:
+			if !chOpen {
+				return comments, nil
+			}
+			comments = append(comments, c...)
+		case <-newCtx.Done():
+			return nil, newCtx.Err()
 		}
-
-		// send API request
-		resp, err := n.Scan(ctx, logger, items)
-		if err != nil {
-			logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", i+1, len(items)))
-			return nil, err
-		}
-
-		// Determine findings from response and create comments
-		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionList)
-		comments = append(comments, createdComments...)
 	}
-
-	return comments, nil
 }

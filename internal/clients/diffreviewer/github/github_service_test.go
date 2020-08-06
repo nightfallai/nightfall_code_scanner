@@ -175,7 +175,8 @@ func (g *githubTestSuite) TestLoadConfig() {
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 			nightfallAPI.IP_ADDRESS:         nightfallAPI.POSSIBLE,
 		},
-		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

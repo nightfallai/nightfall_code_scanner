@@ -43,18 +43,18 @@ type Client struct {
 	APIClient         *nightfallAPI.APIClient
 	APIKey            string
 	DetectorConfigs   nightfallconfig.DetectorConfig
-	TokenWhitelistMap *strset.Set
+	TokenExclusionSet *strset.Set
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
-	tokenWhitelistMap := strset.New(config.TokenWhitelist...)
+	tokenExclusionSet := strset.New(config.TokenExclusionList...)
 	n := Client{
 		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
 		APIKey:            config.NightfallAPIKey,
 		DetectorConfigs:   config.NightfallDetectors,
-		TokenWhitelistMap: tokenWhitelistMap,
+		TokenExclusionSet: tokenExclusionSet,
 	}
 	return &n
 }
@@ -164,15 +164,15 @@ func createCommentsFromScanResp(
 	inputContent []*contentToScan,
 	resp [][]nightfallAPI.ScanResponse,
 	detectorConfigs nightfallconfig.DetectorConfig,
-	tokenWhitelist *strset.Set,
+	tokenExclusionSet *strset.Set,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
 			if foundSensitiveData(finding, detectorConfigs) &&
-				!isFindingInTokenWhitelist(finding.Fragment, tokenWhitelist) {
+				!isFindingInTokenExclusionSet(finding.Fragment, tokenExclusionSet) {
 				// Found sensitive info
-				// Create comment if fragment is not in whitelist
+				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
 				findingMsg := getCommentMsg(finding)
 				findingTitle := getCommentTitle(finding)
@@ -189,11 +189,11 @@ func createCommentsFromScanResp(
 	return comments
 }
 
-func isFindingInTokenWhitelist(fragment string, tokenWhitelist *strset.Set) bool {
-	if tokenWhitelist == nil {
+func isFindingInTokenExclusionSet(fragment string, tokenExclusionSet *strset.Set) bool {
+	if tokenExclusionSet == nil {
 		return false
 	}
-	return tokenWhitelist.Has(fragment)
+	return tokenExclusionSet.Has(fragment)
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
@@ -272,7 +272,7 @@ func (n *Client) ReviewDiff(
 		}
 
 		// Determine findings from response and create comments
-		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenWhitelistMap)
+		createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionSet)
 		comments = append(comments, createdComments...)
 	}
 

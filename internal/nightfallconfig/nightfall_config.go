@@ -16,15 +16,15 @@ type DetectorConfig map[nightfallAPI.Detector]nightfallAPI.Likelihood
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
-	Detectors      DetectorConfig `json:"detectors"`
-	TokenWhitelist []string       `json:"tokenWhitelist"`
+	Detectors          DetectorConfig `json:"detectors"`
+	TokenExclusionList []string       `json:"tokenExclusionList"`
 }
 
 // Config general config struct
 type Config struct {
 	NightfallAPIKey    string
 	NightfallDetectors DetectorConfig
-	TokenWhitelist     []string
+	TokenExclusionList []string
 }
 
 // GetConfigFile loads nightfall config from file

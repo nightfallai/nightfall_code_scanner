@@ -130,15 +130,15 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 	detectorConfigs := nightfallconfig.DetectorConfig{
 		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
 	}
-	emptyTokenWhitelistMap := &strset.Set{}
-	tokenWhitelistMap := strset.New(exampleCreditCardNumber2)
+	emptyTokenExclusionSet := &strset.Set{}
+	tokenExclusionSet := strset.New(exampleCreditCardNumber2)
 	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
 	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
 	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY, nightfallAPI.VERY_LIKELY)
 	tests := []struct {
 		haveContentToScanList []*contentToScan
 		haveScanResponseList  [][]nightfallAPI.ScanResponse
-		haveTokenWhitelistSet *strset.Set
+		haveTokenExclusionSet *strset.Set
 		want                  []*diffreviewer.Comment
 		desc                  string
 	}{
@@ -161,7 +161,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					creditCard2Response,
 				},
 			},
-			haveTokenWhitelistSet: emptyTokenWhitelistMap,
+			haveTokenExclusionSet: emptyTokenExclusionSet,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 				createComment(creditCard2Response),
@@ -182,7 +182,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					createScanResponse("low likelihood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
 				},
 			},
-			haveTokenWhitelistSet: emptyTokenWhitelistMap,
+			haveTokenExclusionSet: emptyTokenExclusionSet,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 			},
@@ -205,7 +205,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					apiKeyResponse,
 				},
 			},
-			haveTokenWhitelistSet: emptyTokenWhitelistMap,
+			haveTokenExclusionSet: emptyTokenExclusionSet,
 			want:                  []*diffreviewer.Comment{},
 			desc:                  "no comments",
 		},
@@ -228,16 +228,16 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					creditCard2Response,
 				},
 			},
-			haveTokenWhitelistSet: tokenWhitelistMap,
+			haveTokenExclusionSet: tokenExclusionSet,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
 			},
-			desc: "single credit card whitelist",
+			desc: "single credit card excluded",
 		},
 	}
 
 	for _, tt := range tests {
-		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs, tt.haveTokenWhitelistSet)
+		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs, tt.haveTokenExclusionSet)
 		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: %s test", tt.desc))
 	}
 }

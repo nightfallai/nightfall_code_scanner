@@ -12,6 +12,7 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+	"github.com/scylladb/go-set/strset"
 )
 
 const (
@@ -42,13 +43,13 @@ type Client struct {
 	APIClient         *nightfallAPI.APIClient
 	APIKey            string
 	DetectorConfigs   nightfallconfig.DetectorConfig
-	TokenWhitelistMap map[string]bool
+	TokenWhitelistMap *strset.Set
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	APIConfig := nightfallAPI.NewConfiguration()
-	tokenWhitelistMap := makeStrMap(config.TokenWhitelist)
+	tokenWhitelistMap := strset.New(config.TokenWhitelist...)
 	n := Client{
 		APIClient:         nightfallAPI.NewAPIClient(APIConfig),
 		APIKey:            config.NightfallAPIKey,
@@ -163,7 +164,7 @@ func createCommentsFromScanResp(
 	inputContent []*contentToScan,
 	resp [][]nightfallAPI.ScanResponse,
 	detectorConfigs nightfallconfig.DetectorConfig,
-	tokenWhitelist map[string]bool,
+	tokenWhitelist *strset.Set,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
@@ -188,12 +189,11 @@ func createCommentsFromScanResp(
 	return comments
 }
 
-func isFindingInTokenWhitelist(fragment string, tokenWhitelist map[string]bool) bool {
+func isFindingInTokenWhitelist(fragment string, tokenWhitelist *strset.Set) bool {
 	if tokenWhitelist == nil {
 		return false
 	}
-	_, ok := tokenWhitelist[fragment]
-	return ok
+	return tokenWhitelist.Has(fragment)
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
@@ -277,15 +277,4 @@ func (n *Client) ReviewDiff(
 	}
 
 	return comments, nil
-}
-
-func makeStrMap(strSlice []string) map[string]bool {
-	if strSlice == nil {
-		return nil
-	}
-	strMap := make(map[string]bool, len(strSlice))
-	for _, v := range strSlice {
-		strMap[v] = true
-	}
-	return strMap
 }

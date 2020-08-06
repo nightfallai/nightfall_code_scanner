@@ -1,20 +1,62 @@
 name: nightfalldlp
-on:
-  push:
-    branches:
-      - master
-  pull_request:
+on: [pull_request]
+
 jobs:
-  nightfalldlp:
-    name: nightfalldlp
+  nightfalldlp-pr:
+    name: nightfalldlp on Pull Request
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo Action
+      - name: Add $GOPATH/bin
+        run: |
+          echo ::add-path::$(go env GOPATH)/bin
+      - name: Download repo (and action since it's currently in a private repo)
         uses: actions/checkout@v2
 
-      - name: nightfallDLP action step
-        uses: nightfallai/nightfall_dlp_action@v0.0.3
+      # https://github.com/actions/cache/blob/master/examples.md#go---modules
+      - name: Cache Go Modules
+        id: cache
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Update git url (since has private dependency)
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_USER: ${{ secrets.NIGHTFALL_GITHUB_USER }}
+          GIT_PASS: ${{ secrets.NIGHTFALL_GITHUB_PASS }}
+        run: |
+          git config --global url."https://$GIT_USER:$GIT_PASS@github.com/".insteadOf "https://github.com/"
+
+      - name: Get Diff
+        env:
+          DIFF_FILENAME: "./nightfalldlp_raw_diff.txt"
+        run: |
+          if [ $GITHUB_BASE_REF ]; then \
+          git fetch origin $GITHUB_BASE_REF --depth=1; \
+          git diff origin/$GITHUB_BASE_REF $GITHUB_SHA > $DIFF_FILENAME; \
+          echo "Diff between origin/$GITHUB_BASE_REF and $GITHUB_SHA"; \
+          else \
+          git fetch origin ${{ github.event.before }} --depth=1; \
+          git diff --name-only ${{ github.event.before }} $GITHUB_SHA > $DIFF_FILENAME; \
+          echo "Diff between ${{ github.event.before }} and $GITHUB_SHA"; \
+          fi;
+          cat $DIFF_FILENAME;
+
+      - name: Download Go Modules
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: go mod download
+
+      - name: Setup nightfalldlp
+        run: |
+          go install ./cmd/nightfalldlp
+      # update how we're running the action
+      - name: Run nightfalldlp (github-pr-check)
+        continue-on-error: true
+        env:
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
-          EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nightfalldlp

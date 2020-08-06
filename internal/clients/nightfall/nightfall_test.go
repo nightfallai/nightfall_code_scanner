@@ -92,7 +92,7 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 
 	for i := 0; i < numScanReq; i++ {
 		mockAPIClient.EXPECT().ScanAPI().Return(mockScanAPI)
-		mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.Any()).Return(scanResp, nil, nil)
+		mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(nightfallAPI.ScanRequest{})).Return(scanResp, nil, nil)
 	}
 
 	comments, err := client.ReviewDiff(context.Background(), githublogger.NewDefaultGithubLogger(), input)

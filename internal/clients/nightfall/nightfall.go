@@ -237,7 +237,7 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	return createdComments, nil
 }
 
-func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan []*diffreviewer.Comment) {
+func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan<- []*diffreviewer.Comment) {
 	defer close(commentCh)
 	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 	var wg sync.WaitGroup

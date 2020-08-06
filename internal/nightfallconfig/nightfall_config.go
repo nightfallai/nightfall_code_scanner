@@ -19,7 +19,7 @@ type DetectorConfig map[nightfallAPI.Detector]nightfallAPI.Likelihood
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
 	Detectors          DetectorConfig `json:"detectors"`
-	MaxNumberRoutines  int            `json:"max_number_concurrent_routines"`
+	MaxNumberRoutines  int            `json:"maxNumberConcurrentRoutines"`
 	TokenExclusionList []string       `json:"tokenExclusionList"`
 }
 

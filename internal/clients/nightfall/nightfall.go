@@ -48,7 +48,7 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 
 var (
 	// ErrMaxScanRetries is the error for when the max number of retries to the API has occurred without success
-	ErrMaxScanRetries = errors.New("max number of retries has been reached")
+	ErrMaxScanRetries = errors.New("max number of retries has been attempted")
 )
 
 // Client client which uses Nightfall API

@@ -71,7 +71,7 @@ jobs:
             nightfallai/$CONTAINER_NAME:$CIRCLE_SHA1 \
             nightfallai/$CONTAINER_NAME:latest
           environment:
-            CONTAINER_NAME: nightfall-dlp
+            CONTAINER_NAME: nightfall_dlp
 
 workflows:
   version: 2

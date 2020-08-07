@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -28,6 +30,8 @@ const (
 	maxItemsForAPIReq = 479
 
 	defaultTimeout = time.Minute * 20
+	maxRetries     = 5
+	initialDelay   = time.Second * 1
 )
 
 // likelihoodThresholdMap gives each likelihood an integer value representation
@@ -41,6 +45,11 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 	nightfallAPI.LIKELY:        4,
 	nightfallAPI.VERY_LIKELY:   5,
 }
+
+var (
+	// ErrMaxScanRetries is the error for when the max number of retries to the API has occurred without success
+	ErrMaxScanRetries = errors.New("max number of retries has been reached")
+)
 
 // Client client which uses Nightfall API
 // to determine findings from input strings
@@ -217,7 +226,12 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	}
 }
 
-func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
+func (n *Client) scanContent(
+	ctx context.Context,
+	cts []*contentToScan,
+	requestNum int,
+	logger logger.Logger,
+) ([]*diffreviewer.Comment, error) {
 	// Pull out content strings for request
 	items := make([]string, len(cts))
 	for i, item := range cts {
@@ -237,7 +251,12 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	return createdComments, nil
 }
 
-func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan<- []*diffreviewer.Comment) {
+func (n *Client) scanAllContent(
+	ctx context.Context,
+	logger logger.Logger,
+	cts []*contentToScan,
+	commentCh chan<- []*diffreviewer.Comment,
+) {
 	defer close(commentCh)
 	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 	var wg sync.WaitGroup
@@ -271,19 +290,52 @@ func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts [
 }
 
 // Scan send /scan request to Nightfall API and return findings
-func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string) ([][]nightfallAPI.ScanResponse, error) {
+func (n *Client) Scan(
+	ctx context.Context,
+	logger logger.Logger,
+	items []string,
+) ([][]nightfallAPI.ScanResponse, error) {
 	APIKey := nightfallAPI.APIKey{
 		Key:    n.APIKey,
 		Prefix: "",
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
-	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
-		return nil, err
+	return n.makeScanRequest(newCtx, logger, request)
+}
+
+func (n *Client) makeScanRequest(
+	ctx context.Context,
+	logger logger.Logger,
+	request nightfallAPI.ScanRequest,
+) ([][]nightfallAPI.ScanResponse, error) {
+	delay := initialDelay
+	for i := 0; i < maxRetries; i++ {
+		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
+		if err != nil {
+			if httpResp.StatusCode == http.StatusTooManyRequests {
+				logger.Warning(
+					fmt.Sprintf(
+						"Too many requests to Nightfall API: sleeping for %d seconds before next attempt",
+						delay,
+					),
+				)
+				time.Sleep(delay)
+				delay = delay * 2 // exponential back off
+				continue
+			}
+			logger.Error(
+				fmt.Sprintf(
+					"Error from Nightfall API, unable to successfully scan %d items",
+					len(request.Payload.Items),
+				),
+			)
+			return nil, err
+		}
+		return resp, nil
 	}
-	return resp, nil
+	logger.Error("Too many requests to Nightfall API: max number of retries attempted")
+	return nil, ErrMaxScanRetries
 }
 
 // ReviewDiff will take in a diff, chunk the contents of the diff

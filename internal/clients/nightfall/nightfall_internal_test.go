@@ -366,6 +366,43 @@ func TestFilterFileDiffs(t *testing.T) {
 	}
 }
 
+func TestMatchRegex(t *testing.T) {
+	tests := []struct {
+		haveStrs        []string
+		havePatterns    []string
+		wantMatchedStrs []string
+		desc            string
+	}{
+		{
+			haveStrs:        []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			havePatterns:    []string{".*"},
+			wantMatchedStrs: []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			desc:            ".*",
+		},
+		{
+			haveStrs:        []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:    []string{"/secondary_path*"},
+			wantMatchedStrs: []string{"path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:            "/secondary_path*",
+		},
+		{
+			haveStrs:        []string{"301-123-4567", "1-240-925-5721"},
+			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$"},
+			wantMatchedStrs: []string{"301-123-4567"},
+			desc:            "phone number and ip addresses",
+		},
+	}
+	for _, tt := range tests {
+		matchedStrs := make([]string, 0, len(tt.haveStrs))
+		for _, s := range tt.haveStrs {
+			if matchRegex(s, tt.havePatterns) {
+				matchedStrs = append(matchedStrs, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedStrs, matchedStrs, fmt.Sprintf("Incorrect response from match regex %s test", tt.desc))
+	}
+}
+
 func createScanResponse(fragment string, detector nightfallAPI.Detector, likelihood nightfallAPI.Likelihood) nightfallAPI.ScanResponse {
 	return nightfallAPI.ScanResponse{
 		Fragment: fragment,

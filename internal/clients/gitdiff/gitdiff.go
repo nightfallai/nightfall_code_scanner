@@ -2,6 +2,7 @@ package gitdiff
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/libgitintf"
@@ -80,9 +81,13 @@ func filterHunks(hunks []*diffreviewer.Hunk, diffOpts *DiffOptions) []*diffrevie
 func filterLines(lines []*diffreviewer.Line, diffOpts *DiffOptions) []*diffreviewer.Line {
 	filteredLines := []*diffreviewer.Line{}
 	for _, line := range lines {
-		if val, ok := diffOpts.FilterLineType[line.Type]; ok && val {
+		if val, ok := diffOpts.FilterLineType[line.Type]; ok && val && !whitespaceOnlyLine(line) {
 			filteredLines = append(filteredLines, line)
 		}
 	}
 	return filteredLines
+}
+
+func whitespaceOnlyLine(line *diffreviewer.Line) bool {
+	return strings.TrimSpace(line.Content) == ""
 }

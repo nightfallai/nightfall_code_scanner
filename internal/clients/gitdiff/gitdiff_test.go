@@ -42,6 +42,7 @@ index e0fe924..0405bc6 100644
  func main() {
 -	fmt.Println("This is a test")
 +	fmt.Println("This is a test: My name is Tom Cruise")
++
  }`
 
 var expectedFileDiff1 = &diffreviewer.FileDiff{

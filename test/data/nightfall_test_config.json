@@ -4,6 +4,11 @@
         "PHONE_NUMBER": "LIKELY"
     },
     "maxNumberConcurrentRoutines": 20,
-    "tokenExclusionList": ["4242-4242-4242-4242", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"],
+    "tokenExclusionList": [
+        "4242-4242-4242-4242",
+        "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv",
+        "301-123-4567",
+        "1-240-925-5721"
+    ],
     "fileInclusionList": [".*"]
 }

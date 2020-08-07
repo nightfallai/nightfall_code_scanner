@@ -386,10 +386,10 @@ func TestMatchRegex(t *testing.T) {
 			desc:            "/secondary_path*",
 		},
 		{
-			haveStrs:        []string{"301-123-4567", "1-240-925-5721"},
+			haveStrs:        []string{"301-123-4567", "1-240-925-5721", "7428501824", "127.253.42.0", "13.47.149.67"},
 			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$"},
-			wantMatchedStrs: []string{"301-123-4567"},
-			desc:            "phone number and ip addresses",
+			wantMatchedStrs: []string{"301-123-4567", "1-240-925-5721", "127.253.42.0"},
+			desc:            "phone number and local ip addresses",
 		},
 	}
 	for _, tt := range tests {

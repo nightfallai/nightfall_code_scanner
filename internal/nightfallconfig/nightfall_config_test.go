@@ -23,9 +23,10 @@ func TestGetNightfallConfig(t *testing.T) {
 			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
 			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
 		},
+		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCard, excludedApiToken},
 		FileInclusionList:  []string{".*"},
-		FileExclusionList:  []string{"exclude\\.txt"},
+		FileExclusionList:  nil,
 	}
 	actualConfig, err := nightfallconfig.GetConfigFile(workspacePath, testFileName)
 	assert.NoError(t, err, "Unexpected error when GetNightfallConfig")

@@ -387,7 +387,7 @@ func TestMatchRegex(t *testing.T) {
 		},
 		{
 			haveStrs:        []string{"301-123-4567", "1-240-925-5721", "7428501824", "127.253.42.0", "13.47.149.67"},
-			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$"},
+			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$", "^127\\."},
 			wantMatchedStrs: []string{"301-123-4567", "1-240-925-5721", "127.253.42.0"},
 			desc:            "phone number and local ip addresses",
 		},

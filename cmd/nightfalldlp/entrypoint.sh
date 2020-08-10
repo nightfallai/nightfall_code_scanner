@@ -21,4 +21,4 @@ else
 fi;
 
 # run nightfalldlp binary
-./nightfall_dlp
+/nightfall_dlp

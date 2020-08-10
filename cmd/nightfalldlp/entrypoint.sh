@@ -1,5 +1,8 @@
 #!/bin/sh -l
 
+# Change to workspace directory
+cd $GITHUB_WORKSPACE
+
 # download relevant branch and write the diff to a local file
 diff_filename="./nightfalldlp_raw_diff.txt"
 if [ "$GITHUB_BASE_REF" ]; then

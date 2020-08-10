@@ -17,10 +17,9 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_dlp ./c
 
 FROM alpine:3.8
 
-RUN apk add bash --no-cache
+RUN apk add bash git --no-cache
 
-WORKDIR /projects/nightfall_dlp
+COPY --from=builder /projects/nightfall_dlp/nightfall_dlp /nightfall_dlp
+COPY ./cmd/nightfalldlp/entrypoint.sh /entrypoint.sh
 
-COPY --from=builder /projects/nightfall_dlp/nightfall_dlp .
-
-CMD ["./nightfall_dlp"]
+CMD ["bash", "/entrypoint.sh"]

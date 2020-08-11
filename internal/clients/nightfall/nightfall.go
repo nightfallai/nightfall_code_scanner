@@ -316,8 +316,8 @@ func (n *Client) makeScanRequest(
 			if httpResp.StatusCode == http.StatusTooManyRequests {
 				logger.Warning(
 					fmt.Sprintf(
-						"Too many requests to Nightfall API: sleeping for %d seconds before next attempt",
-						delay,
+						"Too many requests to Nightfall API: sleeping for %f seconds before next attempt",
+						delay.Seconds(),
 					),
 				)
 				time.Sleep(delay)

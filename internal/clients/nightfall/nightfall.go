@@ -331,6 +331,7 @@ func (n *Client) makeScanRequest(
 				),
 			)
 			logger.Error(err.Error())
+			logger.Error(httpResp.Status)
 			return nil, err
 		}
 		return resp, nil

@@ -3,7 +3,7 @@
         "CREDIT_CARD_NUMBER": "POSSIBLE",
         "PHONE_NUMBER": "LIKELY"
     },
-    "maxNumberConcurrentRoutines": 5,
+    "maxNumberConcurrentRoutines": 200,
     "tokenExclusionList": [
         "4242-4242-4242-4242",
         "4916-6734-7572-5015"

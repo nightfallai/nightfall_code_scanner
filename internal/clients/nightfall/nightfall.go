@@ -314,7 +314,7 @@ func (n *Client) makeScanRequest(
 		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
 		if err != nil {
 			if httpResp.StatusCode == http.StatusTooManyRequests {
-				logger.Warning(
+				logger.Error(
 					fmt.Sprintf(
 						"Too many requests to Nightfall API: sleeping for %f seconds before next attempt",
 						delay.Seconds(),
@@ -330,6 +330,7 @@ func (n *Client) makeScanRequest(
 					len(request.Payload.Items),
 				),
 			)
+			logger.Error(err.Error())
 			return nil, err
 		}
 		return resp, nil

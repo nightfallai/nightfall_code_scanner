@@ -29,7 +29,7 @@ const (
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
 
-	defaultTimeout = time.Minute * 20
+	defaultTimeout = time.Hour * 2
 	maxRetries     = 5
 	initialDelay   = time.Second * 1
 )
@@ -301,9 +301,6 @@ func (n *Client) Scan(
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
-	for i := 0; i < 20; i++ {
-		_, _ = n.makeScanRequest(newCtx, logger, request)
-	}
 	return n.makeScanRequest(newCtx, logger, request)
 }
 

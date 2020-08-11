@@ -32,7 +32,7 @@ const (
 	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
-	imageURL      = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt      = "Nightfall Logo"
 	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )

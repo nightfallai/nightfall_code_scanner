@@ -178,7 +178,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 		},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
-		FileInclusionList:          []string{".*"},
+		FileInclusionList:          []string{"*"},
 		FileExclusionList:          nil,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{

@@ -27,7 +27,7 @@ func TestGetNightfallConfig(t *testing.T) {
 		},
 		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
-		FileInclusionList:  []string{".*"},
+		FileInclusionList:  []string{"*"},
 		FileExclusionList:  nil,
 	}
 	actualConfig, err := nightfallconfig.GetConfigFile(workspacePath, testFileName)

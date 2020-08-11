@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/gobwas/glob"
+
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/clients/logger"
 	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
@@ -202,8 +204,12 @@ func isFindingInTokenExclusionList(fragment string, tokenExclusionList []string)
 	if tokenExclusionList == nil {
 		return false
 	}
-	for _, pattern := range tokenExclusionList {
-		if matched, _ := regexp.MatchString(pattern, fragment); matched {
+	return matchRegex(fragment, tokenExclusionList)
+}
+
+func matchRegex(finding string, regexPatterns []string) bool {
+	for _, pattern := range regexPatterns {
+		if matched, _ := regexp.MatchString(pattern, finding); matched {
 			return true
 		}
 	}
@@ -302,7 +308,7 @@ func (n *Client) ReviewDiff(
 	logger logger.Logger,
 	fileDiffs []*diffreviewer.FileDiff,
 ) ([]*diffreviewer.Comment, error) {
-	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList)
+	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
@@ -338,21 +344,22 @@ func (n *Client) ReviewDiff(
 	}
 }
 
-func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string) []*diffreviewer.FileDiff {
+func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string, logger logger.Logger) []*diffreviewer.FileDiff {
 	if fileIncludeList != nil && len(fileIncludeList) > 0 {
-		fileDiffs = filterByFilePath(fileDiffs, fileIncludeList, true)
+		fileDiffs = filterByFilePath(fileDiffs, fileIncludeList, true, logger)
 	}
 	if fileExcludeList != nil && len(fileExcludeList) > 0 {
-		fileDiffs = filterByFilePath(fileDiffs, fileExcludeList, false)
+		fileDiffs = filterByFilePath(fileDiffs, fileExcludeList, false, logger)
 	}
 	return fileDiffs
 }
 
-func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, regexPatterns []string, include bool) []*diffreviewer.FileDiff {
+func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, globPatterns []string, include bool, logger logger.Logger) []*diffreviewer.FileDiff {
 	filteredFileDiffs := make([]*diffreviewer.FileDiff, 0, len(fileDiffs))
+	globs := compileGlobs(globPatterns, logger)
 	for _, fd := range fileDiffs {
-		matched := matchRegex(fd.PathNew, regexPatterns)
-		// if include (file inclusion), append if the filename matches a regex pattern
+		matched := matchGlob(fd.PathNew, globs)
+		// if include (file inclusion), append if the filename matches a glob pattern
 		// if !include (file exclusion), append if the filename does not match any pattern
 		if (matched && include) || (!matched && !include) {
 			filteredFileDiffs = append(filteredFileDiffs, fd)
@@ -361,9 +368,22 @@ func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, regexPatterns []string
 	return filteredFileDiffs
 }
 
-func matchRegex(filePath string, regexPatterns []string) bool {
-	for _, pattern := range regexPatterns {
-		if matched, _ := regexp.MatchString(pattern, filePath); matched {
+func compileGlobs(globPatterns []string, logger logger.Logger) []glob.Glob {
+	globs := make([]glob.Glob, 0, len(globPatterns))
+	for _, pattern := range globPatterns {
+		compiledGlob, err := glob.Compile(pattern)
+		if err != nil {
+			logger.Warning(fmt.Sprintf("Unable to compile glob pattern: %s", pattern))
+			continue
+		}
+		globs = append(globs, compiledGlob)
+	}
+	return globs
+}
+
+func matchGlob(filePath string, globs []glob.Glob) bool {
+	for _, glob := range globs {
+		if glob.Match(filePath) {
 			return true
 		}
 	}

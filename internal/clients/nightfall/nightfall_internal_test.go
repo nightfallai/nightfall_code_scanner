@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
+
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
@@ -364,34 +366,34 @@ func TestFilterFileDiffs(t *testing.T) {
 		{
 			haveFileDiffs:         fileDiffs,
 			haveInclusionFileList: nil,
-			haveExclusionFileList: []string{"test*"},
+			haveExclusionFileList: []string{"*test*"},
 			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[1], fileDiffs[2], fileDiffs[4]},
 			desc:                  "exclusion list only",
 		},
 		{
 			haveFileDiffs:         fileDiffs,
-			haveInclusionFileList: []string{"\\.go$", "path*"},
-			haveExclusionFileList: []string{"/secondary_path/*"},
+			haveInclusionFileList: []string{"*.go", "path*"},
+			haveExclusionFileList: []string{"*/secondary_path/*"},
 			wantFileDiffs:         fileDiffs[1:6],
 			desc:                  "inclusion and exclusion list",
 		},
 		{
 			haveFileDiffs:         fileDiffs,
-			haveInclusionFileList: []string{".*"},
+			haveInclusionFileList: []string{"*"},
 			haveExclusionFileList: []string{},
 			wantFileDiffs:         fileDiffs,
 			desc:                  "include everything",
 		},
 		{
 			haveFileDiffs:         fileDiffs,
-			haveInclusionFileList: []string{".*"},
-			haveExclusionFileList: []string{".*"},
+			haveInclusionFileList: []string{"*"},
+			haveExclusionFileList: []string{"*"},
 			wantFileDiffs:         []*diffreviewer.FileDiff{},
 			desc:                  "include and then exclude everything",
 		},
 	}
 	for _, tt := range tests {
-		actual := filterFileDiffs(tt.haveFileDiffs, tt.haveInclusionFileList, tt.haveExclusionFileList)
+		actual := filterFileDiffs(tt.haveFileDiffs, tt.haveInclusionFileList, tt.haveExclusionFileList, githublogger.NewDefaultGithubLogger())
 		assert.Equal(t, tt.wantFileDiffs, actual, fmt.Sprintf("Incorrect response from filter file diffs %s test", tt.desc))
 	}
 }
@@ -410,12 +412,6 @@ func TestMatchRegex(t *testing.T) {
 			desc:            ".*",
 		},
 		{
-			haveStrs:        []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
-			havePatterns:    []string{"/secondary_path*"},
-			wantMatchedStrs: []string{"path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
-			desc:            "/secondary_path*",
-		},
-		{
 			haveStrs:        []string{"301-123-4567", "1-240-925-5721", "7428501824", "127.253.42.0", "13.47.149.67"},
 			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$", "^127\\."},
 			wantMatchedStrs: []string{"301-123-4567", "1-240-925-5721", "127.253.42.0"},
@@ -430,6 +426,44 @@ func TestMatchRegex(t *testing.T) {
 			}
 		}
 		assert.Equal(t, tt.wantMatchedStrs, matchedStrs, fmt.Sprintf("Incorrect response from match regex %s test", tt.desc))
+	}
+}
+
+func TestMatchGlob(t *testing.T) {
+	tests := []struct {
+		haveFilePaths    []string
+		havePatterns     []string
+		wantMatchedPaths []string
+		desc             string
+	}{
+		{
+			haveFilePaths:    []string{"a.go", "b.py", "a/b/c.txt"},
+			havePatterns:     []string{"*"},
+			wantMatchedPaths: []string{"a.go", "b.py", "a/b/c.txt"},
+			desc:             "*",
+		},
+		{
+			haveFilePaths:    []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"path/*"},
+			wantMatchedPaths: []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*path/*",
+		},
+		{
+			haveFilePaths:    []string{"secondary_path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"*/secondary_path*"},
+			wantMatchedPaths: []string{"path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*/secondary_path*",
+		},
+	}
+	for _, tt := range tests {
+		matchedPaths := make([]string, 0, len(tt.haveFilePaths))
+		globs := compileGlobs(tt.havePatterns, githublogger.NewDefaultGithubLogger())
+		for _, s := range tt.haveFilePaths {
+			if matchGlob(s, globs) {
+				matchedPaths = append(matchedPaths, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
 	}
 }
 

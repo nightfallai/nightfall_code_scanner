@@ -247,7 +247,7 @@ func (n *Client) scanContent(
 
 	// Determine findings from response and create comments
 	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionSet)
-	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
+	//logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
 }
 

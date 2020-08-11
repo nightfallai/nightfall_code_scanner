@@ -49,7 +49,6 @@ jobs:
           git diff --name-only ${{ github.event.before }} $GITHUB_SHA > $DIFF_FILENAME; \
           echo "Diff between ${{ github.event.before }} and $GITHUB_SHA"; \
           fi;
-          cat $DIFF_FILENAME;
 
       - name: Download Go Modules
         if: steps.cache.outputs.cache-hit != 'true'

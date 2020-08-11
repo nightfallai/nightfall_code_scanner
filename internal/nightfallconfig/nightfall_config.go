@@ -21,6 +21,8 @@ type NightfallConfigFileStructure struct {
 	Detectors          DetectorConfig `json:"detectors"`
 	MaxNumberRoutines  int            `json:"maxNumberConcurrentRoutines"`
 	TokenExclusionList []string       `json:"tokenExclusionList"`
+	FileInclusionList  []string       `json:"fileInclusionList"`
+	FileExclusionList  []string       `json:"fileExclusionList"`
 }
 
 // Config general config struct
@@ -29,6 +31,8 @@ type Config struct {
 	NightfallDetectors         DetectorConfig
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
+	FileInclusionList          []string
+	FileExclusionList          []string
 }
 
 // GetConfigFile loads nightfall config from file

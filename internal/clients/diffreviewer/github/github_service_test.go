@@ -178,6 +178,8 @@ func (g *githubTestSuite) TestLoadConfig() {
 		},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:          []string{"*"},
+		FileExclusionList:          nil,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

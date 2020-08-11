@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
@@ -239,11 +240,15 @@ func filterHunks(hunks []*diffreviewer.Hunk) []*diffreviewer.Hunk {
 func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 	filteredLines := []*diffreviewer.Line{}
 	for _, line := range lines {
-		if line.Type == diffreviewer.LineAdded {
+		if line.Type == diffreviewer.LineAdded && !whitespaceOnlyLine(line) {
 			filteredLines = append(filteredLines, line)
 		}
 	}
 	return filteredLines
+}
+
+func whitespaceOnlyLine(line *diffreviewer.Line) bool {
+	return strings.TrimSpace(line.Content) == ""
 }
 
 // WriteComments posts the findings as annotations to the github check

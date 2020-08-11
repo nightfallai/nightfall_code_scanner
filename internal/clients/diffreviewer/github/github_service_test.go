@@ -11,12 +11,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	githubservice "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
-	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	githubservice "github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/github"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubchecks_mock"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -332,6 +333,9 @@ func (n *Client) makeScanRequest(
 			)
 			logger.Error(err.Error())
 			logger.Error(httpResp.Status)
+			defer httpResp.Body.Close()
+			bodyBytes, err := ioutil.ReadAll(httpResp.Body)
+			logger.Error(string(bodyBytes))
 			return nil, err
 		}
 		return resp, nil

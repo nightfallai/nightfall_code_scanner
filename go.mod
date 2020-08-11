@@ -1,4 +1,4 @@
-module github.com/nightfallai/jenkins_test
+module github.com/nightfallai/nightfall_cli
 
 go 1.13
 

@@ -16,7 +16,6 @@ import (
 	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
 	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
-	"github.com/scylladb/go-set/strset"
 )
 
 const (
@@ -46,26 +45,25 @@ var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient         nightfallintf.NightfallAPI
-	APIKey            string
-	DetectorConfigs   nightfallconfig.DetectorConfig
-	MaxNumberRoutines int
-	TokenExclusionSet *strset.Set
-	FileInclusionList []string
-	FileExclusionList []string
+	APIClient          nightfallintf.NightfallAPI
+	APIKey             string
+	DetectorConfigs    nightfallconfig.DetectorConfig
+	MaxNumberRoutines  int
+	TokenExclusionList []string
+	FileInclusionList  []string
+	FileExclusionList  []string
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
-	tokenExclusionSet := strset.New(config.TokenExclusionList...)
 	n := Client{
-		APIClient:         NewAPIClient(),
-		APIKey:            config.NightfallAPIKey,
-		DetectorConfigs:   config.NightfallDetectors,
-		MaxNumberRoutines: config.NightfallMaxNumberRoutines,
-		TokenExclusionSet: tokenExclusionSet,
-		FileInclusionList: config.FileInclusionList,
-		FileExclusionList: config.FileExclusionList,
+		APIClient:          NewAPIClient(),
+		APIKey:             config.NightfallAPIKey,
+		DetectorConfigs:    config.NightfallDetectors,
+		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
+		TokenExclusionList: config.TokenExclusionList,
+		FileInclusionList:  config.FileInclusionList,
+		FileExclusionList:  config.FileExclusionList,
 	}
 	return &n
 }
@@ -175,13 +173,13 @@ func createCommentsFromScanResp(
 	inputContent []*contentToScan,
 	resp [][]nightfallAPI.ScanResponse,
 	detectorConfigs nightfallconfig.DetectorConfig,
-	tokenExclusionSet *strset.Set,
+	tokenExclusionList []string,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
 			if foundSensitiveData(finding, detectorConfigs) &&
-				!isFindingInTokenExclusionSet(finding.Fragment, tokenExclusionSet) {
+				!isFindingInTokenExclusionList(finding.Fragment, tokenExclusionList) {
 				// Found sensitive info
 				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
@@ -200,11 +198,16 @@ func createCommentsFromScanResp(
 	return comments
 }
 
-func isFindingInTokenExclusionSet(fragment string, tokenExclusionSet *strset.Set) bool {
-	if tokenExclusionSet == nil {
+func isFindingInTokenExclusionList(fragment string, tokenExclusionList []string) bool {
+	if tokenExclusionList == nil {
 		return false
 	}
-	return tokenExclusionSet.Has(fragment)
+	for _, pattern := range tokenExclusionList {
+		if matched, _ := regexp.MatchString(pattern, fragment); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
@@ -237,7 +240,7 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	}
 
 	// Determine findings from response and create comments
-	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionSet)
+	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionList)
 	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
 }

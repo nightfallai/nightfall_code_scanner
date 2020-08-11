@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/logger"
-	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
+	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )
 
 type Level string
@@ -345,7 +345,8 @@ func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
 			},
 		},
 	}
-	_, _, err := s.Client.ChecksService().UpdateCheckRun(context.Background(),
+	_, _, err := s.Client.ChecksService().UpdateCheckRun(
+		context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRunID,

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
 	"golang.org/x/oauth2"
 )
 

@@ -1,7 +1,7 @@
 package nightfall
 
 import (
-	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/logger"
+	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 )
 
 const (

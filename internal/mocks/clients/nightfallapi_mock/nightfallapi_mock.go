@@ -6,7 +6,7 @@ package nightfallapi_mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	nightfallintf "github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
+	nightfallintf "github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
 	reflect "reflect"
 )
 

@@ -343,7 +343,8 @@ func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
 			},
 		},
 	}
-	_, _, err := s.Client.ChecksService().UpdateCheckRun(context.Background(),
+	_, _, err := s.Client.ChecksService().UpdateCheckRun(
+		context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRunID,

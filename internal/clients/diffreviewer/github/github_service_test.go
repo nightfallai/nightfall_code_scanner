@@ -257,7 +257,7 @@ func (g *githubTestSuite) TestWriteComments() {
 		},
 	}
 
-	imageURL := "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageURL := "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt := "Nightfall Logo"
 	checkName := "Nightfall DLP"
 	checkRunInProgressStatus := "in_progress"

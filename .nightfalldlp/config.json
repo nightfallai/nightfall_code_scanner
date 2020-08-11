@@ -1,8 +1,10 @@
 {
-    "detectors": {
-        "CREDIT_CARD_NUMBER": "POSSIBLE",
-        "PHONE_NUMBER": "LIKELY"
-    },
+    "detectors": [
+        "CREDIT_CARD_NUMBER",
+        "PHONE_NUMBER",
+        "API_KEY",
+        "CRYPTOGRAPHIC_TOKEN"
+    ],
     "maxNumberConcurrentRoutines": 5,
     "tokenExclusionList": [
         "4242-4242-4242-4242",

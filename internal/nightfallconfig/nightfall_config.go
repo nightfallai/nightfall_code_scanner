@@ -26,7 +26,8 @@ type NightfallConfigFileStructure struct {
 // Config general config struct
 type Config struct {
 	NightfallAPIKey            string
-	NightfallDetectors         DetectorConfig
+	//NightfallDetectors         DetectorConfig
+	NightfallDetectors         []*nightfallAPI.Detector
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
 }

@@ -28,4 +28,4 @@ Here's an example use case:
     fileInclusionList: ["*.go", "*.json"]
 ```
 In the example, we are ignoring all file paths with a `tests` subdirectory, and only scanning on `go` and `json` files.
-Note: we are using [gobwas/glob](https://github.com/gobwas/glob) to match file path patterns. Unlike the token regex matching, file paths must be completely matched by the given pattern. e.g. If `tests` is a subdirectory, it will not be matched by `test/*`, which is only a partial match.
+Note: we are using [gobwas/glob](https://github.com/gobwas/glob) to match file path patterns. Unlike the token regex matching, file paths must be completely matched by the given pattern. e.g. If `tests` is a subdirectory, it will not be matched by `tests/*`, which is only a partial match.

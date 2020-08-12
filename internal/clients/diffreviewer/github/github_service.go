@@ -182,6 +182,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
 		return nil, err
 	}
+	s.Logger.Debug(fmt.Sprintf("num detectors: %d %s", len(nightfallConfig.Detectors), nightfallConfig.Detectors[0]))
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))

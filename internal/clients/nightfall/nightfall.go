@@ -30,24 +30,12 @@ const (
 	defaultTimeout = time.Minute * 20
 )
 
-// likelihoodThresholdMap gives each likelihood an integer value representation
-// the integer value can be used to determine relative importance and can
-// allow for likelihoods to be compared directly
-// eg. VERY_LIKELY > LIKELY since likelihoodThresholdMap[VERY_LIKELY] > likelihoodThresholdMap[LIKELY]
-var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
-	nightfallAPI.VERY_UNLIKELY: 1,
-	nightfallAPI.UNLIKELY:      2,
-	nightfallAPI.POSSIBLE:      3,
-	nightfallAPI.LIKELY:        4,
-	nightfallAPI.VERY_LIKELY:   5,
-}
-
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
 	APIClient          nightfallintf.NightfallAPI
 	APIKey             string
-	DetectorConfigs    nightfallconfig.DetectorConfig
+	Detectors          []*nightfallAPI.Detector
 	MaxNumberRoutines  int
 	TokenExclusionList []string
 }
@@ -57,7 +45,7 @@ func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
 		APIClient:          NewAPIClient(),
 		APIKey:             config.NightfallAPIKey,
-		DetectorConfigs:    config.NightfallDetectors,
+		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
 		TokenExclusionList: config.TokenExclusionList,
 	}
@@ -68,15 +56,6 @@ type contentToScan struct {
 	Content    string
 	FilePath   string
 	LineNumber int
-}
-
-func foundSensitiveData(finding nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) bool {
-	minimumLikelihoodForDetector, ok := detectorConfigs[nightfallAPI.Detector(finding.Detector)]
-	if !ok {
-		return false
-	}
-	findingLikelihood := nightfallAPI.Likelihood(finding.Confidence.Bucket)
-	return likelihoodThresholdMap[findingLikelihood] >= likelihoodThresholdMap[minimumLikelihoodForDetector]
 }
 
 func blurContent(content string) string {
@@ -168,14 +147,12 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 func createCommentsFromScanResp(
 	inputContent []*contentToScan,
 	resp [][]nightfallAPI.ScanResponse,
-	detectorConfigs nightfallconfig.DetectorConfig,
 	tokenExclusionList []string,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
-			if foundSensitiveData(finding, detectorConfigs) &&
-				!isFindingInTokenExclusionList(finding.Fragment, tokenExclusionList) {
+			if !isFindingInTokenExclusionList(finding.Fragment, tokenExclusionList) {
 				// Found sensitive info
 				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
@@ -207,8 +184,8 @@ func isFindingInTokenExclusionList(fragment string, tokenExclusionList []string)
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
-	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.DetectorConfigs))
-	for d := range n.DetectorConfigs {
+	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
+	for d := range n.Detectors {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
 			Name: string(d),
 		})
@@ -236,7 +213,7 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	}
 
 	// Determine findings from response and create comments
-	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionList)
+	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)
 	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
 }

@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/gobwas/glob"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
@@ -194,7 +196,10 @@ func matchRegex(finding string, regexPatterns []string) bool {
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
+	fmt.Println("Iterating....")
+	spew.Dump(n.Detectors)
 	for d := range n.Detectors {
+		fmt.Println("Detector: ", d, string(d))
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
 			Name: string(d),
 		})

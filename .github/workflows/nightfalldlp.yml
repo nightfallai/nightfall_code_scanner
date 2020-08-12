@@ -13,7 +13,7 @@ jobs:
         run: |
           echo ::add-path::$(go env GOPATH)/bin
 
-      - name: Download repo (and action since it's currently in a private repo)
+      - name: Download repo
         uses: actions/checkout@v2
 
       # https://github.com/actions/cache/blob/master/examples.md#go---modules

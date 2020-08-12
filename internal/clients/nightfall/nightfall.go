@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/gobwas/glob"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
@@ -270,6 +272,7 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	request := n.createScanRequest(items)
 	logger.Debug(fmt.Sprintf("api request: %v", request.Detectors))
 	logger.Debug(fmt.Sprintf("name; %s", request.Detectors[0].Name))
+	spew.Dump(request)
 	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Nightfall API err, unable to successfully scan %d items", len(items)))

@@ -173,12 +173,8 @@ func (g *githubTestSuite) TestLoadConfig() {
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey: apiKey,
-		NightfallDetectors: []*nightfallAPI.Detector{
-			&cc,
-			&phone,
-			&ip,
-		},
+		NightfallAPIKey:            apiKey,
+		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},

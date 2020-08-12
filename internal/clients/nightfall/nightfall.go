@@ -28,7 +28,8 @@ const (
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
 
-	defaultTimeout = time.Minute * 20
+	defaultTimeout           = time.Minute * 20
+	MaxConcurrentRoutinesCap = 50
 )
 
 // likelihoodThresholdMap gives each likelihood an integer value representation

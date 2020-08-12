@@ -3,7 +3,7 @@
         "CREDIT_CARD_NUMBER",
         "PHONE_NUMBER",
         "API_KEY",
-        "CRYPTOGRAPHIC_TOKEN"
+        "CRYPTOGRAPHIC_KEY"
     ],
     "maxNumberConcurrentRoutines": 5,
     "tokenExclusionList": [

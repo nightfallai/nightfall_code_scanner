@@ -11,12 +11,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
-
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )

@@ -6,11 +6,10 @@ package nightfallscanapi_mock
 
 import (
 	context "context"
-	http "net/http"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	openapi "github.com/nightfallai/nightfall_go_client/generated"
+	http "net/http"
+	reflect "reflect"
 )
 
 // NightfallScanAPI is a mock of NightfallScanAPI interface

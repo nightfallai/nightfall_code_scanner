@@ -5,10 +5,9 @@
 package githubclient_mock
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	githubintf "github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
+	reflect "reflect"
 )
 
 // GithubClient is a mock of GithubClient interface

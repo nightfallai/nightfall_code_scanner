@@ -5,10 +5,9 @@
 package nightfallapi_mock
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	nightfallintf "github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
+	reflect "reflect"
 )
 
 // NightfallAPI is a mock of NightfallAPI interface

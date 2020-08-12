@@ -3,6 +3,7 @@ module github.com/nightfallai/nightfall_cli
 go 1.13
 
 require (
+	github.com/gobwas/glob v0.2.3
 	github.com/golang/mock v1.4.3
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/google/go-github/v31 v31.0.0

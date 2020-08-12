@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/assert"
 )
@@ -245,6 +248,140 @@ func TestBlurContent(t *testing.T) {
 	}
 }
 
+func TestFilterFileDiffs(t *testing.T) {
+	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "path/test.py"}
+	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))
+	for i, filePath := range filePaths {
+		fileDiff := &diffreviewer.FileDiff{
+			PathNew: filePath,
+		}
+		fileDiffs[i] = fileDiff
+	}
+
+	tests := []struct {
+		haveFileDiffs         []*diffreviewer.FileDiff
+		haveInclusionFileList []string
+		haveExclusionFileList []string
+		wantFileDiffs         []*diffreviewer.FileDiff
+		desc                  string
+	}{
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "empty inclusion and exclusion list",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"path/*"},
+			haveExclusionFileList: nil,
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[4], fileDiffs[5]},
+			desc:                  "inclusion list only",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{"*test*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[1], fileDiffs[2], fileDiffs[4]},
+			desc:                  "exclusion list only",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*.go", "path*"},
+			haveExclusionFileList: []string{"*/secondary_path/*"},
+			wantFileDiffs:         fileDiffs[1:6],
+			desc:                  "inclusion and exclusion list",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*"},
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "include everything",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*"},
+			haveExclusionFileList: []string{"*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{},
+			desc:                  "include and then exclude everything",
+		},
+	}
+	for _, tt := range tests {
+		actual := filterFileDiffs(tt.haveFileDiffs, tt.haveInclusionFileList, tt.haveExclusionFileList, githublogger.NewDefaultGithubLogger())
+		assert.Equal(t, tt.wantFileDiffs, actual, fmt.Sprintf("Incorrect response from filter file diffs %s test", tt.desc))
+	}
+}
+
+func TestMatchRegex(t *testing.T) {
+	tests := []struct {
+		haveStrs        []string
+		havePatterns    []string
+		wantMatchedStrs []string
+		desc            string
+	}{
+		{
+			haveStrs:        []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			havePatterns:    []string{".*"},
+			wantMatchedStrs: []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			desc:            ".*",
+		},
+		{
+			haveStrs:        []string{"301-123-4567", "1-240-925-5721", "7428501824", "127.253.42.0", "13.47.149.67"},
+			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$", "^127\\."},
+			wantMatchedStrs: []string{"301-123-4567", "1-240-925-5721", "127.253.42.0"},
+			desc:            "phone number and local ip addresses",
+		},
+	}
+	for _, tt := range tests {
+		matchedStrs := make([]string, 0, len(tt.haveStrs))
+		for _, s := range tt.haveStrs {
+			if matchRegex(s, tt.havePatterns) {
+				matchedStrs = append(matchedStrs, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedStrs, matchedStrs, fmt.Sprintf("Incorrect response from match regex %s test", tt.desc))
+	}
+}
+
+func TestMatchGlob(t *testing.T) {
+	tests := []struct {
+		haveFilePaths    []string
+		havePatterns     []string
+		wantMatchedPaths []string
+		desc             string
+	}{
+		{
+			haveFilePaths:    []string{"a.go", "b.py", "a/b/c.txt"},
+			havePatterns:     []string{"*"},
+			wantMatchedPaths: []string{"a.go", "b.py", "a/b/c.txt"},
+			desc:             "*",
+		},
+		{
+			haveFilePaths:    []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"path/*"},
+			wantMatchedPaths: []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*path/*",
+		},
+		{
+			haveFilePaths:    []string{"secondary_path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"*/secondary_path*"},
+			wantMatchedPaths: []string{"path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*/secondary_path*",
+		},
+	}
+	for _, tt := range tests {
+		matchedPaths := make([]string, 0, len(tt.haveFilePaths))
+		globs := compileGlobs(tt.havePatterns, githublogger.NewDefaultGithubLogger())
+		for _, s := range tt.haveFilePaths {
+			if matchGlob(s, globs) {
+				matchedPaths = append(matchedPaths, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
+	}
+}
 func createScanResponse(fragment string, detector nightfallAPI.Detector) nightfallAPI.ScanResponse {
 	return nightfallAPI.ScanResponse{
 		Fragment: fragment,

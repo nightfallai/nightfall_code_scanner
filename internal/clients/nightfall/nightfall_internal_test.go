@@ -6,8 +6,8 @@ import (
 
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
-	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -127,18 +127,14 @@ func TestSliceListBySize(t *testing.T) {
 }
 
 func TestCreateCommentsFromScanResp(t *testing.T) {
-	detectorConfigs := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
-		nightfallAPI.IP_ADDRESS:         nightfallAPI.LIKELY,
-	}
 	emptyTokenExclusionList := []string{}
 	creditCard2Regex := "4242-4242-4242-[0-9]{4}"
 	localIpRegex := "^127\\."
 	tokenExclusionList := []string{creditCard2Regex, localIpRegex}
-	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
-	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
-	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY, nightfallAPI.VERY_LIKELY)
-	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.IP_ADDRESS, nightfallAPI.VERY_LIKELY)
+	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER)
+	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER)
+	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY)
+	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.IP_ADDRESS)
 	tests := []struct {
 		haveContentToScanList  []*contentToScan
 		haveScanResponseList   [][]nightfallAPI.ScanResponse
@@ -168,29 +164,10 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 			haveTokenExclusionList: emptyTokenExclusionList,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
+				createComment(apiKeyResponse),
 				createComment(creditCard2Response),
 			},
-			desc: "credit cards omit api finding",
-		},
-		{
-			haveContentToScanList: []*contentToScan{
-				createContentToScan(creditCardNumberContent),
-				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
-			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
-				{
-					creditCardResponse,
-				},
-				{
-					createScanResponse("low likelihood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
-				},
-			},
-			haveTokenExclusionList: emptyTokenExclusionList,
-			want: []*diffreviewer.Comment{
-				createComment(creditCardResponse),
-			},
-			desc: "single credit card passing likelihood threshold",
+			desc: "credit cards and an api key",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
@@ -198,45 +175,16 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
 			},
 			haveScanResponseList: [][]nightfallAPI.ScanResponse{
 				{},
 				{},
 				{},
 				{},
-				{
-					apiKeyResponse,
-				},
 			},
 			haveTokenExclusionList: emptyTokenExclusionList,
 			want:                   []*diffreviewer.Comment{},
 			desc:                   "no comments",
-		},
-		{
-			haveContentToScanList: []*contentToScan{
-				createContentToScan(creditCardNumberContent),
-				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
-				createContentToScan(creditCardNumber2Content),
-			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
-				{
-					creditCardResponse,
-				},
-				{},
-				{
-					apiKeyResponse,
-				},
-				{
-					creditCard2Response,
-				},
-			},
-			haveTokenExclusionList: tokenExclusionList,
-			want: []*diffreviewer.Comment{
-				createComment(creditCardResponse),
-			},
-			desc: "single credit card excluded",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
@@ -266,40 +214,8 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs, tt.haveTokenExclusionList)
-		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: %s test", tt.desc))
-	}
-}
-
-func TestFoundSensitiveData(t *testing.T) {
-	detectorConfigs := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-	}
-	tests := []struct {
-		have nightfallAPI.Likelihood
-		want bool
-	}{}
-	for _, l := range allLikelihoods {
-		var want bool
-		switch l {
-		case nightfallAPI.VERY_UNLIKELY, nightfallAPI.UNLIKELY:
-			want = false
-		default:
-			want = true
-		}
-		tests = append(tests, struct {
-			have nightfallAPI.Likelihood
-			want bool
-		}{
-			have: l,
-			want: want,
-		})
-	}
-
-	for _, tt := range tests {
-		finding := createScanResponse("", nightfallAPI.CREDIT_CARD_NUMBER, tt.have)
-		actual := foundSensitiveData(finding, detectorConfigs)
-		assert.Equal(t, tt.want, actual, "Incorrect response from foundSensitiveData")
+		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, tt.haveTokenExclusionList)
+		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: test '%s'", tt.desc))
 	}
 }
 
@@ -465,14 +381,10 @@ func TestMatchGlob(t *testing.T) {
 		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
 	}
 }
-
-func createScanResponse(fragment string, detector nightfallAPI.Detector, likelihood nightfallAPI.Likelihood) nightfallAPI.ScanResponse {
+func createScanResponse(fragment string, detector nightfallAPI.Detector) nightfallAPI.ScanResponse {
 	return nightfallAPI.ScanResponse{
 		Fragment: fragment,
 		Detector: string(detector),
-		Confidence: nightfallAPI.ScanResponseConfidence{
-			Bucket: string(likelihood),
-		},
 		Location: nightfallAPI.ScanResponseLocation{
 			ByteRange: nightfallAPI.ScanResponseLocationByteRange{
 				Start: 0,

@@ -178,7 +178,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
+	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
 		return nil, err
@@ -261,9 +261,7 @@ func whitespaceOnlyLine(line *diffreviewer.Line) bool {
 }
 
 // WriteComments posts the findings as annotations to the github check
-func (s *Service) WriteComments(
-	comments []*diffreviewer.Comment,
-) error {
+func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	s.Logger.Debug(fmt.Sprintf("Writting %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {

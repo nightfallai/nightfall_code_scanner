@@ -12,31 +12,27 @@ import (
 
 const defaultMaxNumberRoutines = 30
 
-// DetectorConfig struct containing all detectors being used and their
-// associated minimum acceptable likelihood level
-type DetectorConfig map[nightfallAPI.Detector]nightfallAPI.Likelihood
-
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
-	Detectors          DetectorConfig `json:"detectors"`
-	MaxNumberRoutines  int            `json:"maxNumberConcurrentRoutines"`
-	TokenExclusionList []string       `json:"tokenExclusionList"`
-	FileInclusionList  []string       `json:"fileInclusionList"`
-	FileExclusionList  []string       `json:"fileExclusionList"`
+	Detectors          []*nightfallAPI.Detector `json:"detectors"`
+	MaxNumberRoutines  int                      `json:"maxNumberConcurrentRoutines"`
+	TokenExclusionList []string                 `json:"tokenExclusionList"`
+	FileInclusionList  []string                 `json:"fileInclusionList"`
+	FileExclusionList  []string                 `json:"fileExclusionList"`
 }
 
 // Config general config struct
 type Config struct {
 	NightfallAPIKey            string
-	NightfallDetectors         DetectorConfig
+	NightfallDetectors         []*nightfallAPI.Detector
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
 	FileInclusionList          []string
 	FileExclusionList          []string
 }
 
-// GetConfigFile loads nightfall config from file
-func GetConfigFile(workspacePath, fileName string) (*NightfallConfigFileStructure, error) {
+// GetNightfallConfigFile loads nightfall config from file
+func GetNightfallConfigFile(workspacePath, fileName string) (*NightfallConfigFileStructure, error) {
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))
 	if err != nil {
 		return nil, err

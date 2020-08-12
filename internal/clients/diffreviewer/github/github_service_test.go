@@ -160,6 +160,9 @@ func (g *githubTestSuite) TestLoadConfig() {
 	sha := "1234"
 	owner := "nightfallai"
 	repo := "testRepo"
+	cc := nightfallAPI.CREDIT_CARD_NUMBER
+	phone := nightfallAPI.PHONE_NUMBER
+	ip := nightfallAPI.IP_ADDRESS
 	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")
@@ -170,12 +173,8 @@ func (g *githubTestSuite) TestLoadConfig() {
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey: apiKey,
-		NightfallDetectors: nightfallconfig.DetectorConfig{
-			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
-			nightfallAPI.IP_ADDRESS:         nightfallAPI.POSSIBLE,
-		},
+		NightfallAPIKey:            apiKey,
+		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},

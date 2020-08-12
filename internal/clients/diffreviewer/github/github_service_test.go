@@ -11,12 +11,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	githubservice "github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
-	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubchecks_mock"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/githubclient_mock"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	githubservice "github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/github"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubchecks_mock"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )
@@ -48,6 +48,7 @@ index e0fe924..0405bc6 100644
  func main() {
 -	fmt.Println("This is a test")
 +	fmt.Println("This is a test: My name is Tom Cruise")
++ 
  }`
 
 var logger = githublogger.NewDefaultGithubLogger()
@@ -136,8 +137,9 @@ func (g *githubTestSuite) initTestParams() *testParams {
 }
 
 const testConfigFileName = "nightfall_test_config.json"
-const excludedCreditCard = "4242-4242-4242-4242"
+const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
+const excludedIPRegex = "^127\\."
 
 var envVars = []string{
 	githubservice.WorkspacePathEnvVar,
@@ -158,6 +160,9 @@ func (g *githubTestSuite) TestLoadConfig() {
 	sha := "1234"
 	owner := "nightfallai"
 	repo := "testRepo"
+	cc := nightfallAPI.CREDIT_CARD_NUMBER
+	phone := nightfallAPI.PHONE_NUMBER
+	ip := nightfallAPI.IP_ADDRESS
 	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")
@@ -168,13 +173,12 @@ func (g *githubTestSuite) TestLoadConfig() {
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey: apiKey,
-		NightfallDetectors: nightfallconfig.DetectorConfig{
-			nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-			nightfallAPI.PHONE_NUMBER:       nightfallAPI.LIKELY,
-		},
+		NightfallAPIKey:            apiKey,
+		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
 		NightfallMaxNumberRoutines: 20,
-		TokenExclusionList:         []string{excludedCreditCard, excludedApiToken},
+		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:          []string{"*"},
+		FileExclusionList:          nil,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,
@@ -254,7 +258,7 @@ func (g *githubTestSuite) TestWriteComments() {
 		},
 	}
 
-	imageURL := "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageURL := "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt := "Nightfall Logo"
 	checkName := "Nightfall DLP"
 	checkRunInProgressStatus := "in_progress"

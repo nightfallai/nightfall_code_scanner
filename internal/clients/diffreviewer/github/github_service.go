@@ -9,13 +9,15 @@ import (
 	"io/ioutil"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/logger"
-	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/interfaces/githubintf"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
+	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )
 
 type Level string
@@ -31,7 +33,7 @@ const (
 	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
-	imageURL      = "https://www.finsmes.com/wp-content/uploads/2019/11/Nightfall-AI.png"
+	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt      = "Nightfall Logo"
 	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )
@@ -176,7 +178,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	nightfallConfig, err := nightfallconfig.GetConfigFile(workspacePath, nightfallConfigFileName)
+	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
 		return nil, err
@@ -186,11 +188,19 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
+	var maxNumberRoutines int
+	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
+		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
+	} else {
+		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap
+	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:            nightfallAPIKey,
 		NightfallDetectors:         nightfallConfig.Detectors,
-		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
+		NightfallMaxNumberRoutines: maxNumberRoutines,
 		TokenExclusionList:         nightfallConfig.TokenExclusionList,
+		FileInclusionList:          nightfallConfig.FileInclusionList,
+		FileExclusionList:          nightfallConfig.FileExclusionList,
 	}, nil
 }
 
@@ -239,18 +249,20 @@ func filterHunks(hunks []*diffreviewer.Hunk) []*diffreviewer.Hunk {
 func filterLines(lines []*diffreviewer.Line) []*diffreviewer.Line {
 	filteredLines := []*diffreviewer.Line{}
 	for _, line := range lines {
-		if line.Type == diffreviewer.LineAdded {
+		if line.Type == diffreviewer.LineAdded && !whitespaceOnlyLine(line) {
 			filteredLines = append(filteredLines, line)
 		}
 	}
 	return filteredLines
 }
 
+func whitespaceOnlyLine(line *diffreviewer.Line) bool {
+	return strings.TrimSpace(line.Content) == ""
+}
+
 // WriteComments posts the findings as annotations to the github check
-func (s *Service) WriteComments(
-	comments []*diffreviewer.Comment,
-) error {
-	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
+func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+	s.Logger.Debug(fmt.Sprintf("Writting %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {
 		s.Logger.Error("Error creating a Github check run")
@@ -338,7 +350,8 @@ func (s *Service) updateSuccessfulCheckRun(checkRunID int64) error {
 			},
 		},
 	}
-	_, _, err := s.Client.ChecksService().UpdateCheckRun(context.Background(),
+	_, _, err := s.Client.ChecksService().UpdateCheckRun(
+		context.Background(),
 		s.CheckRequest.Owner,
 		s.CheckRequest.Repo,
 		checkRunID,

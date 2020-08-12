@@ -8,16 +8,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 	"unicode/utf8"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/logger"
-	"github.com/nightfallai/jenkins_test/internal/interfaces/nightfallintf"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/gobwas/glob"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
+	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
-	"github.com/scylladb/go-set/strset"
 )
 
 const (
@@ -29,22 +30,11 @@ const (
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
 
-	defaultTimeout = time.Minute * 20
-	maxRetries     = 5
-	initialDelay   = time.Second * 1
+	defaultTimeout           = time.Minute * 20
+	MaxConcurrentRoutinesCap = 50
+	maxRetries               = 5
+	initialDelay             = time.Second * 1
 )
-
-// likelihoodThresholdMap gives each likelihood an integer value representation
-// the integer value can be used to determine relative importance and can
-// allow for likelihoods to be compared directly
-// eg. VERY_LIKELY > LIKELY since likelihoodThresholdMap[VERY_LIKELY] > likelihoodThresholdMap[LIKELY]
-var likelihoodThresholdMap = map[nightfallAPI.Likelihood]int{
-	nightfallAPI.VERY_UNLIKELY: 1,
-	nightfallAPI.UNLIKELY:      2,
-	nightfallAPI.POSSIBLE:      3,
-	nightfallAPI.LIKELY:        4,
-	nightfallAPI.VERY_LIKELY:   5,
-}
 
 var (
 	// ErrMaxScanRetries is the error for when the max number of retries to the API has occurred without success
@@ -54,22 +44,25 @@ var (
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient         nightfallintf.NightfallAPI
-	APIKey            string
-	DetectorConfigs   nightfallconfig.DetectorConfig
-	MaxNumberRoutines int
-	TokenExclusionSet *strset.Set
+	APIClient          nightfallintf.NightfallAPI
+	APIKey             string
+	Detectors          []*nightfallAPI.Detector
+	MaxNumberRoutines  int
+	TokenExclusionList []string
+	FileInclusionList  []string
+	FileExclusionList  []string
 }
 
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
-	tokenExclusionSet := strset.New(config.TokenExclusionList...)
 	n := Client{
-		APIClient:         NewAPIClient(),
-		APIKey:            config.NightfallAPIKey,
-		DetectorConfigs:   config.NightfallDetectors,
-		MaxNumberRoutines: config.NightfallMaxNumberRoutines,
-		TokenExclusionSet: tokenExclusionSet,
+		APIClient:          NewAPIClient(),
+		APIKey:             config.NightfallAPIKey,
+		Detectors:          config.NightfallDetectors,
+		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
+		TokenExclusionList: config.TokenExclusionList,
+		FileInclusionList:  config.FileInclusionList,
+		FileExclusionList:  config.FileExclusionList,
 	}
 	return &n
 }
@@ -78,15 +71,6 @@ type contentToScan struct {
 	Content    string
 	FilePath   string
 	LineNumber int
-}
-
-func foundSensitiveData(finding nightfallAPI.ScanResponse, detectorConfigs nightfallconfig.DetectorConfig) bool {
-	minimumLikelihoodForDetector, ok := detectorConfigs[nightfallAPI.Detector(finding.Detector)]
-	if !ok {
-		return false
-	}
-	findingLikelihood := nightfallAPI.Likelihood(finding.Confidence.Bucket)
-	return likelihoodThresholdMap[findingLikelihood] >= likelihoodThresholdMap[minimumLikelihoodForDetector]
 }
 
 func blurContent(content string) string {
@@ -178,14 +162,12 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 func createCommentsFromScanResp(
 	inputContent []*contentToScan,
 	resp [][]nightfallAPI.ScanResponse,
-	detectorConfigs nightfallconfig.DetectorConfig,
-	tokenExclusionSet *strset.Set,
+	tokenExclusionList []string,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
-			if foundSensitiveData(finding, detectorConfigs) &&
-				!isFindingInTokenExclusionSet(finding.Fragment, tokenExclusionSet) {
+			if !isFindingInTokenExclusionList(finding.Fragment, tokenExclusionList) {
 				// Found sensitive info
 				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
@@ -204,18 +186,27 @@ func createCommentsFromScanResp(
 	return comments
 }
 
-func isFindingInTokenExclusionSet(fragment string, tokenExclusionSet *strset.Set) bool {
-	if tokenExclusionSet == nil {
+func isFindingInTokenExclusionList(fragment string, tokenExclusionList []string) bool {
+	if tokenExclusionList == nil {
 		return false
 	}
-	return tokenExclusionSet.Has(fragment)
+	return matchRegex(fragment, tokenExclusionList)
+}
+
+func matchRegex(finding string, regexPatterns []string) bool {
+	for _, pattern := range regexPatterns {
+		if matched, _ := regexp.MatchString(pattern, finding); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
-	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.DetectorConfigs))
-	for d := range n.DetectorConfigs {
+	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
+	for _, d := range n.Detectors {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
-			Name: string(d),
+			Name: string(*d),
 		})
 	}
 	return nightfallAPI.ScanRequest{
@@ -241,12 +232,12 @@ func (n *Client) scanContent(
 	// send API request
 	resp, err := n.Scan(ctx, logger, items)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", requestNum, len(items)))
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
 		return nil, err
 	}
 
 	// Determine findings from response and create comments
-	createdComments := createCommentsFromScanResp(cts, resp, n.DetectorConfigs, n.TokenExclusionSet)
+	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)
 	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
 }
@@ -347,6 +338,7 @@ func (n *Client) ReviewDiff(
 	logger logger.Logger,
 	fileDiffs []*diffreviewer.FileDiff,
 ) ([]*diffreviewer.Comment, error) {
+	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
@@ -380,4 +372,50 @@ func (n *Client) ReviewDiff(
 			return nil, newCtx.Err()
 		}
 	}
+}
+
+func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string, logger logger.Logger) []*diffreviewer.FileDiff {
+	if fileIncludeList != nil && len(fileIncludeList) > 0 {
+		fileDiffs = filterByFilePath(fileDiffs, fileIncludeList, true, logger)
+	}
+	if fileExcludeList != nil && len(fileExcludeList) > 0 {
+		fileDiffs = filterByFilePath(fileDiffs, fileExcludeList, false, logger)
+	}
+	return fileDiffs
+}
+
+func filterByFilePath(fileDiffs []*diffreviewer.FileDiff, globPatterns []string, include bool, logger logger.Logger) []*diffreviewer.FileDiff {
+	filteredFileDiffs := make([]*diffreviewer.FileDiff, 0, len(fileDiffs))
+	globs := compileGlobs(globPatterns, logger)
+	for _, fd := range fileDiffs {
+		matched := matchGlob(fd.PathNew, globs)
+		// if include (file inclusion), append if the filename matches a glob pattern
+		// if !include (file exclusion), append if the filename does not match any pattern
+		if (matched && include) || (!matched && !include) {
+			filteredFileDiffs = append(filteredFileDiffs, fd)
+		}
+	}
+	return filteredFileDiffs
+}
+
+func compileGlobs(globPatterns []string, logger logger.Logger) []glob.Glob {
+	globs := make([]glob.Glob, 0, len(globPatterns))
+	for _, pattern := range globPatterns {
+		compiledGlob, err := glob.Compile(pattern)
+		if err != nil {
+			logger.Warning(fmt.Sprintf("Unable to compile glob pattern: %s", pattern))
+			continue
+		}
+		globs = append(globs, compiledGlob)
+	}
+	return globs
+}
+
+func matchGlob(filePath string, globs []glob.Glob) bool {
+	for _, glob := range globs {
+		if glob.Match(filePath) {
+			return true
+		}
+	}
+	return false
 }

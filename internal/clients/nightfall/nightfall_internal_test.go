@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
-	"github.com/scylladb/go-set/strset"
+
 	"github.com/stretchr/testify/assert"
 )
 
 const (
 	exampleCreditCardNumber  = "4916-6734-7572-5015"
 	exampleCreditCardNumber2 = "4242-4242-4242-4242"
-	exampleCreditCardNumber3 = "4916-6734-7572-5016"
 	exampleAPIKey            = "yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
+	exampleIP                = "53.166.90.118"
+	exampleLocalHostIP       = "127.0.0.1"
 	filePath                 = "file/path"
 	lineNumber               = 0
 	creditCardNumberContent  = "4916-6734-7572-5015 is my credit card number"
@@ -126,20 +127,20 @@ func TestSliceListBySize(t *testing.T) {
 }
 
 func TestCreateCommentsFromScanResp(t *testing.T) {
-	detectorConfigs := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.LIKELY,
-	}
-	emptyTokenExclusionSet := &strset.Set{}
-	tokenExclusionSet := strset.New(exampleCreditCardNumber2)
-	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
-	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.VERY_LIKELY)
-	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY, nightfallAPI.VERY_LIKELY)
+	emptyTokenExclusionList := []string{}
+	creditCard2Regex := "4242-4242-4242-[0-9]{4}"
+	localIpRegex := "^127\\."
+	tokenExclusionList := []string{creditCard2Regex, localIpRegex}
+	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER)
+	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER)
+	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY)
+	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.IP_ADDRESS)
 	tests := []struct {
-		haveContentToScanList []*contentToScan
-		haveScanResponseList  [][]nightfallAPI.ScanResponse
-		haveTokenExclusionSet *strset.Set
-		want                  []*diffreviewer.Comment
-		desc                  string
+		haveContentToScanList  []*contentToScan
+		haveScanResponseList   [][]nightfallAPI.ScanResponse
+		haveTokenExclusionList []string
+		want                   []*diffreviewer.Comment
+		desc                   string
 	}{
 		{
 			haveContentToScanList: []*contentToScan{
@@ -160,32 +161,13 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 					creditCard2Response,
 				},
 			},
-			haveTokenExclusionSet: emptyTokenExclusionSet,
+			haveTokenExclusionList: emptyTokenExclusionList,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
+				createComment(apiKeyResponse),
 				createComment(creditCard2Response),
 			},
-			desc: "credit cards omit api finding",
-		},
-		{
-			haveContentToScanList: []*contentToScan{
-				createContentToScan(creditCardNumberContent),
-				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
-			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
-				{
-					creditCardResponse,
-				},
-				{
-					createScanResponse("low likelihood on 4534343", nightfallAPI.CREDIT_CARD_NUMBER, nightfallAPI.UNLIKELY),
-				},
-			},
-			haveTokenExclusionSet: emptyTokenExclusionSet,
-			want: []*diffreviewer.Comment{
-				createComment(creditCardResponse),
-			},
-			desc: "single credit card passing likelihood threshold",
+			desc: "credit cards and an api key",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
@@ -193,82 +175,47 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
 			},
 			haveScanResponseList: [][]nightfallAPI.ScanResponse{
 				{},
 				{},
 				{},
 				{},
-				{
-					apiKeyResponse,
-				},
 			},
-			haveTokenExclusionSet: emptyTokenExclusionSet,
-			want:                  []*diffreviewer.Comment{},
-			desc:                  "no comments",
+			haveTokenExclusionList: emptyTokenExclusionList,
+			want:                   []*diffreviewer.Comment{},
+			desc:                   "no comments",
 		},
 		{
 			haveContentToScanList: []*contentToScan{
-				createContentToScan(creditCardNumberContent),
-				createContentToScan("nothing in here"),
-				createContentToScan(apiKeyContent),
-				createContentToScan(creditCardNumber2Content),
+				createContentToScan("4242-4242-4242-abcd"),
+				createContentToScan(exampleCreditCardNumber),
+				createContentToScan(exampleCreditCardNumber2),
+				createContentToScan(exampleLocalHostIP),
+				createContentToScan(exampleIP),
 			},
 			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+				{},
 				{
 					creditCardResponse,
 				},
 				{},
+				{},
 				{
-					apiKeyResponse,
-				},
-				{
-					creditCard2Response,
+					ipAddressResponse,
 				},
 			},
-			haveTokenExclusionSet: tokenExclusionSet,
+			haveTokenExclusionList: tokenExclusionList,
 			want: []*diffreviewer.Comment{
 				createComment(creditCardResponse),
+				createComment(ipAddressResponse),
 			},
-			desc: "single credit card excluded",
+			desc: "credit card and ip regex",
 		},
 	}
 	for _, tt := range tests {
-		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, detectorConfigs, tt.haveTokenExclusionSet)
-		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: %s test", tt.desc))
-	}
-}
-
-func TestFoundSensitiveData(t *testing.T) {
-	detectorConfigs := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-	}
-	tests := []struct {
-		have nightfallAPI.Likelihood
-		want bool
-	}{}
-	for _, l := range allLikelihoods {
-		var want bool
-		switch l {
-		case nightfallAPI.VERY_UNLIKELY, nightfallAPI.UNLIKELY:
-			want = false
-		default:
-			want = true
-		}
-		tests = append(tests, struct {
-			have nightfallAPI.Likelihood
-			want bool
-		}{
-			have: l,
-			want: want,
-		})
-	}
-
-	for _, tt := range tests {
-		finding := createScanResponse("", nightfallAPI.CREDIT_CARD_NUMBER, tt.have)
-		actual := foundSensitiveData(finding, detectorConfigs)
-		assert.Equal(t, tt.want, actual, "Incorrect response from foundSensitiveData")
+		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, tt.haveTokenExclusionList)
+		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: test '%s'", tt.desc))
 	}
 }
 
@@ -300,13 +247,144 @@ func TestBlurContent(t *testing.T) {
 	}
 }
 
-func createScanResponse(fragment string, detector nightfallAPI.Detector, likelihood nightfallAPI.Likelihood) nightfallAPI.ScanResponse {
+func TestFilterFileDiffs(t *testing.T) {
+	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "path/test.py"}
+	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))
+	for i, filePath := range filePaths {
+		fileDiff := &diffreviewer.FileDiff{
+			PathNew: filePath,
+		}
+		fileDiffs[i] = fileDiff
+	}
+
+	tests := []struct {
+		haveFileDiffs         []*diffreviewer.FileDiff
+		haveInclusionFileList []string
+		haveExclusionFileList []string
+		wantFileDiffs         []*diffreviewer.FileDiff
+		desc                  string
+	}{
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "empty inclusion and exclusion list",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"path/*"},
+			haveExclusionFileList: nil,
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[4], fileDiffs[5]},
+			desc:                  "inclusion list only",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: nil,
+			haveExclusionFileList: []string{"*test*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{fileDiffs[0], fileDiffs[1], fileDiffs[2], fileDiffs[4]},
+			desc:                  "exclusion list only",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*.go", "path*"},
+			haveExclusionFileList: []string{"*/secondary_path/*"},
+			wantFileDiffs:         fileDiffs[1:6],
+			desc:                  "inclusion and exclusion list",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*"},
+			haveExclusionFileList: []string{},
+			wantFileDiffs:         fileDiffs,
+			desc:                  "include everything",
+		},
+		{
+			haveFileDiffs:         fileDiffs,
+			haveInclusionFileList: []string{"*"},
+			haveExclusionFileList: []string{"*"},
+			wantFileDiffs:         []*diffreviewer.FileDiff{},
+			desc:                  "include and then exclude everything",
+		},
+	}
+	for _, tt := range tests {
+		actual := filterFileDiffs(tt.haveFileDiffs, tt.haveInclusionFileList, tt.haveExclusionFileList, githublogger.NewDefaultGithubLogger())
+		assert.Equal(t, tt.wantFileDiffs, actual, fmt.Sprintf("Incorrect response from filter file diffs %s test", tt.desc))
+	}
+}
+
+func TestMatchRegex(t *testing.T) {
+	tests := []struct {
+		haveStrs        []string
+		havePatterns    []string
+		wantMatchedStrs []string
+		desc            string
+	}{
+		{
+			haveStrs:        []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			havePatterns:    []string{".*"},
+			wantMatchedStrs: []string{"a.go", "b.py", "a/b/c.txt", "4242-4242-4242-4242"},
+			desc:            ".*",
+		},
+		{
+			haveStrs:        []string{"301-123-4567", "1-240-925-5721", "7428501824", "127.253.42.0", "13.47.149.67"},
+			havePatterns:    []string{"^(1-)?\\d{3}-\\d{3}-\\d{4}$", "^127\\."},
+			wantMatchedStrs: []string{"301-123-4567", "1-240-925-5721", "127.253.42.0"},
+			desc:            "phone number and local ip addresses",
+		},
+	}
+	for _, tt := range tests {
+		matchedStrs := make([]string, 0, len(tt.haveStrs))
+		for _, s := range tt.haveStrs {
+			if matchRegex(s, tt.havePatterns) {
+				matchedStrs = append(matchedStrs, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedStrs, matchedStrs, fmt.Sprintf("Incorrect response from match regex %s test", tt.desc))
+	}
+}
+
+func TestMatchGlob(t *testing.T) {
+	tests := []struct {
+		haveFilePaths    []string
+		havePatterns     []string
+		wantMatchedPaths []string
+		desc             string
+	}{
+		{
+			haveFilePaths:    []string{"a.go", "b.py", "a/b/c.txt"},
+			havePatterns:     []string{"*"},
+			wantMatchedPaths: []string{"a.go", "b.py", "a/b/c.txt"},
+			desc:             "*",
+		},
+		{
+			haveFilePaths:    []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"path/*"},
+			wantMatchedPaths: []string{"path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*path/*",
+		},
+		{
+			haveFilePaths:    []string{"secondary_path/a.go", "path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			havePatterns:     []string{"*/secondary_path*"},
+			wantMatchedPaths: []string{"path/secondary_path/c.py", "path/secondary_path/tertiary_path.txt"},
+			desc:             "*/secondary_path*",
+		},
+	}
+	for _, tt := range tests {
+		matchedPaths := make([]string, 0, len(tt.haveFilePaths))
+		globs := compileGlobs(tt.havePatterns, githublogger.NewDefaultGithubLogger())
+		for _, s := range tt.haveFilePaths {
+			if matchGlob(s, globs) {
+				matchedPaths = append(matchedPaths, s)
+			}
+		}
+		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
+	}
+}
+func createScanResponse(fragment string, detector nightfallAPI.Detector) nightfallAPI.ScanResponse {
 	return nightfallAPI.ScanResponse{
 		Fragment: fragment,
 		Detector: string(detector),
-		Confidence: nightfallAPI.ScanResponseConfidence{
-			Bucket: string(likelihood),
-		},
 		Location: nightfallAPI.ScanResponseLocation{
 			ByteRange: nightfallAPI.ScanResponseLocationByteRange{
 				Start: 0,

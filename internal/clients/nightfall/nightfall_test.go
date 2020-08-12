@@ -7,12 +7,11 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	githublogger "github.com/nightfallai/jenkins_test/internal/clients/logger/github_logger"
-	"github.com/nightfallai/jenkins_test/internal/clients/nightfall"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/nightfallapi_mock"
-	"github.com/nightfallai/jenkins_test/internal/mocks/clients/nightfallscanapi_mock"
-	"github.com/nightfallai/jenkins_test/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/nightfallapi_mock"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/nightfallscanapi_mock"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )
@@ -30,15 +29,14 @@ type nightfallTestSuite struct {
 func (n *nightfallTestSuite) TestReviewDiff() {
 	ctrl := gomock.NewController(n.T())
 	defer ctrl.Finish()
-	detectorConfig := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-		nightfallAPI.PHONE_NUMBER:       nightfallAPI.POSSIBLE,
-	}
+	cc := nightfallAPI.CREDIT_CARD_NUMBER
+	phone := nightfallAPI.PHONE_NUMBER
+	detectors := []*nightfallAPI.Detector{&cc, &phone}
 	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	mockScanAPI := nightfallscanapi_mock.NewNightfallScanAPI(ctrl)
 	client := nightfall.Client{
 		APIClient:         mockAPIClient,
-		DetectorConfigs:   detectorConfig,
+		Detectors:         detectors,
 		MaxNumberRoutines: 2,
 	}
 
@@ -104,10 +102,9 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 func (n *nightfallTestSuite) TestScan() {
 	ctrl := gomock.NewController(n.T())
 	defer ctrl.Finish()
-	detectorConfig := nightfallconfig.DetectorConfig{
-		nightfallAPI.CREDIT_CARD_NUMBER: nightfallAPI.POSSIBLE,
-		nightfallAPI.PHONE_NUMBER:       nightfallAPI.POSSIBLE,
-	}
+	cc := nightfallAPI.CREDIT_CARD_NUMBER
+	phone := nightfallAPI.PHONE_NUMBER
+	detectors := []*nightfallAPI.Detector{&cc, &phone}
 
 	items := []string{
 		"this is a string",
@@ -115,7 +112,7 @@ func (n *nightfallTestSuite) TestScan() {
 		"tom cruise!!!!!!",
 	}
 
-	expectedScanReq := createScanReq(detectorConfig, items)
+	expectedScanReq := createScanReq(detectors, items)
 	expectedScanResp := [][]nightfallAPI.ScanResponse{
 		{},
 		{
@@ -160,8 +157,8 @@ func (n *nightfallTestSuite) TestScan() {
 		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 		mockScanAPI := nightfallscanapi_mock.NewNightfallScanAPI(ctrl)
 		client := nightfall.Client{
-			APIClient:       mockAPIClient,
-			DetectorConfigs: detectorConfig,
+			APIClient: mockAPIClient,
+			Detectors: detectors,
 		}
 
 		numRetries := tt.haveNumReqAttempts
@@ -197,9 +194,9 @@ func (n *nightfallTestSuite) TestScan() {
 	}
 }
 
-func createScanReq(detectorConfig nightfallconfig.DetectorConfig, items []string) nightfallAPI.ScanRequest {
-	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(detectorConfig))
-	for d := range detectorConfig {
+func createScanReq(dets []*nightfallAPI.Detector, items []string) nightfallAPI.ScanRequest {
+	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(dets))
+	for d := range dets {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
 			Name: string(d),
 		})

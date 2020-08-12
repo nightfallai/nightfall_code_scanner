@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer"
-	"github.com/nightfallai/jenkins_test/internal/clients/diffreviewer/github"
-	"github.com/nightfallai/jenkins_test/internal/clients/flag"
-	"github.com/nightfallai/jenkins_test/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/github"
+	"github.com/nightfallai/nightfall_cli/internal/clients/flag"
+	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
 )
 
 const (

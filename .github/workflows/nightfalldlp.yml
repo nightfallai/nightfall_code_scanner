@@ -1,30 +1,20 @@
 name: nightfalldlp
-on: [pull_request]
-
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 jobs:
-  nightfalldlp-pr:
-    name: nightfalldlp on Pull Request
+  nightfalldlp:
+    name: nightfalldlp
     runs-on: ubuntu-latest
     steps:
       - name: Add $GOPATH/bin
         run: |
           echo ::add-path::$(go env GOPATH)/bin
-      - name: Download repo (and action since it's currently in a private repo)
-        uses: actions/checkout@v2
 
-      - name: Download diff locally
-        shell: bash
-        run: |
-          diff_filename="./nightfalldlp_raw_diff.txt"
-          if [ "$GITHUB_BASE_REF" ]; then
-            git fetch origin "$GITHUB_BASE_REF" --depth=1;
-            echo "PR: fetching diff between origin/$GITHUB_BASE_REF and $GITHUB_SHA";
-            git diff origin/"$GITHUB_BASE_REF" "$GITHUB_SHA" > $diff_filename;
-          else
-            git fetch origin "$EVENT_BEFORE" --depth=1;
-            echo "PUSH: fetching diff between $EVENT_BEFORE and $GITHUB_SHA";
-            git diff "$EVENT_BEFORE" "$GITHUB_SHA" > $diff_filename;
-          fi;
+      - name: Download repo
+        uses: actions/checkout@v2
 
       # https://github.com/actions/cache/blob/master/examples.md#go---modules
       - name: Cache Go Modules
@@ -57,11 +47,13 @@ jobs:
       - name: Setup nightfalldlp
         run: |
           go install ./cmd/nightfalldlp
+
       # update how we're running the action
       - name: Run nightfalldlp (github-pr-check)
         continue-on-error: true
         env:
-          NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
+          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           nightfalldlp

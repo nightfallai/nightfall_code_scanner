@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
@@ -187,10 +189,16 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
+	var maxNumberRoutines int
+	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
+		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
+	} else {
+		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap
+	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:            nightfallAPIKey,
 		NightfallDetectors:         nightfallConfig.Detectors,
-		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
+		NightfallMaxNumberRoutines: maxNumberRoutines,
 		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 		FileInclusionList:          nightfallConfig.FileInclusionList,
 		FileExclusionList:          nightfallConfig.FileExclusionList,

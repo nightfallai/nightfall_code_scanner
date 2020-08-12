@@ -9,6 +9,10 @@ security, and ensure you never accidentally leak secrets or other sensitive info
 ### GithubActions
 [NightfallDLP](https://github.com/nightfallai/nightfall_dlp_action)
 
+## Detectors
+Each detector represents a type of information you want to search for in your code scans (e.g. CRYPTOGRAPHIC_KEY). The 
+configuration is an array of canonical detector names.
+
 ## Additional Configuration
 Aside from which detectors to scan on, you can add additional fields to your config, `./nightfall/config.json`, to ignore tokens and files as well as specify which files to exclusively scan on.
 ### Token Exclusion

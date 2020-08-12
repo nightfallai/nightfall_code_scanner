@@ -110,9 +110,9 @@ func (n *nightfallTestSuite) TestScan() {
 	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	mockScanAPI := nightfallscanapi_mock.NewNightfallScanAPI(ctrl)
 	client := nightfall.Client{
-		APIClient:    mockAPIClient,
-		Detectors:    detectors,
-		InitialDelay: time.Millisecond,
+		APIClient:         mockAPIClient,
+		Detectors:         detectors,
+		InitialRetryDelay: time.Millisecond,
 	}
 
 	items := []string{

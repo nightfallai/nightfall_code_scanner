@@ -48,7 +48,7 @@ type Client struct {
 	APIKey             string
 	Detectors          []*nightfallAPI.Detector
 	MaxNumberRoutines  int
-	InitialDelay       time.Duration
+	InitialRetryDelay  time.Duration
 	TokenExclusionList []string
 	FileInclusionList  []string
 	FileExclusionList  []string
@@ -61,7 +61,7 @@ func NewClient(config nightfallconfig.Config) *Client {
 		APIKey:             config.NightfallAPIKey,
 		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
-		InitialDelay:       initialDelay,
+		InitialRetryDelay:  initialDelay,
 		TokenExclusionList: config.TokenExclusionList,
 		FileInclusionList:  config.FileInclusionList,
 		FileExclusionList:  config.FileExclusionList,
@@ -302,7 +302,7 @@ func (n *Client) makeScanRequest(
 	logger logger.Logger,
 	request nightfallAPI.ScanRequest,
 ) ([][]nightfallAPI.ScanResponse, error) {
-	delay := n.InitialDelay
+	delay := n.InitialRetryDelay
 	for i := 0; i < maxRetries; i++ {
 		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
 		if err != nil {
@@ -323,7 +323,6 @@ func (n *Client) makeScanRequest(
 					len(request.Payload.Items),
 				),
 			)
-			logger.Error(err.Error())
 			return nil, err
 		}
 		return resp, nil

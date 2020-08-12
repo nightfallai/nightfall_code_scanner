@@ -48,6 +48,7 @@ type Client struct {
 	APIKey             string
 	Detectors          []*nightfallAPI.Detector
 	MaxNumberRoutines  int
+	InitialDelay       time.Duration
 	TokenExclusionList []string
 	FileInclusionList  []string
 	FileExclusionList  []string
@@ -56,10 +57,11 @@ type Client struct {
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
-		APIClient:          NewAPIClient(),
+		APIClient:          NewAPIClient(nil),
 		APIKey:             config.NightfallAPIKey,
 		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
+		InitialDelay:       initialDelay,
 		TokenExclusionList: config.TokenExclusionList,
 		FileInclusionList:  config.FileInclusionList,
 		FileExclusionList:  config.FileExclusionList,
@@ -300,15 +302,15 @@ func (n *Client) makeScanRequest(
 	logger logger.Logger,
 	request nightfallAPI.ScanRequest,
 ) ([][]nightfallAPI.ScanResponse, error) {
-	delay := initialDelay
+	delay := n.InitialDelay
 	for i := 0; i < maxRetries; i++ {
 		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
 		if err != nil {
 			if httpResp.StatusCode == http.StatusTooManyRequests {
 				logger.Warning(
 					fmt.Sprintf(
-						"Too many requests to Nightfall API: sleeping for %f seconds before next attempt",
-						delay.Seconds(),
+						"Too many requests to Nightfall API: sleeping for %d seconds before next attempt",
+						int(delay.Seconds()),
 					),
 				)
 				time.Sleep(delay)

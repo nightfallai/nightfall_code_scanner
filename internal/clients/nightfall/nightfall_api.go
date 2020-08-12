@@ -8,17 +8,23 @@ import (
 // APIClient is a wrapper around nightfallAPI.APIClient
 type APIClient struct {
 	APIClient *nightfallAPI.APIClient
+	ScanApi   nightfallintf.NightfallScanAPI
 }
 
 // NewAPIClient generates a nightfallAPI client
-func NewAPIClient() *APIClient {
+func NewAPIClient(scanAPI nightfallintf.NightfallScanAPI) *APIClient {
 	APIConfig := nightfallAPI.NewConfiguration()
+	apiClient := nightfallAPI.NewAPIClient(APIConfig)
+	if scanAPI == nil {
+		scanAPI = apiClient.ScanApi
+	}
 	return &APIClient{
 		APIClient: nightfallAPI.NewAPIClient(APIConfig),
+		ScanApi:   scanAPI,
 	}
 }
 
 // ScanAPI gets the ScanApi from the api client
 func (c *APIClient) ScanAPI() nightfallintf.NightfallScanAPI {
-	return c.APIClient.ScanApi
+	return c.ScanApi
 }

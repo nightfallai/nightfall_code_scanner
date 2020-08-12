@@ -217,7 +217,7 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	// send API request
 	resp, err := n.Scan(ctx, logger, items)
 	if err != nil {
-		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items", requestNum, len(items)))
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
 		return nil, err
 	}
 
@@ -269,13 +269,10 @@ func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string)
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
 	request := n.createScanRequest(items)
 	logger.Debug(fmt.Sprintf("api request: %v", request.Detectors))
-	logger.Debug(fmt.Sprintf("dets: %v", n.Detectors))
-	logger.Debug(fmt.Sprintf("det 1: %s", n.Detectors[1]))
-	logger.Debug(fmt.Sprintf("hellO: %d %d", len(request.Detectors), len(n.Detectors)))
 	logger.Debug(fmt.Sprintf("name; %s", request.Detectors[0].Name))
 	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
+		logger.Error(fmt.Sprintf("Nightfall API err, unable to successfully scan %d items", len(items)))
 		return nil, err
 	}
 	return resp, nil

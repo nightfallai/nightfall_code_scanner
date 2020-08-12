@@ -3,9 +3,12 @@ package nightfallconfig
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/davecgh/go-spew/spew"
 
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
@@ -47,6 +50,8 @@ func GetNightfallConfigFile(workspacePath, fileName string) (*NightfallConfigFil
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("SPEWING DETECTORS")
+	spew.Dump(nightfallConfig.Detectors)
 	if len(nightfallConfig.Detectors) < 1 {
 		return nil, errors.New("Nightfall config file is missing detectors")
 	}

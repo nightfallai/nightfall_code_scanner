@@ -57,4 +57,4 @@ jobs:
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
           EVENT_BEFORE: ${{ github.event.before }}
         run: |
-          nightfalldlp --debug
+          nightfalldlp

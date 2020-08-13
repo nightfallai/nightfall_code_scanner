@@ -5,8 +5,11 @@
 package nightfallapi_mock
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	nightfallintf "github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
+	openapi "github.com/nightfallai/nightfall_go_client/generated"
+	http "net/http"
 	reflect "reflect"
 )
 
@@ -45,4 +48,20 @@ func (m *NightfallAPI) ScanAPI() nightfallintf.NightfallScanAPI {
 func (mr *NightfallAPIMockRecorder) ScanAPI() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanAPI", reflect.TypeOf((*NightfallAPI)(nil).ScanAPI))
+}
+
+// ScanPayload mocks base method
+func (m *NightfallAPI) ScanPayload(ctx context.Context, scanReq openapi.ScanRequest) ([][]openapi.ScanResponse, *http.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScanPayload", ctx, scanReq)
+	ret0, _ := ret[0].([][]openapi.ScanResponse)
+	ret1, _ := ret[1].(*http.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ScanPayload indicates an expected call of ScanPayload
+func (mr *NightfallAPIMockRecorder) ScanPayload(ctx, scanReq interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanPayload", reflect.TypeOf((*NightfallAPI)(nil).ScanPayload), ctx, scanReq)
 }

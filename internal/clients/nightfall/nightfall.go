@@ -57,7 +57,7 @@ type Client struct {
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
-		APIClient:          NewAPIClient(nil),
+		//APIClient:          NewAPIClient(nil),
 		APIKey:             config.NightfallAPIKey,
 		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,

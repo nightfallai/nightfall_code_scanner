@@ -172,11 +172,11 @@ func (n *nightfallTestSuite) TestScanRetries() {
 		},
 	}
 	for _, tt := range tests {
-		mockScanAPI := nightfallscanapi_mock.NewNightfallScanAPI(ctrl)
-		apiClient := nightfall.NewAPIClient(mockScanAPI)
-
+		//mockScanAPI := nightfallscanapi_mock.NewNightfallScanAPI(ctrl)
+		//apiClient := nightfall.NewAPIClient()
+		mockClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 		client := nightfall.Client{
-			APIClient: apiClient,
+			APIClient: mockClient,
 			Detectors: detectors,
 		}
 
@@ -185,7 +185,8 @@ func (n *nightfallTestSuite) TestScanRetries() {
 			numRetries--
 		}
 		for i := 0; i < numRetries; i++ {
-			mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
+			mockClient.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
+				//mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
 				DoAndReturn(
 					func(
 						ctx context.Context,
@@ -195,7 +196,7 @@ func (n *nightfallTestSuite) TestScanRetries() {
 					})
 		}
 		if tt.haveSuccess {
-			mockScanAPI.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
+			mockClient.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
 				Return(expectedScanResponse, nil, nil)
 		}
 		resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), items)

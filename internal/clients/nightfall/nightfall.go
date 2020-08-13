@@ -304,7 +304,8 @@ func (n *Client) makeScanRequest(
 ) ([][]nightfallAPI.ScanResponse, error) {
 	delay := n.InitialRetryDelay
 	for i := 0; i < maxRetries; i++ {
-		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
+		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
+		//resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
 		if err != nil {
 			if httpResp.StatusCode == http.StatusTooManyRequests {
 				logger.Warning(

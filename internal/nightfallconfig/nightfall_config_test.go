@@ -23,7 +23,7 @@ func TestGetNightfallConfig(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
-		Detectors:          []*nightfallAPI.Detector{&cc, &phone, &ip},
+		Detectors:          []nightfallAPI.Detector{cc, phone, ip},
 		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:  []string{"*"},

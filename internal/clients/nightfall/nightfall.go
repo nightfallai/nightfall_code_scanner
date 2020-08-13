@@ -49,7 +49,7 @@ var (
 type Client struct {
 	APIClient          nightfallintf.NightfallAPI
 	APIKey             string
-	Detectors          []*nightfallAPI.Detector
+	Detectors          []nightfallAPI.Detector
 	MaxNumberRoutines  int
 	InitialRetryDelay  time.Duration
 	TokenExclusionList []string
@@ -211,7 +211,7 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
 	for _, d := range n.Detectors {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
-			Name: string(*d),
+			Name: string(d),
 		})
 	}
 	return nightfallAPI.ScanRequest{
@@ -309,7 +309,7 @@ func (n *Client) makeScanRequestWithRetries(
 	for i := 0; i < maxRetries; i++ {
 		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
 		if err != nil {
-			if httpResp.StatusCode == http.StatusTooManyRequests {
+			if httpResp != nil && httpResp.StatusCode == http.StatusTooManyRequests {
 				logger.Warning(
 					fmt.Sprintf(
 						"Too many requests to Nightfall API: sleeping for %d seconds before next attempt",

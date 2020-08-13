@@ -7,12 +7,12 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-SERVICE_NAME=nightfall_dlp
+SERVICE_NAME=nightfall_cli
 BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 
-NAME=nightfallai/nightfall_dlp
-TAG=$(shell git log -1 --pretty=format:"%H")
+NAME=nightfallai/$(SERVICE_NAME)
+TAG=ADD_YOUR_RELEASE_VERSION
 VERSION=$(NAME):$(TAG)
 LATEST=$(NAME):latest
 
@@ -27,8 +27,8 @@ clean:
 start:
 	./$(BINARY_NAME)
 dockertag:
-	docker tag nightfall_dlp:latest $(VERSION)
-	docker tag nightfall_dlp:latest $(LATEST)
+	docker tag $(NAME):latest $(VERSION)
+	docker tag $(NAME):latest $(LATEST)
 dockerbuild:
 	docker build -t $(VERSION) -t $(LATEST) .
 dockerpush:

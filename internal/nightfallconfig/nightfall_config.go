@@ -14,17 +14,17 @@ const defaultMaxNumberRoutines = 30
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
-	Detectors          []nightfallAPI.Detector `json:"detectors"`
-	MaxNumberRoutines  int                     `json:"maxNumberConcurrentRoutines"`
-	TokenExclusionList []string                `json:"tokenExclusionList"`
-	FileInclusionList  []string                `json:"fileInclusionList"`
-	FileExclusionList  []string                `json:"fileExclusionList"`
+	Detectors          []*nightfallAPI.Detector `json:"detectors"`
+	MaxNumberRoutines  int                      `json:"maxNumberConcurrentRoutines"`
+	TokenExclusionList []string                 `json:"tokenExclusionList"`
+	FileInclusionList  []string                 `json:"fileInclusionList"`
+	FileExclusionList  []string                 `json:"fileExclusionList"`
 }
 
 // Config general config struct
 type Config struct {
 	NightfallAPIKey            string
-	NightfallDetectors         []nightfallAPI.Detector
+	NightfallDetectors         []*nightfallAPI.Detector
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
 	FileInclusionList          []string

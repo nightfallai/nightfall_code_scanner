@@ -207,7 +207,7 @@ func matchRegex(finding string, regexPatterns []string) bool {
 	return false
 }
 
-func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
+func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequest {
 	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
 	for _, d := range n.Detectors {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
@@ -296,7 +296,7 @@ func (n *Client) Scan(
 		Prefix: "",
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
-	request := n.createScanRequest(items)
+	request := n.CreateScanRequest(items)
 	return n.makeScanRequestWithRetries(newCtx, logger, request)
 }
 

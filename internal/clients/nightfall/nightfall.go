@@ -57,7 +57,7 @@ type Client struct {
 // NewClient create Client
 func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
-		APIClient:          NewAPIClient(nil),
+		APIClient:          NewAPIClient(),
 		APIKey:             config.NightfallAPIKey,
 		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
@@ -304,7 +304,7 @@ func (n *Client) makeScanRequest(
 ) ([][]nightfallAPI.ScanResponse, error) {
 	delay := n.InitialRetryDelay
 	for i := 0; i < maxRetries; i++ {
-		resp, httpResp, err := n.APIClient.ScanAPI().ScanPayload(ctx, request)
+		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
 		if err != nil {
 			if httpResp.StatusCode == http.StatusTooManyRequests {
 				logger.Warning(

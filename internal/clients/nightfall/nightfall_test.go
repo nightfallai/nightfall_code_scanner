@@ -180,13 +180,7 @@ func (n *nightfallTestSuite) TestScanRetries() {
 		}
 		for i := 0; i < numRetries; i++ {
 			mockAPIClient.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).
-				DoAndReturn(
-					func(
-						ctx context.Context,
-						scanReq nightfallAPI.ScanRequest,
-					) ([][]nightfallAPI.ScanResponse, *http.Response, error) {
-						return [][]nightfallAPI.ScanResponse{nil}, expectedTooManyRequestsHTTPResponse, nightfall.ErrMaxScanRetries
-					})
+				Return([][]nightfallAPI.ScanResponse{nil}, expectedTooManyRequestsHTTPResponse, nightfall.ErrMaxScanRetries)
 		}
 		if tt.haveSuccess {
 			mockAPIClient.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(expectedScanReq)).

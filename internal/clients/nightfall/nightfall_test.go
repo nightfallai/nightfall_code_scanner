@@ -106,9 +106,8 @@ func (n *nightfallTestSuite) TestScan() {
 	detectors := []*nightfallAPI.Detector{&cc, &phone}
 	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	client := nightfall.Client{
-		APIClient:         mockAPIClient,
-		Detectors:         detectors,
-		InitialRetryDelay: time.Millisecond,
+		APIClient: mockAPIClient,
+		Detectors: detectors,
 	}
 
 	items := []string{
@@ -170,8 +169,9 @@ func (n *nightfallTestSuite) TestScanRetries() {
 		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 
 		client := nightfall.Client{
-			APIClient: mockAPIClient,
-			Detectors: detectors,
+			APIClient:         mockAPIClient,
+			Detectors:         detectors,
+			InitialRetryDelay: time.Millisecond,
 		}
 
 		numRetries := tt.haveNumReqAttempts

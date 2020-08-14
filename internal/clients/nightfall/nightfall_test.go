@@ -103,7 +103,7 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	for i := 0; i < numLines*numFiles; i++ {
 		totalItems[i] = content
 	}
-	scanRequestItems := make([][]string, numScanReq)
+
 	for i := 0; i < numScanReq; i++ {
 		startIndex := i * maxItemsForAPIReq
 		var endIndex int
@@ -112,11 +112,8 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 		} else {
 			endIndex = startIndex + maxItemsForAPIReq
 		}
-		scanRequestItems[i] = totalItems[startIndex:endIndex]
-	}
 
-	for i := 0; i < numScanReq; i++ {
-		expectedScanReq := client.CreateScanRequest(scanRequestItems[i])
+		expectedScanReq := client.CreateScanRequest(totalItems[startIndex:endIndex])
 		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).Return(expectedScanResponse, nil, nil)
 	}
 

@@ -2,13 +2,14 @@ package gitdiff
 
 import (
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
 
 // GetDiff uses the command line to compute the diff
 func GetDiff(workDir, baseRef, headRef string) (string, error) {
-	err := exec.Command("bash cd", workDir).Run()
+	err := os.Chdir(workDir)
 	if err != nil {
 		return "", err
 	}

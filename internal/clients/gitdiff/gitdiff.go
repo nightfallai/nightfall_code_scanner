@@ -1,26 +1,38 @@
 package gitdiff
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 )
 
+const unknownCommitHash = "0000000000000000000000000000000000000000"
+
+// GitDiff client for getting diffs from the command line
+type GitDiff struct {
+	WorkDir string
+	Base    string
+	Head    string
+}
+
 // GetDiff uses the command line to compute the diff
-func GetDiff(workDir, baseRef, headRef string) (string, error) {
-	fmt.Println("Baseref:", baseRef)
-	fmt.Println("headRef:", headRef)
-	err := os.Chdir(workDir)
+func (gd *GitDiff) GetDiff() (string, error) {
+	err := os.Chdir(gd.WorkDir)
 	if err != nil {
 		return "", err
 	}
-	err = exec.Command("git", "fetch", "origin", baseRef, "--depth=1").Run()
+	err = exec.Command("git", "fetch", "origin", gd.Base, "--depth=1").Run()
 	if err != nil {
 		return "", err
 	}
-	diffCmd := exec.Command("git", "diff", baseRef, headRef)
+
+	var diffCmd *exec.Cmd
+	if gd.Base == unknownCommitHash {
+		diffCmd = exec.Command("git", "show", "--format=\"\"", gd.Head)
+	} else {
+		diffCmd = exec.Command("git", "diff", gd.Base, gd.Head)
+	}
 	reader, err := diffCmd.StdoutPipe()
 	if err != nil {
 		return "", err

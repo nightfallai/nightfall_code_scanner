@@ -28,6 +28,7 @@ const (
 
 	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
+	BaseRefEnvVar            = "GITHUB_BASE_REF"
 	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
 	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
@@ -125,6 +126,7 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
+	GitDiff      *gitdiff.GitDiff
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -182,6 +184,15 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
+	before, ok := os.LookupEnv(BaseRefEnvVar)
+	if !ok || before == "" {
+		before = event.Before
+	}
+	s.GitDiff = &gitdiff.GitDiff{
+		WorkDir: workspacePath,
+		Base:    before,
+		Head:    s.CheckRequest.SHA,
+	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
@@ -211,20 +222,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-	workspacePath := os.Getenv(WorkspacePathEnvVar)
-	// baseRef := os.Getenv("GITHUB_BASE_REF")
-	// content, err := ioutil.ReadFile(NightfallDiffFileName)
-	content, err := gitdiff.GetDiff(
-		workspacePath,
-		// baseRef,
-		s.CheckRequest.Before,
-		s.CheckRequest.SHA,
-	)
+	content, err := s.GitDiff.GetDiff()
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-
+	fmt.Println("Diff:", content)
 	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")

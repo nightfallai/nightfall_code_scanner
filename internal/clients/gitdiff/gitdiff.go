@@ -8,7 +8,7 @@ import (
 
 // GetDiff uses the command line to compute the diff
 func GetDiff(workDir, baseRef, headRef string) (string, error) {
-	err := exec.Command("cd", workDir).Run()
+	err := exec.Command("bash cd", workDir).Run()
 	if err != nil {
 		return "", err
 	}

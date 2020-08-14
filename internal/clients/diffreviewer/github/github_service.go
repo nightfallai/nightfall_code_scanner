@@ -1,18 +1,17 @@
 package github
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
@@ -207,12 +206,20 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-	content, err := ioutil.ReadFile(NightfallDiffFileName)
+	workspacePath := os.Getenv(WorkspacePathEnvVar)
+	baseRef := os.Getenv("GITHUB_BASE_REF")
+	// content, err := ioutil.ReadFile(NightfallDiffFileName)
+	content, err := gitdiff.GetDiff(
+		workspacePath,
+		baseRef,
+		s.CheckRequest.SHA,
+	)
 	if err != nil {
-		s.Logger.Error("Error getting the raw diff from Github")
+		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	fileDiffs, err := ParseMultiFile(bytes.NewReader(content))
+
+	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err

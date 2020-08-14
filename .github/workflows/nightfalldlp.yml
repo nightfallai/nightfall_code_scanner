@@ -1,5 +1,9 @@
 name: nightfalldlp
-on: [push]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 jobs:
   nightfalldlp:
     name: nightfalldlp
@@ -21,21 +25,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-
-      # - name: Get Diff
-      #   env:
-      #     DIFF_FILENAME: "./nightfalldlp_raw_diff.txt"
-      #   run: |
-      #     if [ $GITHUB_BASE_REF ]; then \
-      #     git fetch origin $GITHUB_BASE_REF --depth=1; \
-      #     git diff origin/$GITHUB_BASE_REF $GITHUB_SHA > $DIFF_FILENAME; \
-      #     echo "Diff between origin/$GITHUB_BASE_REF and $GITHUB_SHA"; \
-      #     else \
-      #     git fetch origin ${{ github.event.before }} --depth=1; \
-      #     git diff --name-only ${{ github.event.before }} $GITHUB_SHA > $DIFF_FILENAME; \
-      #     echo "Diff between ${{ github.event.before }} and $GITHUB_SHA"; \
-      #     fi;
-      #     cat $DIFF_FILENAME;
 
       - name: Download Go Modules
         if: steps.cache.outputs.cache-hit != 'true'

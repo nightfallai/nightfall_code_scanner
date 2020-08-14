@@ -117,8 +117,6 @@ type CheckRequest struct {
 	// Name of the annotation tool.
 	// Optional.
 	Name string `json:"name,omitempty"`
-
-	Before string
 }
 
 // Service contains the github client that makes Github api calls
@@ -178,7 +176,6 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		Repo:        event.Repository.Name,
 		SHA:         event.PullRequest.Head.Sha,
 		PullRequest: event.PullRequest.Number,
-		Before:      event.Before,
 	}
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID

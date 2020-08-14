@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"regexp"
 	"sync"
 	"time"
@@ -27,9 +29,19 @@ const (
 	contentChunkByteSize = 1024
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
-
-	defaultTimeout           = time.Minute * 20
+	// timeout for the total time spent sending scan requests and receiving responses for a diff
+	defaultTimeout = time.Minute * 20
+	// maximum number of routines (scan request + response) running at once
 	MaxConcurrentRoutinesCap = 50
+	// maximum attempts to Nightfall API upon receiving 429 Too Many Requests before failing
+	MaxScanAttempts = 5
+	// initial delay before re-attempting scan request
+	initialDelay = time.Second * 1
+)
+
+var (
+	// ErrMaxScanRetries is the error for when the max number of retries to the API has occurred without success
+	ErrMaxScanRetries = errors.New("max number of retries has been attempted")
 )
 
 // Client client which uses Nightfall API
@@ -39,6 +51,7 @@ type Client struct {
 	APIKey             string
 	Detectors          []*nightfallAPI.Detector
 	MaxNumberRoutines  int
+	InitialRetryDelay  time.Duration
 	TokenExclusionList []string
 	FileInclusionList  []string
 	FileExclusionList  []string
@@ -51,6 +64,7 @@ func NewClient(config nightfallconfig.Config) *Client {
 		APIKey:             config.NightfallAPIKey,
 		Detectors:          config.NightfallDetectors,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
+		InitialRetryDelay:  initialDelay,
 		TokenExclusionList: config.TokenExclusionList,
 		FileInclusionList:  config.FileInclusionList,
 		FileExclusionList:  config.FileExclusionList,
@@ -193,7 +207,7 @@ func matchRegex(finding string, regexPatterns []string) bool {
 	return false
 }
 
-func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
+func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequest {
 	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
 	for _, d := range n.Detectors {
 		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
@@ -208,7 +222,12 @@ func (n *Client) createScanRequest(items []string) nightfallAPI.ScanRequest {
 	}
 }
 
-func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestNum int, logger logger.Logger) ([]*diffreviewer.Comment, error) {
+func (n *Client) scanContent(
+	ctx context.Context,
+	cts []*contentToScan,
+	requestNum int,
+	logger logger.Logger,
+) ([]*diffreviewer.Comment, error) {
 	// Pull out content strings for request
 	items := make([]string, len(cts))
 	for i, item := range cts {
@@ -228,7 +247,12 @@ func (n *Client) scanContent(ctx context.Context, cts []*contentToScan, requestN
 	return createdComments, nil
 }
 
-func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts []*contentToScan, commentCh chan<- []*diffreviewer.Comment) {
+func (n *Client) scanAllContent(
+	ctx context.Context,
+	logger logger.Logger,
+	cts []*contentToScan,
+	commentCh chan<- []*diffreviewer.Comment,
+) {
 	defer close(commentCh)
 	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 	var wg sync.WaitGroup
@@ -262,19 +286,52 @@ func (n *Client) scanAllContent(ctx context.Context, logger logger.Logger, cts [
 }
 
 // Scan send /scan request to Nightfall API and return findings
-func (n *Client) Scan(ctx context.Context, logger logger.Logger, items []string) ([][]nightfallAPI.ScanResponse, error) {
+func (n *Client) Scan(
+	ctx context.Context,
+	logger logger.Logger,
+	items []string,
+) ([][]nightfallAPI.ScanResponse, error) {
 	APIKey := nightfallAPI.APIKey{
 		Key:    n.APIKey,
 		Prefix: "",
 	}
 	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
-	request := n.createScanRequest(items)
-	resp, _, err := n.APIClient.ScanAPI().ScanPayload(newCtx, request)
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error from Nightfall API, unable to successfully scan %d items", len(items)))
-		return nil, err
+	request := n.CreateScanRequest(items)
+	return n.makeScanRequestWithRetries(newCtx, logger, request)
+}
+
+func (n *Client) makeScanRequestWithRetries(
+	ctx context.Context,
+	logger logger.Logger,
+	request nightfallAPI.ScanRequest,
+) ([][]nightfallAPI.ScanResponse, error) {
+	delay := n.InitialRetryDelay
+	for i := 0; i < MaxScanAttempts; i++ {
+		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
+		if err != nil {
+			if httpResp != nil && httpResp.StatusCode == http.StatusTooManyRequests {
+				logger.Warning(
+					fmt.Sprintf(
+						"Too many requests to Nightfall API: sleeping for %d seconds before next attempt",
+						int(delay.Seconds()),
+					),
+				)
+				time.Sleep(delay)
+				delay = delay * 2 // exponential back off
+				continue
+			}
+			logger.Error(
+				fmt.Sprintf(
+					"Error from Nightfall API, unable to successfully scan %d items",
+					len(request.Payload.Items),
+				),
+			)
+			return nil, err
+		}
+		return resp, nil
 	}
-	return resp, nil
+	logger.Error("Too many requests to Nightfall API: max number of retries attempted")
+	return nil, ErrMaxScanRetries
 }
 
 // ReviewDiff will take in a diff, chunk the contents of the diff

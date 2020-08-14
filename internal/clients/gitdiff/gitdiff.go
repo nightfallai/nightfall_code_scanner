@@ -13,11 +13,11 @@ func GetDiff(workDir, baseRef, headRef string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = exec.Command("git fetch", "origin", baseRef, "--depth=1").Run()
+	err = exec.Command("git", "fetch", "origin", baseRef, "--depth=1").Run()
 	if err != nil {
 		return "", err
 	}
-	diffCmd := exec.Command("git diff", baseRef, headRef)
+	diffCmd := exec.Command("git", "diff", baseRef, headRef)
 	reader, err := diffCmd.StdoutPipe()
 	if err != nil {
 		return "", err

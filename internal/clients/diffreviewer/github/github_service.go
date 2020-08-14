@@ -15,6 +15,7 @@ import (
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )
@@ -30,7 +31,6 @@ const (
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
 	BaseRefEnvVar            = "GITHUB_BASE_REF"
 	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
-	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
 	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
@@ -126,7 +126,7 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
-	GitDiff      *gitdiff.GitDiff
+	GitDiff      gitdiffintf.GitDiff
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -173,7 +173,6 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error("Error getting Github event file")
 		return nil, err
 	}
-	fmt.Println("Event.Before:", event.Before)
 	s.CheckRequest = &CheckRequest{
 		Owner:       event.Repository.Owner.Login,
 		Repo:        event.Repository.Name,
@@ -227,7 +226,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	fmt.Println("Diff:", content)
+
 	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")

@@ -63,6 +63,7 @@ type headCommit struct {
 
 // event represents github event webhook file
 type event struct {
+	Before      string      `json:"before"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
 	CheckSuite  checkSuite  `json:"check_suite"`
@@ -115,6 +116,8 @@ type CheckRequest struct {
 	// Name of the annotation tool.
 	// Optional.
 	Name string `json:"name,omitempty"`
+
+	Before string
 }
 
 // Service contains the github client that makes Github api calls
@@ -168,11 +171,13 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error("Error getting Github event file")
 		return nil, err
 	}
+	fmt.Println("Event.Before:", event.Before)
 	s.CheckRequest = &CheckRequest{
 		Owner:       event.Repository.Owner.Login,
 		Repo:        event.Repository.Name,
 		SHA:         event.PullRequest.Head.Sha,
 		PullRequest: event.PullRequest.Number,
+		Before:      event.Before,
 	}
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
@@ -207,11 +212,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
 	workspacePath := os.Getenv(WorkspacePathEnvVar)
-	baseRef := os.Getenv("GITHUB_BASE_REF")
+	// baseRef := os.Getenv("GITHUB_BASE_REF")
 	// content, err := ioutil.ReadFile(NightfallDiffFileName)
 	content, err := gitdiff.GetDiff(
 		workspacePath,
-		baseRef,
+		// baseRef,
+		s.CheckRequest.Before,
 		s.CheckRequest.SHA,
 	)
 	if err != nil {

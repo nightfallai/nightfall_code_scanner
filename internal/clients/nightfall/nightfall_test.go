@@ -205,7 +205,7 @@ func (n *nightfallTestSuite) TestFailedScanPaths() {
 			desc:                  "failed after max retries",
 		},
 		{
-			haveNumRequests:       2,
+			haveNumRequests:       3,
 			wantResponse:          [][]nightfallAPI.ScanResponse(nil),
 			wantFinalErr:          errors.New("500 Internal Server Error"),
 			wantFinalHTTPResponse: expectedInternalServorErrorHTTPResponse,

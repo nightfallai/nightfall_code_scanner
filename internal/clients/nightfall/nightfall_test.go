@@ -2,6 +2,7 @@ package nightfall_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -26,12 +27,21 @@ type nightfallTestSuite struct {
 	suite.Suite
 }
 
+var ccDetector = nightfallAPI.CREDIT_CARD_NUMBER
+var phoneDetector = nightfallAPI.PHONE_NUMBER
+var testDetectors = []*nightfallAPI.Detector{&ccDetector, &phoneDetector}
+var testItems = []string{
+	"this is a string",
+	fmt.Sprintf("this has a credit card number %s", exampleCreditCardNumber),
+	"tom cruise!!!!!!",
+}
+
 var expectedScanResponse = [][]nightfallAPI.ScanResponse{
 	{},
 	{
 		{
 			Fragment: exampleCreditCardNumber,
-			Detector: string(nightfallAPI.CREDIT_CARD_NUMBER),
+			Detector: string(ccDetector),
 			Confidence: nightfallAPI.ScanResponseConfidence{
 				Bucket: string(nightfallAPI.LIKELY),
 			},
@@ -40,16 +50,16 @@ var expectedScanResponse = [][]nightfallAPI.ScanResponse{
 	{},
 }
 
+var expectedTooManyRequestsHTTPResponse = &http.Response{StatusCode: http.StatusTooManyRequests}
+var expectedInternalServorErrorHTTPResponse = &http.Response{StatusCode: http.StatusInternalServerError}
+
 func (n *nightfallTestSuite) TestReviewDiff() {
 	ctrl := gomock.NewController(n.T())
 	defer ctrl.Finish()
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	detectors := []*nightfallAPI.Detector{&cc, &phone}
 	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	client := nightfall.Client{
 		APIClient:         mockAPIClient,
-		Detectors:         detectors,
+		Detectors:         testDetectors,
 		MaxNumberRoutines: 2,
 	}
 
@@ -89,8 +99,25 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	}
 	expectedComments := []*diffreviewer.Comment{&c, &c, &c}
 
+	totalItems := make([]string, numLines*numFiles)
+	for i := 0; i < numLines*numFiles; i++ {
+		totalItems[i] = content
+	}
+	scanRequestItems := make([][]string, numScanReq)
 	for i := 0; i < numScanReq; i++ {
-		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), gomock.AssignableToTypeOf(nightfallAPI.ScanRequest{})).Return(expectedScanResponse, nil, nil)
+		startIndex := i * maxItemsForAPIReq
+		var endIndex int
+		if len(totalItems) < startIndex+maxItemsForAPIReq {
+			endIndex = len(totalItems)
+		} else {
+			endIndex = startIndex + maxItemsForAPIReq
+		}
+		scanRequestItems[i] = totalItems[startIndex:endIndex]
+	}
+
+	for i := 0; i < numScanReq; i++ {
+		expectedScanReq := client.CreateScanRequest(scanRequestItems[i])
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).Return(expectedScanResponse, nil, nil)
 	}
 
 	comments, err := client.ReviewDiff(context.Background(), githublogger.NewDefaultGithubLogger(), input)
@@ -98,105 +125,116 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	n.Equal(expectedComments, comments, "Received incorrect response from ReviewDiff")
 }
 
-func (n *nightfallTestSuite) TestScan() {
+func (n *nightfallTestSuite) TestSuccessfulScanPaths() {
 	ctrl := gomock.NewController(n.T())
 	defer ctrl.Finish()
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	detectors := []*nightfallAPI.Detector{&cc, &phone}
-	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	client := nightfall.Client{
-		APIClient: mockAPIClient,
-		Detectors: detectors,
+		Detectors: testDetectors,
 	}
-
-	items := []string{
-		"this is a string",
-		fmt.Sprintf("this has a credit card number %s", exampleCreditCardNumber),
-		"tom cruise!!!!!!",
-	}
-
-	expectedScanReq := client.CreateScanRequest(items)
-	mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).Return(expectedScanResponse, nil, nil)
-
-	resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), items)
-	n.NoError(err, "Received error from Scan")
-	n.Equal(expectedScanResponse, resp, "Received incorrect response from Scan")
-}
-
-func (n *nightfallTestSuite) TestScanRetries() {
-	ctrl := gomock.NewController(n.T())
-	defer ctrl.Finish()
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	detectors := []*nightfallAPI.Detector{&cc, &phone}
-	items := []string{
-		"this is a string",
-		fmt.Sprintf("this has a credit card number %s", exampleCreditCardNumber),
-		"tom cruise!!!!!!",
-	}
-	client := nightfall.Client{
-		Detectors: detectors,
-	}
-	expectedScanReq := client.CreateScanRequest(items)
-	expectedTooManyRequestsHTTPResponse := &http.Response{StatusCode: http.StatusTooManyRequests}
+	expectedScanReq := client.CreateScanRequest(testItems)
 
 	tests := []struct {
-		haveSuccess        bool
-		haveNumReqAttempts int
-		wantResponse       [][]nightfallAPI.ScanResponse
-		desc               string
+		haveNumRequests int
+		wantResponse    [][]nightfallAPI.ScanResponse
+		desc            string
 	}{
 		{
-			haveSuccess:        true,
-			haveNumReqAttempts: 1,
-			wantResponse:       expectedScanResponse,
-			desc:               "success on first scan request",
+			haveNumRequests: 1,
+			wantResponse:    expectedScanResponse,
+			desc:            "success on first scan request",
 		},
 		{
-			haveSuccess:        true,
-			haveNumReqAttempts: 3,
-			wantResponse:       expectedScanResponse,
-			desc:               "success on third scan request attempt",
+			haveNumRequests: 3,
+			wantResponse:    expectedScanResponse,
+			desc:            "success on third scan request attempt",
 		},
 		{
-			haveSuccess:        false,
-			haveNumReqAttempts: 5,
-			wantResponse:       [][]nightfallAPI.ScanResponse(nil),
-			desc:               "failed after max retries",
+			haveNumRequests: nightfall.MaxScanAttempts,
+			wantResponse:    expectedScanResponse,
+			desc:            "success on final scan request attempt",
 		},
 	}
 	for _, tt := range tests {
 		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
-
 		client := nightfall.Client{
 			APIClient:         mockAPIClient,
-			Detectors:         detectors,
+			Detectors:         testDetectors,
 			InitialRetryDelay: time.Millisecond,
 		}
 
-		numRetries := tt.haveNumReqAttempts
-		if tt.haveSuccess {
-			numRetries--
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
+			Return(
+				[][]nightfallAPI.ScanResponse{nil},
+				expectedTooManyRequestsHTTPResponse,
+				nightfall.ErrMaxScanRetries,
+			).Times(tt.haveNumRequests - 1)
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
+			Return(expectedScanResponse, nil, nil)
+
+		resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), testItems)
+		n.NoError(err, fmt.Sprintf("Received unexpected error from Scan in %s test", tt.desc))
+		n.Equal(
+			tt.wantResponse,
+			resp,
+			fmt.Sprintf("Received incorrect response from Scan in %s test", tt.desc),
+		)
+	}
+}
+
+func (n *nightfallTestSuite) TestFailedScanPaths() {
+	ctrl := gomock.NewController(n.T())
+	defer ctrl.Finish()
+
+	client := nightfall.Client{
+		Detectors: testDetectors,
+	}
+	expectedScanReq := client.CreateScanRequest(testItems)
+
+	tests := []struct {
+		haveNumRequests       int
+		wantResponse          [][]nightfallAPI.ScanResponse
+		wantFinalErr          error
+		wantFinalHTTPResponse *http.Response
+		desc                  string
+	}{
+		{
+			haveNumRequests:       nightfall.MaxScanAttempts,
+			wantResponse:          [][]nightfallAPI.ScanResponse(nil),
+			wantFinalErr:          nightfall.ErrMaxScanRetries,
+			wantFinalHTTPResponse: expectedTooManyRequestsHTTPResponse,
+			desc:                  "failed after max retries",
+		},
+		{
+			haveNumRequests:       2,
+			wantResponse:          [][]nightfallAPI.ScanResponse(nil),
+			wantFinalErr:          errors.New("500 Internal Server Error"),
+			wantFinalHTTPResponse: expectedInternalServorErrorHTTPResponse,
+			desc:                  "failed on third attempt with non-429 error",
+		},
+	}
+	for _, tt := range tests {
+		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
+		client := nightfall.Client{
+			APIClient:         mockAPIClient,
+			Detectors:         testDetectors,
+			InitialRetryDelay: time.Millisecond,
 		}
-		for i := 0; i < numRetries; i++ {
-			mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
-				Return([][]nightfallAPI.ScanResponse{nil}, expectedTooManyRequestsHTTPResponse, nightfall.ErrMaxScanRetries)
-		}
-		if tt.haveSuccess {
-			mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
-				Return(expectedScanResponse, nil, nil)
-		}
-		resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), items)
-		if tt.haveSuccess {
-			n.NoError(err, fmt.Sprintf("Received error from Scan in %s test", tt.desc))
-		} else {
-			n.EqualError(
-				err,
-				nightfall.ErrMaxScanRetries.Error(),
-				fmt.Sprintf("Did not get error from %s test", tt.desc),
-			)
-		}
+
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
+			Return(
+				[][]nightfallAPI.ScanResponse{nil},
+				expectedTooManyRequestsHTTPResponse,
+				nightfall.ErrMaxScanRetries,
+			).Times(tt.haveNumRequests - 1)
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
+			Return([][]nightfallAPI.ScanResponse{nil}, tt.wantFinalHTTPResponse, tt.wantFinalErr)
+
+		resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), testItems)
+		n.EqualError(
+			err,
+			tt.wantFinalErr.Error(),
+			fmt.Sprintf("Did not get error from %s test", tt.desc),
+		)
 		n.Equal(tt.wantResponse, resp, fmt.Sprintf("Received incorrect response from Scan in %s test", tt.desc))
 	}
 }

@@ -34,7 +34,7 @@ const (
 	// maximum number of routines (scan request + response) running at once
 	MaxConcurrentRoutinesCap = 50
 	// maximum attempts to Nightfall API upon receiving 429 Too Many Requests before failing
-	maxRetries = 5
+	MaxScanAttempts = 5
 	// initial delay before re-attempting scan request
 	initialDelay = time.Second * 1
 )
@@ -306,7 +306,7 @@ func (n *Client) makeScanRequestWithRetries(
 	request nightfallAPI.ScanRequest,
 ) ([][]nightfallAPI.ScanResponse, error) {
 	delay := n.InitialRetryDelay
-	for i := 0; i < maxRetries; i++ {
+	for i := 0; i < MaxScanAttempts; i++ {
 		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
 		if err != nil {
 			if httpResp != nil && httpResp.StatusCode == http.StatusTooManyRequests {

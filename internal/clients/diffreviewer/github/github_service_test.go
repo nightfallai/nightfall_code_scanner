@@ -178,7 +178,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
-		FileExclusionList:          nil,
+		FileExclusionList:          []string{".nightfalldlp/config.json"},
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

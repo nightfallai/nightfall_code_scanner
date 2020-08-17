@@ -24,16 +24,11 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("BaseBranch:", gd.BaseBranch)
-	fmt.Println("BaseSHA:", gd.BaseSHA)
-	fmt.Println("Head:", gd.Head)
 
 	var diffCmd *exec.Cmd
 	if gd.BaseBranch != "" {
-		fmt.Println("Using branch")
 		err = exec.Command("git", "fetch", "origin", gd.BaseBranch).Run()
 		if err != nil {
-			fmt.Println("fetch base", gd.BaseBranch)
 			return "", err
 		}
 		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
@@ -46,7 +41,6 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	} else {
 		err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
 		if err != nil {
-			fmt.Println("fetch base", gd.BaseSHA)
 			return "", err
 		}
 		diffCmd = exec.Command("git", "diff", gd.BaseSHA, gd.Head)
@@ -66,7 +60,6 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	}
 	err = diffCmd.Wait()
 	if err != nil {
-		fmt.Println("Wait")
 		return "", err
 	}
 	return buf.String(), nil

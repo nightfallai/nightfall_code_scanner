@@ -42,19 +42,23 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	}
 	reader, err := diffCmd.StdoutPipe()
 	if err != nil {
+		fmt.Println("StdoutPipe")
 		return "", err
 	}
 	err = diffCmd.Start()
 	if err != nil {
+		fmt.Println("Start")
 		return "", nil
 	}
 	buf := new(strings.Builder)
 	_, err = io.Copy(buf, reader)
 	if err != nil {
+		fmt.Println("Copy")
 		return "", err
 	}
 	err = diffCmd.Wait()
 	if err != nil {
+		fmt.Println("Wait")
 		return "", err
 	}
 	return buf.String(), nil

@@ -221,7 +221,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	fmt.Println(content)
+
 	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")

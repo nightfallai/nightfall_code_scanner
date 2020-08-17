@@ -32,7 +32,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 			return "", err
 		}
 		fmt.Println("git diff HEAD^ <SHA>", gd.Head)
-		diffCmd = exec.Command("git", "diff", "HEAD^", gd.Head)
+		diffCmd = exec.Command("git", "diff", "HEAD^", "HEAD")
 	} else {
 		err = exec.Command("git", "fetch", "origin", gd.Base, "--depth=1").Run()
 		if err != nil {

@@ -183,6 +183,8 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	before, ok := os.LookupEnv(BaseRefEnvVar)
 	if !ok || before == "" {
 		before = event.Before
+	} else {
+		before = fmt.Sprintf("origin/%s", before)
 	}
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir: workspacePath,

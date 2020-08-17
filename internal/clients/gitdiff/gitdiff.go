@@ -56,10 +56,10 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		fmt.Println("Copy")
 		return "", err
 	}
-	// err = diffCmd.Wait()
-	// if err != nil {
-	// 	fmt.Println("Wait")
-	// 	return "", err
-	// }
+	err = diffCmd.Wait()
+	if err != nil {
+		fmt.Println("Wait")
+		return "", err
+	}
 	return buf.String(), nil
 }

@@ -15,6 +15,8 @@ jobs:
 
       - name: Download repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 2
 
       # https://github.com/actions/cache/blob/master/examples.md#go---modules
       - name: Cache Go Modules

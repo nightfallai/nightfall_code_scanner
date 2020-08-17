@@ -180,16 +180,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	before, ok := os.LookupEnv(BaseRefEnvVar)
-	if !ok || before == "" {
-		before = event.Before
-	} else {
-		before = fmt.Sprintf("origin/%s", before)
-	}
+	baseBranch := os.Getenv(BaseRefEnvVar)
 	s.GitDiff = &gitdiff.GitDiff{
-		WorkDir: workspacePath,
-		Base:    before,
-		Head:    s.CheckRequest.SHA,
+		WorkDir:    workspacePath,
+		BaseBranch: baseBranch,
+		BaseSHA:    event.Before,
+		Head:       s.CheckRequest.SHA,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {

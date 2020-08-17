@@ -30,7 +30,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 
 	var diffCmd *exec.Cmd
 	if gd.BaseBranch != "" {
-		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=2").Run()
 		if err != nil {
 			fmt.Println("fetch base", gd.BaseBranch)
 			return "", err

@@ -39,7 +39,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 			fmt.Println("fetch base", gd.Base)
 			return "", err
 		}
-		diffCmd = exec.Command("git", "diff", gd.Base, gd.Head)
+		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.Base), gd.Head)
 	}
 	reader, err := diffCmd.StdoutPipe()
 	if err != nil {

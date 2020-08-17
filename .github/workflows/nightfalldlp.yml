@@ -1,9 +1,9 @@
 name: nightfalldlp
-on:
-  push:
-    branches:
-      - master
-  pull_request:
+on: [push]
+  # push:
+  #   branches:
+  #     - master
+  # pull_request:
 jobs:
   nightfalldlp:
     name: nightfalldlp
@@ -40,6 +40,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
-          EVENT_BEFORE: ${{ github.event.before }}
         run: |
           nightfalldlp

@@ -35,7 +35,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 			fmt.Println("fetch base", gd.BaseBranch)
 			return "", err
 		}
-		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch), gd.Head)
+		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch), gd.Head, "> somefile.txt")
 	}
 	if gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash {
 		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()

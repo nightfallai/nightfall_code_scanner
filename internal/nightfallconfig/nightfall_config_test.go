@@ -27,7 +27,7 @@ func TestGetNightfallConfig(t *testing.T) {
 		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:  []string{"*"},
-		FileExclusionList:  nil,
+		FileExclusionList:  []string{".nightfalldlp/config.json"},
 	}
 	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testFileName)
 	assert.NoError(t, err, "Unexpected error when GetNightfallConfig")

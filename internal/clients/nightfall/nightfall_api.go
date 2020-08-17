@@ -1,7 +1,9 @@
 package nightfall
 
 import (
-	"github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
+	"context"
+	"net/http"
+
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
@@ -18,7 +20,10 @@ func NewAPIClient() *APIClient {
 	}
 }
 
-// ScanAPI gets the ScanApi from the api client
-func (c *APIClient) ScanAPI() nightfallintf.NightfallScanAPI {
-	return c.APIClient.ScanApi
+// ScanPayload makes the scan request to the nightfallAPI
+func (c *APIClient) ScanPayload(
+	ctx context.Context,
+	scanReq nightfallAPI.ScanRequest,
+) ([][]nightfallAPI.ScanResponse, *http.Response, error) {
+	return c.APIClient.ScanApi.ScanPayload(ctx, scanReq)
 }

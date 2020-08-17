@@ -11,6 +11,7 @@ import (
 )
 
 const defaultMaxNumberRoutines = 30
+const nightfallConfigFilename = ".nightfalldlp/config.json"
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
@@ -53,6 +54,6 @@ func GetNightfallConfigFile(workspacePath, fileName string) (*NightfallConfigFil
 	if nightfallConfig.MaxNumberRoutines == 0 {
 		nightfallConfig.MaxNumberRoutines = defaultMaxNumberRoutines
 	}
-
+	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)
 	return &nightfallConfig, nil
 }

@@ -1,6 +1,7 @@
 package gitdiff
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -22,6 +23,8 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	fmt.Println("Base:", gd.Base)
+	fmt.Println("Head:", gd.Head)
 
 	var diffCmd *exec.Cmd
 	if gd.Base == "" || gd.Base == unknownCommitHash {
@@ -33,6 +36,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	} else {
 		err = exec.Command("git", "fetch", "origin", gd.Base, "--depth=1").Run()
 		if err != nil {
+			fmt.Println("fetch base", gd.Base)
 			return "", err
 		}
 		diffCmd = exec.Command("git", "diff", gd.Base, gd.Head)

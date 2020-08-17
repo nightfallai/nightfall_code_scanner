@@ -27,7 +27,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	var diffCmd *exec.Cmd
 	if true { //gd.Base == "" || gd.Base == unknownCommitHash {
 		fmt.Println("git fetch origin --depth=2")
-		err = exec.Command("git", "fetch", "origin", "--depth=2").Run()
+		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
 		if err != nil {
 			return "", err
 		}

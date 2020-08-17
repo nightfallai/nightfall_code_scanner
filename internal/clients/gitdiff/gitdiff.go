@@ -30,12 +30,13 @@ func (gd *GitDiff) GetDiff() (string, error) {
 
 	var diffCmd *exec.Cmd
 	if gd.BaseBranch != "" {
+		fmt.Println("Using branch")
 		err = exec.Command("git", "fetch", "origin", gd.BaseBranch).Run()
 		if err != nil {
 			fmt.Println("fetch base", gd.BaseBranch)
 			return "", err
 		}
-		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch), gd.Head)
+		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
 	} else if gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash {
 		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
 		if err != nil {

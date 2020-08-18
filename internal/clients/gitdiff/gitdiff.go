@@ -1,7 +1,6 @@
 package gitdiff
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -26,25 +25,26 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	}
 
 	var diffCmd *exec.Cmd
-	if gd.BaseBranch != "" {
-		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
-		if err != nil {
-			return "", err
-		}
-		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
-	} else if gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash {
-		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
-		if err != nil {
-			return "", err
-		}
-		diffCmd = exec.Command("git", "diff", "HEAD^", "HEAD")
-	} else {
-		err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
-		if err != nil {
-			return "", err
-		}
-		diffCmd = exec.Command("git", "diff", gd.BaseSHA, gd.Head)
+	// if gd.BaseBranch != "" {
+	// 	err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+	// 	if err != nil {
+	// 		return "", err
+	// 	}
+	// 	diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
+	// } else if gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash {
+	err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
+	if err != nil {
+		return "", err
 	}
+	diffCmd = exec.Command("git", "show")
+	// diffCmd = exec.Command("git", "diff", "HEAD^", "HEAD")
+	// } else {
+	// 	err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
+	// 	if err != nil {
+	// 		return "", err
+	// 	}
+	// 	diffCmd = exec.Command("git", "diff", gd.BaseSHA, gd.Head)
+	// }
 	reader, err := diffCmd.StdoutPipe()
 	if err != nil {
 		return "", err

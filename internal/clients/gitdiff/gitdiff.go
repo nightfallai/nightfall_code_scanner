@@ -26,26 +26,33 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	}
 
 	var diffCmd *exec.Cmd
-	if gd.BaseBranch != "" {
+	switch {
+	case gd.BaseBranch != "":
+		// PR event so get diff between base branch and current commit SHA
 		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		if err != nil {
 			return "", err
 		}
 		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
-	} else if gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash {
+	case gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash:
+		// PUSH event for new branch so use git show to get the diff of the most recent commit
 		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
 		if err != nil {
 			return "", err
 		}
 		diffCmd = exec.Command("git", "show", gd.Head, "--format=")
-	} else {
+	default:
+		// PUSH event where last commit action ran on exists
+		// use current commit SHA and previous action run commit SHA for diff
 		err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
 		if err != nil {
 			return "", err
 		}
 		diffCmd = exec.Command("git", "diff", gd.BaseSHA, gd.Head)
 	}
+
 	reader, err := diffCmd.StdoutPipe()
+	defer reader.Close()
 	if err != nil {
 		return "", err
 	}

@@ -36,7 +36,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	diffCmd = exec.Command("git", "show", gd.Head)
+	diffCmd = exec.Command("git", "show", gd.Head, "--format=")
 	// diffCmd = exec.Command("git", "show")
 	// diffCmd = exec.Command("git", "diff", "HEAD^", "HEAD")
 	// } else {

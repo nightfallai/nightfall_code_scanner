@@ -22,4 +22,6 @@ RUN apk add bash git --no-cache
 COPY --from=builder /projects/nightfall_dlp/nightfall_dlp /nightfall_dlp
 COPY ./cmd/nightfalldlp/entrypoint.sh /entrypoint.sh
 
+LABEL com.circleci.preserve-entrypoint=true
+
 ENTRYPOINT ["bash", "/entrypoint.sh"]

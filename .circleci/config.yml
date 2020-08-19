@@ -18,6 +18,16 @@ jobs:
           name: Clean up reusable Docker
           command: clean_up_reusable_docker
 
+  testImg:
+    docker:
+      - image: deliveroo/circleci:0.2.8
+      steps:
+        - checkout
+        - setup_remote_docker:
+            docker_layer_caching: true
+        - run:
+            name: test entrypoint
+            command: ci run --rm nightfall_dlp
   lint:
     docker:
       - image: deliveroo/circleci:0.2.8
@@ -77,14 +87,16 @@ workflows:
   version: 2
   build_and_test:
     jobs:
-      - build:
+      - testImg:
           context: build
-      - lint:
-          context: build
-      - push-to-dockerhub:
-          requires:
-            - build
-            - lint
-          filters:
-            branches:
-              only: master
+      #- build:
+      #    context: build
+      #- lint:
+      #    context: build
+      #- push-to-dockerhub:
+      #    requires:
+      #      - build
+      #      - lint
+      #    filters:
+      #      branches:
+      #        only: master

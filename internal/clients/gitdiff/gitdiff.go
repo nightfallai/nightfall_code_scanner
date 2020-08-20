@@ -52,10 +52,11 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	}
 
 	reader, err := diffCmd.StdoutPipe()
-	defer reader.Close()
 	if err != nil {
 		return "", err
 	}
+	defer reader.Close()
+
 	err = diffCmd.Start()
 	if err != nil {
 		return "", nil

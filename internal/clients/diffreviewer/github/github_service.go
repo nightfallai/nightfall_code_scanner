@@ -1,21 +1,22 @@
 package github
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )
@@ -27,11 +28,16 @@ const (
 	WarningLevel Level = "warning"
 	ErrorLevel   Level = "error"
 
-	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
-	EventPathEnvVar          = "GITHUB_EVENT_PATH"
-	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
-	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
-	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
+	WorkspacePathEnvVar        = "GITHUB_WORKSPACE"
+	EventPathEnvVar            = "GITHUB_EVENT_PATH"
+	BaseRefEnvVar              = "GITHUB_BASE_REF"
+	NightfallAPIKeyEnvVar      = "NIGHTFALL_API_KEY"
+	MaxAnnotationsPerRequest   = 50 // https://developer.github.com/v3/checks/runs/#output-object
+	CircleRepoNameEnvVar       = "CIRCLE_PROJECT_REPONAME"
+	CircleOwnerNameEnvVar      = "CIRCLE_PROJECT_USERNAME"
+	CircleCommitShaEnvVar      = "CIRCLE_SHA1"
+	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
+	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
 
 	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt      = "Nightfall Logo"
@@ -64,6 +70,7 @@ type headCommit struct {
 
 // event represents github event webhook file
 type event struct {
+	Before      string      `json:"before"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
 	CheckSuite  checkSuite  `json:"check_suite"`
@@ -123,6 +130,7 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
+	GitDiff      gitdiffintf.GitDiff
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -169,14 +177,40 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	//	s.Logger.Error("Error getting Github event file")
 	//	return nil, err
 	//}
+	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
+	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
+	commitSha, ok := os.LookupEnv(CircleCommitShaEnvVar)
+	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
+	if !ok {
+		s.Logger.Error("Error getting before commit sha.")
+		return nil, errors.New("missing env var for prev commit sha")
+	}
+	fmt.Println("EVENT_BEFORE FROM CIRCLE")
+	fmt.Println(beforeCommitSha)
+	prUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
+	prNumber, err := strconv.Atoi(prUrl[strings.LastIndex(prUrl, "/")+1:])
 	s.CheckRequest = &CheckRequest{
-		Owner:       "alan20854",
-		Repo:        "CircleCiTest",
-		SHA:         "48f0b15bf4e2d376dc966a0c9572e0582fabc415",
-		PullRequest: 3,
+		Owner:       owner,
+		Repo:        repo,
+		SHA:         commitSha,
+		PullRequest: prNumber,
 	}
 	if s.CheckRequest.SHA == "" {
-		s.CheckRequest.SHA = "48f0b15bf4e2d376dc966a0c9572e0582fabc415"
+		s.CheckRequest.SHA = commitSha
+	}
+	fmt.Printf("%+v\n ", s.CheckRequest)
+	//baseBranch := os.Getenv(BaseRefEnvVar)
+	/*s.GitDiff = &gitdiff.GitDiff{
+		WorkDir:    workspacePath,
+		BaseBranch: baseBranch,
+		BaseSHA:    event.Before,
+		Head:       s.CheckRequest.SHA,
+	}*/
+	s.GitDiff = &gitdiff.GitDiff{
+		WorkDir:    workspacePath,
+		BaseBranch: "master",
+		BaseSHA:    beforeCommitSha,
+		Head:       s.CheckRequest.SHA,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
@@ -188,6 +222,8 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
+	s.Logger.Debug("NIGHTFALL API KEY LENGTH")
+	fmt.Println(len(nightfallAPIKey))
 	var maxNumberRoutines int
 	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
 		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
@@ -207,12 +243,13 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-	content, err := ioutil.ReadFile(NightfallDiffFileName)
+	content, err := s.GitDiff.GetDiff()
 	if err != nil {
-		s.Logger.Error("Error getting the raw diff from Github")
+		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	fileDiffs, err := ParseMultiFile(bytes.NewReader(content))
+
+	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err

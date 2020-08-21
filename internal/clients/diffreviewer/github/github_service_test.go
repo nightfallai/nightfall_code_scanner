@@ -14,6 +14,7 @@ import (
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
 	githubservice "github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/github"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
@@ -195,10 +196,13 @@ func (g *githubTestSuite) TestLoadConfig() {
 
 func (g *githubTestSuite) TestGetDiff() {
 	tp := g.initTestParams()
-	testDiffFilePath := githubservice.NightfallDiffFileName
-	f, _ := os.Create(testDiffFilePath)
-	defer os.Remove(f.Name())
-	_, _ = f.Write([]byte(expectedDiffResponseStr))
+	ctrl := gomock.NewController(g.T())
+	defer ctrl.Finish()
+	mockGitDiff := gitdiff_mock.NewGitDiff(ctrl)
+	tp.gc.GitDiff = mockGitDiff
+
+	mockGitDiff.EXPECT().GetDiff().Return(expectedDiffResponseStr, nil)
+
 	fileDiffs, err := tp.gc.GetDiff()
 	g.NoError(err, "unexpected error in GetDiff")
 	g.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")

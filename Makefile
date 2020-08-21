@@ -12,7 +12,7 @@ BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 
 NAME=nightfallai/$(SERVICE_NAME)
-TAG=circle_test_3
+TAG=circle_test_4
 VERSION=$(NAME):$(TAG)
 LATEST=$(NAME):latest
 

@@ -1,21 +1,21 @@
 package github
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_cli/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_cli/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
 )
@@ -29,8 +29,8 @@ const (
 
 	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
+	BaseRefEnvVar            = "GITHUB_BASE_REF"
 	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
-	NightfallDiffFileName    = "./nightfalldlp_raw_diff.txt"
 	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
 	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
@@ -64,6 +64,7 @@ type headCommit struct {
 
 // event represents github event webhook file
 type event struct {
+	Before      string      `json:"before"`
 	PullRequest pullRequest `json:"pull_request"`
 	Repository  eventRepo   `json:"repository"`
 	CheckSuite  checkSuite  `json:"check_suite"`
@@ -123,6 +124,7 @@ type Service struct {
 	Client       githubintf.GithubClient
 	Logger       logger.Logger
 	CheckRequest *CheckRequest
+	GitDiff      gitdiffintf.GitDiff
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
@@ -178,6 +180,13 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if s.CheckRequest.SHA == "" {
 		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
+	baseBranch := os.Getenv(BaseRefEnvVar)
+	s.GitDiff = &gitdiff.GitDiff{
+		WorkDir:    workspacePath,
+		BaseBranch: baseBranch,
+		BaseSHA:    event.Before,
+		Head:       s.CheckRequest.SHA,
+	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
@@ -207,12 +216,13 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	s.Logger.Debug("Getting diff from Github")
-	content, err := ioutil.ReadFile(NightfallDiffFileName)
+	content, err := s.GitDiff.GetDiff()
 	if err != nil {
-		s.Logger.Error("Error getting the raw diff from Github")
+		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	fileDiffs, err := ParseMultiFile(bytes.NewReader(content))
+
+	fileDiffs, err := ParseMultiFile(strings.NewReader(content))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err

@@ -159,24 +159,24 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("Missing env var for workspace path")
 	}
-	eventPath, ok := os.LookupEnv(EventPathEnvVar)
-	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", EventPathEnvVar))
-		return nil, errors.New("Missing env var for event path")
-	}
-	event, err := getEventFile(eventPath)
-	if err != nil {
-		s.Logger.Error("Error getting Github event file")
-		return nil, err
-	}
+	//eventPath, ok := os.LookupEnv(EventPathEnvVar)
+	//if !ok {
+	//	s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", EventPathEnvVar))
+	//	return nil, errors.New("Missing env var for event path")
+	//}
+	//event, err := getEventFile(eventPath)
+	//if err != nil {
+	//	s.Logger.Error("Error getting Github event file")
+	//	return nil, err
+	//}
 	s.CheckRequest = &CheckRequest{
-		Owner:       event.Repository.Owner.Login,
-		Repo:        event.Repository.Name,
-		SHA:         event.PullRequest.Head.Sha,
-		PullRequest: event.PullRequest.Number,
+		Owner:       "alan20854",
+		Repo:        "CircleCiTest",
+		SHA:         "48f0b15bf4e2d376dc966a0c9572e0582fabc415",
+		PullRequest: 3,
 	}
 	if s.CheckRequest.SHA == "" {
-		s.CheckRequest.SHA = event.HeadCommit.ID
+		s.CheckRequest.SHA = "48f0b15bf4e2d376dc966a0c9572e0582fabc415"
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {

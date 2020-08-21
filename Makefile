@@ -7,7 +7,7 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-SERVICE_NAME=nightfall_cli
+SERVICE_NAME=nightfall_code_scanner
 BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 

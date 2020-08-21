@@ -6,7 +6,7 @@ on:
   pull_request:
 jobs:
   nightfalldlp:
-    name: nightfalldlp
+    name: nightfall code scanner
     runs-on: ubuntu-latest
     steps:
       - name: Add $GOPATH/bin

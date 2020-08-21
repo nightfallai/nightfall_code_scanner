@@ -1,4 +1,4 @@
-module github.com/nightfallai/nightfall_cli
+module github.com/nightfallai/nightfall_code_scanner
 
 go 1.13
 

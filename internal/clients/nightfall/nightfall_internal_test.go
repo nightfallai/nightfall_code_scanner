@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 
 	"github.com/stretchr/testify/assert"

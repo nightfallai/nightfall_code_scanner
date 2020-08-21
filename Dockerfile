@@ -2,7 +2,7 @@ FROM golang:1.13.4-alpine AS builder
 
 RUN apk add bash g++ make wget --no-cache
 
-WORKDIR /projects/nightfall_cli
+WORKDIR /projects/nightfall_code_scanner
 
 COPY Makefile go.mod go.sum ./
 RUN make deps
@@ -13,12 +13,12 @@ RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/master/in
 
 COPY . .
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_cli ./cmd/nightfalldlp/
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_scanner ./cmd/nightfalldlp/
 
 FROM alpine:3.8
 
 RUN apk add git --no-cache
 
-COPY --from=builder /projects/nightfall_cli/nightfall_cli /nightfall_cli
+COPY --from=builder /projects/nightfall_code_scanner/nightfall_code_scanner /nightfall_code_scanner
 
-CMD ["/nightfall_cli"]
+CMD ["/nightfall_code_scanner"]

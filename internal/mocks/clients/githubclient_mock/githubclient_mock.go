@@ -6,7 +6,7 @@ package githubclient_mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	githubintf "github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
+	githubintf "github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	reflect "reflect"
 )
 

@@ -6,7 +6,7 @@ on:
   pull_request:
 jobs:
   nightfalldlp:
-    name: nightfalldlp
+    name: nightfall code scanner
     runs-on: ubuntu-latest
     steps:
       - name: Add $GOPATH/bin
@@ -32,7 +32,7 @@ jobs:
 
       - name: Setup nightfalldlp
         run: |
-          go install ./cmd/nightfalldlp
+          go build -a -installsuffix cgo -o nightfall_code_scanner ./cmd/nightfalldlp/
 
       # update how we're running the action
       - name: Run nightfalldlp (github-pr-check)
@@ -41,4 +41,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NIGHTFALL_API_KEY: ${{ secrets.NIGHTFALL_API_KEY }}
         run: |
-          nightfalldlp
+          ./nightfall_code_scanner

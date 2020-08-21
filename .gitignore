@@ -21,5 +21,7 @@
 
 # The service executable
 nightfall_dlp
+nightfall_cli
+nightfall_code_scanner
 
 config/user.json

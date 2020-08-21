@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/assert"
 )

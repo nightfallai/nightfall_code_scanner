@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
-	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
-	"github.com/nightfallai/nightfall_cli/internal/mocks/clients/nightfallapi_mock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/nightfallapi_mock"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )

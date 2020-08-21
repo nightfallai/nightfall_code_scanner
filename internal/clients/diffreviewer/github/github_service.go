@@ -272,7 +272,7 @@ func whitespaceOnlyLine(line *diffreviewer.Line) bool {
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
-	s.Logger.Debug(fmt.Sprintf("Writting %d annotations to Github", len(comments)))
+	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {
 		s.Logger.Error("Error creating a Github check run")

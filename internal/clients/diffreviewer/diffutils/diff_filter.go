@@ -3,7 +3,7 @@ package diffutils
 import (
 	"strings"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 )
 
 func FilterFileDiffs(fileDiffs []*diffreviewer.FileDiff) []*diffreviewer.FileDiff {

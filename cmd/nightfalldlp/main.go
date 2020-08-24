@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/circleci"
+
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/flag"
@@ -87,11 +89,7 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 		}
 		return github.NewAuthenticatedGithubService(githubToken), nil
 	case usingCircleCi():
-		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
-		if !ok {
-			return nil, fmt.Errorf("could not find required %s environment variable", githubTokenEnvVar)
-		}
-		return github.NewAuthenticatedGithubService(githubToken), nil
+		return circleci.NewCircleCiService(), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

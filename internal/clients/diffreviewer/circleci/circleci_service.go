@@ -6,20 +6,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/diffutils"
-	"github.com/nightfallai/nightfall_cli/internal/clients/gitdiff"
-	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
-	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
-	"github.com/nightfallai/nightfall_cli/internal/interfaces/gitdiffintf"
-	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
-)
+	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 
-// Service contains the github client that makes Github api calls
-type Service struct {
-	Logger  logger.Logger
-	GitDiff gitdiffintf.GitDiff
-}
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
+	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
+)
 
 const (
 	WorkspacePathEnvVar        = "GITHUB_WORKSPACE"
@@ -30,6 +26,24 @@ const (
 	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
 	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
 )
+
+// Service contains the github client that makes Github api calls
+type Service struct {
+	Logger  logger.Logger
+	GitDiff gitdiffintf.GitDiff
+}
+
+// NewCircleCiService creates a new CircleCi service
+func NewCircleCiService() diffreviewer.DiffReviewer {
+	return &Service{
+		Logger: circlelogger.NewDefaultCircleLogger(),
+	}
+}
+
+// GetLogger gets the github service logger
+func (s *Service) GetLogger() logger.Logger {
+	return s.Logger
+}
 
 // LoadConfig gets all config values from files or environment and creates a config
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
@@ -102,7 +116,6 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
-	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	annotationLength := len(comments)
 	s.Logger.Warning(fmt.Sprintf("Found %d potentially sensitive items", annotationLength))
 	for i := 0; i < annotationLength; i++ {

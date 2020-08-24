@@ -7,18 +7,17 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	"github.com/nightfallai/nightfall_cli/internal/clients/gitdiff"
-	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
-	githublogger "github.com/nightfallai/nightfall_cli/internal/clients/logger/github_logger"
-	"github.com/nightfallai/nightfall_cli/internal/clients/nightfall"
-	"github.com/nightfallai/nightfall_cli/internal/interfaces/gitdiffintf"
-	"github.com/nightfallai/nightfall_cli/internal/interfaces/githubintf"
-	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
+	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
+	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
+	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
+	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 )
 
 type Level string
@@ -28,16 +27,11 @@ const (
 	WarningLevel Level = "warning"
 	ErrorLevel   Level = "error"
 
-	WorkspacePathEnvVar        = "GITHUB_WORKSPACE"
-	EventPathEnvVar            = "GITHUB_EVENT_PATH"
-	BaseRefEnvVar              = "GITHUB_BASE_REF"
-	NightfallAPIKeyEnvVar      = "NIGHTFALL_API_KEY"
-	MaxAnnotationsPerRequest   = 50 // https://developer.github.com/v3/checks/runs/#output-object
-	CircleRepoNameEnvVar       = "CIRCLE_PROJECT_REPONAME"
-	CircleOwnerNameEnvVar      = "CIRCLE_PROJECT_USERNAME"
-	CircleCommitShaEnvVar      = "CIRCLE_SHA1"
-	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
-	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
+	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
+	EventPathEnvVar          = "GITHUB_EVENT_PATH"
+	BaseRefEnvVar            = "GITHUB_BASE_REF"
+	NightfallAPIKeyEnvVar    = "NIGHTFALL_API_KEY"
+	MaxAnnotationsPerRequest = 50 // https://developer.github.com/v3/checks/runs/#output-object
 
 	imageURL      = "https://cdn.nightfall.ai/nightfall-dark-logo-tm.png"
 	imageAlt      = "Nightfall Logo"
@@ -167,49 +161,30 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("Missing env var for workspace path")
 	}
-	//eventPath, ok := os.LookupEnv(EventPathEnvVar)
-	//if !ok {
-	//	s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", EventPathEnvVar))
-	//	return nil, errors.New("Missing env var for event path")
-	//}
-	//event, err := getEventFile(eventPath)
-	//if err != nil {
-	//	s.Logger.Error("Error getting Github event file")
-	//	return nil, err
-	//}
-	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
-	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
-	commitSha, ok := os.LookupEnv(CircleCommitShaEnvVar)
-	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
+	eventPath, ok := os.LookupEnv(EventPathEnvVar)
 	if !ok {
-		s.Logger.Error("Error getting before commit sha.")
-		return nil, errors.New("missing env var for prev commit sha")
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", EventPathEnvVar))
+		return nil, errors.New("Missing env var for event path")
 	}
-	fmt.Println("EVENT_BEFORE FROM CIRCLE")
-	fmt.Println(beforeCommitSha)
-	prUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
-	prNumber, err := strconv.Atoi(prUrl[strings.LastIndex(prUrl, "/")+1:])
+	event, err := getEventFile(eventPath)
+	if err != nil {
+		s.Logger.Error("Error getting Github event file")
+		return nil, err
+	}
 	s.CheckRequest = &CheckRequest{
-		Owner:       owner,
-		Repo:        repo,
-		SHA:         commitSha,
-		PullRequest: prNumber,
+		Owner:       event.Repository.Owner.Login,
+		Repo:        event.Repository.Name,
+		SHA:         event.PullRequest.Head.Sha,
+		PullRequest: event.PullRequest.Number,
 	}
 	if s.CheckRequest.SHA == "" {
-		s.CheckRequest.SHA = commitSha
+		s.CheckRequest.SHA = event.HeadCommit.ID
 	}
-	fmt.Printf("%+v\n ", s.CheckRequest)
-	//baseBranch := os.Getenv(BaseRefEnvVar)
-	/*s.GitDiff = &gitdiff.GitDiff{
+	baseBranch := os.Getenv(BaseRefEnvVar)
+	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
 		BaseBranch: baseBranch,
 		BaseSHA:    event.Before,
-		Head:       s.CheckRequest.SHA,
-	}*/
-	s.GitDiff = &gitdiff.GitDiff{
-		WorkDir:    workspacePath,
-		BaseBranch: "master",
-		BaseSHA:    beforeCommitSha,
 		Head:       s.CheckRequest.SHA,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
@@ -218,12 +193,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
-	if !ok {
+	if !ok || nightfallAPIKey == "" {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
-	s.Logger.Debug("NIGHTFALL API KEY LENGTH")
-	fmt.Println(len(nightfallAPIKey))
 	var maxNumberRoutines int
 	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
 		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
@@ -299,7 +272,7 @@ func whitespaceOnlyLine(line *diffreviewer.Line) bool {
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
-	s.Logger.Debug(fmt.Sprintf("Writting %d annotations to Github", len(comments)))
+	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {
 		s.Logger.Error("Error creating a Github check run")

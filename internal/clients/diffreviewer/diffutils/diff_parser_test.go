@@ -1,11 +1,12 @@
-package github_test
+package diffutils_test
 
 import (
 	"bytes"
 	"testing"
 
+	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/diffutils"
+
 	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/github"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -158,7 +159,7 @@ var fileDiff4 = diffreviewer.FileDiff{
 var expectedParsedFileDiffs = []*diffreviewer.FileDiff{&fileDiff1, &fileDiff2, &fileDiff3, &fileDiff4}
 
 func (d *diffParserTestSuite) TestParseMultiFile() {
-	fileDiffs, err := github.ParseMultiFile(bytes.NewReader([]byte(rawDiff)))
+	fileDiffs, err := diffutils.ParseMultiFile(bytes.NewReader([]byte(rawDiff)))
 	d.NoError(err, "unexpected error in parse multi-file test")
 	d.Equal(expectedParsedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }

@@ -48,3 +48,8 @@ func (l *GithubLogger) Warning(msg string) {
 func (l *GithubLogger) Error(msg string) {
 	l.log.Printf("%s%s\n", errorPrefix, msg)
 }
+
+// Error logs a error message at the specified location
+func (l *GithubLogger) ErrorAnnotation(msg, location string) {
+	l.log.Printf("::error %s::%s", location, msg)
+}

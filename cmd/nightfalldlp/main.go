@@ -48,18 +48,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("NUM FILEDIFFS")
-	fmt.Println(len(fileDiffs))
-	for i, fd := range fileDiffs {
-		fmt.Printf("file diff #%d\n", i)
-		for j, h := range fd.Hunks {
-			fmt.Printf("hunk #%d\n", j)
-			fmt.Println("LINES: ")
-			for _, l := range h.Lines {
-				fmt.Println(l.Content)
-			}
-		}
-	}
 
 	comments, err := nightfallClient.ReviewDiff(ctx, diffReviewClient.GetLogger(), fileDiffs)
 	if err != nil {
@@ -100,8 +88,6 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 		return github.NewAuthenticatedGithubService(githubToken), nil
 	case usingCircleCi():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
-		fmt.Println("LENGTH OF GITHUB TOKEN")
-		fmt.Println(len(githubToken))
 		if !ok {
 			return nil, fmt.Errorf("could not find required %s environment variable", githubTokenEnvVar)
 		}

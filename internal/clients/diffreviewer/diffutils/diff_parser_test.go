@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer/diffutils"
-
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 	"github.com/stretchr/testify/suite"
 )
 

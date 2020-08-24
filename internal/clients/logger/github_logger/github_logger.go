@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 )
 
 const (

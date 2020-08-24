@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/nightfallai/nightfall_cli/internal/clients/flag"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/flag"
 )
 
 func TestParse(t *testing.T) {

@@ -14,10 +14,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/gobwas/glob"
-	"github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	"github.com/nightfallai/nightfall_cli/internal/clients/logger"
-	"github.com/nightfallai/nightfall_cli/internal/interfaces/nightfallintf"
-	"github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/nightfallintf"
+	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 

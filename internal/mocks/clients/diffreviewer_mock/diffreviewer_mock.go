@@ -6,9 +6,9 @@ package diffreviewer_mock
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	diffreviewer "github.com/nightfallai/nightfall_cli/internal/clients/diffreviewer"
-	logger "github.com/nightfallai/nightfall_cli/internal/clients/logger"
-	nightfallconfig "github.com/nightfallai/nightfall_cli/internal/nightfallconfig"
+	diffreviewer "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	logger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
+	nightfallconfig "github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	reflect "reflect"
 )
 

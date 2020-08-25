@@ -84,6 +84,23 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 
+func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
+	tp := c.initTestParams()
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+
+	_, err = tp.cs.LoadConfig(testConfigFileName)
+	c.EqualError(
+		err,
+		"missing env var for nightfall api key",
+		"incorrect error from missing api key test",
+	)
+}
+
 func (c *circleCiTestSuite) TestGetDiff() {
 	//TODO: implement
 }

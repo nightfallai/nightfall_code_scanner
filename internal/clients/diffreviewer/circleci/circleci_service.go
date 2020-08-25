@@ -1,19 +1,22 @@
 package circleci
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
-
+	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
+	gc "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
+	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 )
 
@@ -25,18 +28,32 @@ const (
 	CircleCommitShaEnvVar      = "CIRCLE_SHA1"
 	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
 	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
+
+	// right side is reserved for additions and unchanged lines
+	// https://developer.github.com/v3/pulls/comments/#create-a-review-comment-for-a-pull-request
+	GithubCommentRightSide = "RIGHT"
 )
 
 // Service contains the github client that makes Github api calls
 type Service struct {
-	Logger  logger.Logger
-	GitDiff gitdiffintf.GitDiff
+	GithubClient githubintf.GithubClient
+	Logger       logger.Logger
+	GitDiff      gitdiffintf.GitDiff
+	PrDetails    prDetails
 }
 
-// NewCircleCiService creates a new CircleCi service
-func NewCircleCiService() diffreviewer.DiffReviewer {
+type prDetails struct {
+	CommitSha string
+	Owner     string
+	Repo      string
+	PrNumber  int
+}
+
+// NewCircleCiService creates a new CircleCi servic
+func NewCircleCiService(token string) diffreviewer.DiffReviewer {
 	return &Service{
-		Logger: circlelogger.NewDefaultCircleLogger(),
+		GithubClient: gc.NewAuthenticatedClient(token),
+		Logger:       circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
@@ -116,6 +133,36 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
-	//TODO: implement
-	return nil
+	if len(comments) == 0 {
+		return nil
+	}
+	githubComments := s.createGithubComments(comments)
+	for _, c := range githubComments {
+		_, _, err := s.GithubClient.PullRequestsService().CreateComment(
+			context.Background(),
+			s.PrDetails.Owner,
+			s.PrDetails.Repo,
+			s.PrDetails.PrNumber,
+			c,
+		)
+		if err != nil {
+			s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+		}
+	}
+	// returning error to fail circleCI step
+	return errors.New("potentially sensitive items found")
+}
+
+func (s *Service) createGithubComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {
+	githubComments := make([]*github.PullRequestComment, len(comments))
+	for i, comment := range comments {
+		githubComments[i] = &github.PullRequestComment{
+			CommitID: &s.PrDetails.CommitSha,
+			Body:     &comment.Body,
+			Path:     &comment.FilePath,
+			Line:     &comment.LineNumber,
+			Side:     github.String(GithubCommentRightSide),
+		}
+	}
+	return githubComments
 }

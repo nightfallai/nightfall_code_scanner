@@ -1,10 +1,18 @@
 package circleci
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/google/go-github/v31/github"
+
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
 
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 
@@ -127,6 +135,8 @@ func (c *circleCiTestSuite) initTestParams() *testParams {
 
 const commitSha = "7b46da6e4d3259b1a1c470ee468e2cb3d9733802"
 const prevCommitSha = "15bf9548d16caff9f398b5aae78a611fc60d55bd"
+const testOwner = "alan20854"
+const testRepo = "TestRepo"
 const testConfigFileName = "nightfall_test_config.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
@@ -189,7 +199,94 @@ func (c *circleCiTestSuite) TestGetDiff() {
 }
 
 func (c *circleCiTestSuite) TestWriteComments() {
-	//TODO: implement
+	tp := c.initTestParams()
+	ctrl := gomock.NewController(c.T())
+	defer ctrl.Finish()
+	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
+	mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
+	testCircleService := &Service{
+		GithubClient: mockClient,
+		Logger:       nil,
+		PrDetails: prDetails{
+			CommitSha: commitSha,
+			Owner:     testOwner,
+			Repo:      testRepo,
+			PrNumber:  3,
+		},
+	}
+	tp.cs = testCircleService
+
+	testComments, testGithubComments := makeTestGithubComments(
+		"testComment",
+		"/comments.txt",
+		tp.cs.PrDetails.CommitSha,
+		60,
+	)
+	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.PullRequestComment{}
+
+	tests := []struct {
+		giveComments       []*diffreviewer.Comment
+		giveGithubComments []*github.PullRequestComment
+		wantError          error
+		desc               string
+	}{
+		{
+			giveComments:       testComments,
+			giveGithubComments: testGithubComments,
+			wantError:          errors.New("potentially sensitive items found"),
+			desc:               "single batch comments test",
+		},
+		{
+			giveComments:       emptyComments,
+			giveGithubComments: emptyGithubComments,
+			wantError:          nil,
+			desc:               "no comments test",
+		},
+	}
+
+	for _, tt := range tests {
+		for _, gc := range tt.giveGithubComments {
+			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
+			mockPullRequests.EXPECT().CreateComment(
+				context.Background(),
+				testCircleService.PrDetails.Owner,
+				testCircleService.PrDetails.Repo,
+				testCircleService.PrDetails.PrNumber,
+				gc,
+			)
+		}
+		err := tp.cs.WriteComments(tt.giveComments)
+		if len(tt.giveComments) > 0 {
+			c.EqualError(
+				err,
+				tt.wantError.Error(),
+				fmt.Sprintf("invalid error writing comments for %s test", tt.desc),
+			)
+		} else {
+			c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
+		}
+	}
+}
+
+func makeTestGithubComments(body, filePath, commitSha string, size int) ([]*diffreviewer.Comment, []*github.PullRequestComment) {
+	comments := make([]*diffreviewer.Comment, size)
+	githubComments := make([]*github.PullRequestComment, size)
+	for i := 0; i < size; i++ {
+		comments[i] = &diffreviewer.Comment{
+			Title:      "title",
+			Body:       body,
+			FilePath:   filePath,
+			LineNumber: i + 1,
+		}
+		githubComments[i] = &github.PullRequestComment{
+			CommitID: &commitSha,
+			Body:     &comments[i].Body,
+			Path:     &comments[i].FilePath,
+			Line:     &comments[i].LineNumber,
+			Side:     github.String(GithubCommentRightSide),
+		}
+	}
+	return comments, githubComments
 }
 
 func TestCircleCiClient(t *testing.T) {

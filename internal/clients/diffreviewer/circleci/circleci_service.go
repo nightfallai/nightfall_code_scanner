@@ -15,13 +15,13 @@ import (
 )
 
 const (
-	WorkspacePathEnvVar        = "GITHUB_WORKSPACE"
-	NightfallAPIKeyEnvVar      = "NIGHTFALL_API_KEY"
-	CircleRepoNameEnvVar       = "CIRCLE_PROJECT_REPONAME"
-	CircleOwnerNameEnvVar      = "CIRCLE_PROJECT_USERNAME"
-	CircleCommitShaEnvVar      = "CIRCLE_SHA1"
-	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
-	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
+	WorkspacePathEnvVar          = "GITHUB_WORKSPACE"
+	NightfallAPIKeyEnvVar        = "NIGHTFALL_API_KEY"
+	CircleRepoNameEnvVar         = "CIRCLE_PROJECT_REPONAME"
+	CircleOwnerNameEnvVar        = "CIRCLE_PROJECT_USERNAME"
+	CircleCurrentCommitShaEnvVar = "CIRCLE_SHA1"
+	CircleBeforeCommitEnvVar     = "EVENT_BEFORE"
+	CirclePullRequestUrlEnvVar   = "CIRCLE_PULL_REQUEST"
 )
 
 // Service contains the github client that makes Github api calls
@@ -50,9 +50,9 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("Missing env var for workspace path")
 	}
-	commitSha, ok := os.LookupEnv(CircleCommitShaEnvVar)
+	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
 	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCommitShaEnvVar))
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
 		return nil, errors.New("Missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)

@@ -45,7 +45,7 @@ const excludedIPRegex = "^127\\."
 var envVars = []string{
 	WorkspacePathEnvVar,
 	NightfallAPIKeyEnvVar,
-	CircleCommitShaEnvVar,
+	CircleCurrentCommitShaEnvVar,
 	CircleBeforeCommitEnvVar,
 }
 
@@ -66,7 +66,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
 	os.Setenv(WorkspacePathEnvVar, workspacePath)
-	os.Setenv(CircleCommitShaEnvVar, commitSha)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
 	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 

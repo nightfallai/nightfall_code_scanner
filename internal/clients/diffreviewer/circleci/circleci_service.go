@@ -56,10 +56,6 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
-	if !ok || beforeCommitSha == "" {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBeforeCommitEnvVar))
-		return nil, errors.New("missing env var for prev commit sha")
-	}
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
 		BaseBranch: "master",

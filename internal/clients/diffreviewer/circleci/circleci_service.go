@@ -48,12 +48,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
-		return nil, errors.New("Missing env var for workspace path")
+		return nil, errors.New("missing env var for workspace path")
 	}
 	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
-		return nil, errors.New("Missing env var for commit sha")
+		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
 	if !ok {
@@ -74,7 +74,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
-		return nil, errors.New("Missing env var for nightfall api key")
+		return nil, errors.New("missing env var for nightfall api key")
 	}
 
 	var maxNumberRoutines int

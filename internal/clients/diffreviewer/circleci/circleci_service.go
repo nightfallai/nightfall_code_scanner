@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
@@ -68,12 +69,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
-		return nil, errors.New("Missing env var for workspace path")
+		return nil, errors.New("missing env var for workspace path")
 	}
 	commitSha, ok := os.LookupEnv(CircleCommitShaEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCommitShaEnvVar))
-		return nil, errors.New("Missing env var for commit sha")
+		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
 	if !ok {
@@ -85,6 +86,32 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		BaseBranch: "master", //TODO: look into how to get this instead of hardcoding
 		BaseSHA:    beforeCommitSha,
 		Head:       commitSha,
+	}
+	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleOwnerNameEnvVar))
+		return nil, errors.New("missing env var for repo owner")
+	}
+	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
+		return nil, errors.New("missing env var for repository name")
+	}
+	prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CirclePullRequestUrlEnvVar))
+		return nil, errors.New("missing env var for pull request url")
+	}
+	prNumber, err := strconv.Atoi(prNumberUrl[strings.LastIndex(prNumberUrl, "/")+1:])
+	if err != nil {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
+		return nil, errors.New("invalid format of pull request url env var")
+	}
+	s.PrDetails = prDetails{
+		CommitSha: commitSha,
+		Owner:     owner,
+		Repo:      repo,
+		PrNumber:  prNumber,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {

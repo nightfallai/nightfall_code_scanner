@@ -137,6 +137,7 @@ const commitSha = "7b46da6e4d3259b1a1c470ee468e2cb3d9733802"
 const prevCommitSha = "15bf9548d16caff9f398b5aae78a611fc60d55bd"
 const testOwner = "alan20854"
 const testRepo = "TestRepo"
+const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
 const testConfigFileName = "nightfall_test_config.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
@@ -147,6 +148,9 @@ var envVars = []string{
 	NightfallAPIKeyEnvVar,
 	CircleCommitShaEnvVar,
 	CircleBeforeCommitEnvVar,
+	CircleOwnerNameEnvVar,
+	CircleRepoNameEnvVar,
+	CirclePullRequestUrlEnvVar,
 }
 
 func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
@@ -169,6 +173,9 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(CircleCommitShaEnvVar, commitSha)
 	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+	os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	os.Setenv(CircleRepoNameEnvVar, testRepo)
+	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,

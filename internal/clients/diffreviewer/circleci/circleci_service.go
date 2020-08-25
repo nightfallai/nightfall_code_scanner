@@ -49,7 +49,7 @@ type prDetails struct {
 	PrNumber  int
 }
 
-// NewCircleCiService creates a new CircleCi servic
+// NewCircleCiService creates a new CircleCi service
 func NewCircleCiService(token string) diffreviewer.DiffReviewer {
 	return &Service{
 		GithubClient: gc.NewAuthenticatedClient(token),

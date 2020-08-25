@@ -22,13 +22,13 @@ import (
 )
 
 const (
-	WorkspacePathEnvVar        = "GITHUB_WORKSPACE"
-	NightfallAPIKeyEnvVar      = "NIGHTFALL_API_KEY"
-	CircleRepoNameEnvVar       = "CIRCLE_PROJECT_REPONAME"
-	CircleOwnerNameEnvVar      = "CIRCLE_PROJECT_USERNAME"
-	CircleCommitShaEnvVar      = "CIRCLE_SHA1"
-	CircleBeforeCommitEnvVar   = "EVENT_BEFORE"
-	CirclePullRequestUrlEnvVar = "CIRCLE_PULL_REQUEST"
+	WorkspacePathEnvVar          = "GITHUB_WORKSPACE"
+	NightfallAPIKeyEnvVar        = "NIGHTFALL_API_KEY"
+	CircleRepoNameEnvVar         = "CIRCLE_PROJECT_REPONAME"
+	CircleOwnerNameEnvVar        = "CIRCLE_PROJECT_USERNAME"
+	CircleCurrentCommitShaEnvVar = "CIRCLE_SHA1"
+	CircleBeforeCommitEnvVar     = "EVENT_BEFORE"
+	CirclePullRequestUrlEnvVar   = "CIRCLE_PULL_REQUEST"
 
 	// right side is reserved for additions and unchanged lines
 	// https://developer.github.com/v3/pulls/comments/#create-a-review-comment-for-a-pull-request
@@ -71,10 +71,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("missing env var for workspace path")
 	}
-	commitSha, ok := os.LookupEnv(CircleCommitShaEnvVar)
+	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
 	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCommitShaEnvVar))
-		return nil, errors.New("missing env var for commit sha")
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
+		return nil, errors.New("Missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
 	if !ok {

@@ -67,23 +67,23 @@ func (s *Service) GetLogger() logger.Logger {
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	s.Logger.Debug("Loading configuration")
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
-	if !ok {
+	if !ok && workspacePath != "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("missing env var for workspace path")
 	}
 	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
-	if !ok {
+	if !ok && commitSha != "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
 		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
-	if !ok {
+	if !ok && beforeCommitSha != "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBeforeCommitEnvVar))
 		return nil, errors.New("missing env var for prev commit sha")
 	}
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
-		BaseBranch: "master", //TODO: look into how to get this instead of hardcoding
+		BaseBranch: "master",
 		BaseSHA:    beforeCommitSha,
 		Head:       commitSha,
 	}
@@ -119,7 +119,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
-	if !ok {
+	if !ok && nightfallAPIKey != "" {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("missing env var for nightfall api key")
 	}

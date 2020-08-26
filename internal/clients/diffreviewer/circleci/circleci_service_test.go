@@ -6,12 +6,10 @@ import (
 	"path"
 	"testing"
 
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
-
 	"github.com/golang/mock/gomock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
@@ -47,7 +45,6 @@ index e0fe924..0405bc6 100644
 + 
  }`
 
-var circleLogger = circlelogger.NewDefaultCircleLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
 	PathNew: "README.md",
@@ -104,6 +101,7 @@ var expectedFileDiff3 = &diffreviewer.FileDiff{
 	Extended: []string{"diff --git a/main.go b/main.go", "index e0fe924..0405bc6 100644"},
 }
 var expectedFileDiffs = []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2, expectedFileDiff3}
+var circleLogger = circlelogger.NewDefaultCircleLogger()
 
 type circleCiTestSuite struct {
 	suite.Suite
@@ -172,6 +170,23 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
 	c.NoError(err, "Error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+}
+
+func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
+	tp := c.initTestParams()
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+
+	_, err = tp.cs.LoadConfig(testConfigFileName)
+	c.EqualError(
+		err,
+		"missing env var for nightfall api key",
+		"incorrect error from missing api key test",
+	)
 }
 
 func (c *circleCiTestSuite) TestGetDiff() {

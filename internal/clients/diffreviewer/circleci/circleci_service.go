@@ -6,9 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
-
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
@@ -49,20 +48,16 @@ func (s *Service) GetLogger() logger.Logger {
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	s.Logger.Debug("Loading configuration")
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
-	if !ok && workspacePath != "" {
+	if !ok || workspacePath == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("missing env var for workspace path")
 	}
 	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
-	if !ok && commitSha != "" {
+	if !ok || commitSha == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
 		return nil, errors.New("missing env var for commit sha")
 	}
-	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
-	if !ok && beforeCommitSha != "" {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBeforeCommitEnvVar))
-		return nil, errors.New("missing env var for prev commit sha")
-	}
+	beforeCommitSha, _ := os.LookupEnv(CircleBeforeCommitEnvVar)
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
 		BaseBranch: "master",
@@ -75,7 +70,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
-	if !ok && nightfallAPIKey != "" {
+	if !ok || nightfallAPIKey == "" {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("missing env var for nightfall api key")
 	}

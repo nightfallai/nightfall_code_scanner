@@ -60,3 +60,17 @@ func (mr *GithubClientMockRecorder) PullRequestsService() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullRequestsService", reflect.TypeOf((*GithubClient)(nil).PullRequestsService))
 }
+
+// RepositoriesService mocks base method
+func (m *GithubClient) RepositoriesService() githubintf.GithubRepositories {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RepositoriesService")
+	ret0, _ := ret[0].(githubintf.GithubRepositories)
+	return ret0
+}
+
+// RepositoriesService indicates an expected call of RepositoriesService
+func (mr *GithubClientMockRecorder) RepositoriesService() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RepositoriesService", reflect.TypeOf((*GithubClient)(nil).RepositoriesService))
+}

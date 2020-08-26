@@ -5,4 +5,5 @@ package githubintf
 type GithubClient interface {
 	ChecksService() GithubChecks
 	PullRequestsService() GithubPullRequests
+	RepositoriesService() GithubRepositories
 }

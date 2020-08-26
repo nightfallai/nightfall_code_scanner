@@ -9,17 +9,14 @@ import (
 	"path"
 	"testing"
 
-	"github.com/google/go-github/v31/github"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubrepositories_mock"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/go-github/v31/github"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
@@ -55,7 +52,6 @@ index e0fe924..0405bc6 100644
 + 
  }`
 
-var circleLogger = circlelogger.NewDefaultCircleLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
 	PathNew: "README.md",
@@ -112,6 +108,7 @@ var expectedFileDiff3 = &diffreviewer.FileDiff{
 	Extended: []string{"diff --git a/main.go b/main.go", "index e0fe924..0405bc6 100644"},
 }
 var expectedFileDiffs = []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2, expectedFileDiff3}
+var circleLogger = circlelogger.NewDefaultCircleLogger()
 
 type circleCiTestSuite struct {
 	suite.Suite
@@ -150,7 +147,7 @@ var envVars = []string{
 	CircleBeforeCommitEnvVar,
 	CircleOwnerNameEnvVar,
 	CircleRepoNameEnvVar,
-	CirclePullRequestUrlEnvVar,
+	//CirclePullRequestUrlEnvVar,
 }
 
 func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
@@ -175,7 +172,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 	os.Setenv(CircleOwnerNameEnvVar, testOwner)
 	os.Setenv(CircleRepoNameEnvVar, testRepo)
-	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	//os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
@@ -189,6 +186,25 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
 	c.NoError(err, "Error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+}
+
+func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
+	tp := c.initTestParams()
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	os.Setenv(CircleRepoNameEnvVar, testRepo)
+
+	_, err = tp.cs.LoadConfig(testConfigFileName)
+	c.EqualError(
+		err,
+		"missing env var for nightfall api key",
+		"incorrect error from missing api key test",
+	)
 }
 
 func (c *circleCiTestSuite) TestGetDiff() {
@@ -210,7 +226,8 @@ func (c *circleCiTestSuite) TestWriteComments() {
 	ctrl := gomock.NewController(c.T())
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
-	mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
+	//mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
+	mockRepositories := githubrepositories_mock.NewGithubRepositories(tp.ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
 		Logger:       nil,
@@ -218,7 +235,7 @@ func (c *circleCiTestSuite) TestWriteComments() {
 			CommitSha: commitSha,
 			Owner:     testOwner,
 			Repo:      testRepo,
-			PrNumber:  3,
+			//PrNumber:  3,
 		},
 	}
 	tp.cs = testCircleService
@@ -229,11 +246,11 @@ func (c *circleCiTestSuite) TestWriteComments() {
 		tp.cs.PrDetails.CommitSha,
 		60,
 	)
-	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.PullRequestComment{}
+	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.RepositoryComment{}
 
 	tests := []struct {
 		giveComments       []*diffreviewer.Comment
-		giveGithubComments []*github.PullRequestComment
+		giveGithubComments []*github.RepositoryComment
 		wantError          error
 		desc               string
 	}{
@@ -253,12 +270,12 @@ func (c *circleCiTestSuite) TestWriteComments() {
 
 	for _, tt := range tests {
 		for _, gc := range tt.giveGithubComments {
-			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
-			mockPullRequests.EXPECT().CreateComment(
+			mockClient.EXPECT().RepositoriesService().Return(mockRepositories)
+			mockRepositories.EXPECT().CreateComment(
 				context.Background(),
 				testCircleService.PrDetails.Owner,
 				testCircleService.PrDetails.Repo,
-				testCircleService.PrDetails.PrNumber,
+				testCircleService.PrDetails.CommitSha,
 				gc,
 			)
 		}
@@ -275,9 +292,9 @@ func (c *circleCiTestSuite) TestWriteComments() {
 	}
 }
 
-func makeTestGithubComments(body, filePath, commitSha string, size int) ([]*diffreviewer.Comment, []*github.PullRequestComment) {
+func makeTestGithubComments(body, filePath, commitSha string, size int) ([]*diffreviewer.Comment, []*github.RepositoryComment) {
 	comments := make([]*diffreviewer.Comment, size)
-	githubComments := make([]*github.PullRequestComment, size)
+	githubComments := make([]*github.RepositoryComment, size)
 	for i := 0; i < size; i++ {
 		comments[i] = &diffreviewer.Comment{
 			Title:      "title",
@@ -285,12 +302,11 @@ func makeTestGithubComments(body, filePath, commitSha string, size int) ([]*diff
 			FilePath:   filePath,
 			LineNumber: i + 1,
 		}
-		githubComments[i] = &github.PullRequestComment{
+		githubComments[i] = &github.RepositoryComment{
 			CommitID: &commitSha,
-			Body:     &comments[i].Body,
-			Path:     &comments[i].FilePath,
-			Line:     &comments[i].LineNumber,
-			Side:     github.String(GithubCommentRightSide),
+			Body:     &body,
+			Path:     &filePath,
+			Position: github.Int(i + 1),
 		}
 	}
 	return comments, githubComments

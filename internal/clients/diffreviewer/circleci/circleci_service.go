@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
@@ -67,20 +66,16 @@ func (s *Service) GetLogger() logger.Logger {
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
 	s.Logger.Debug("Loading configuration")
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
-	if !ok && workspacePath != "" {
+	if !ok || workspacePath == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("missing env var for workspace path")
 	}
 	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
-	if !ok && commitSha != "" {
+	if !ok || commitSha == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
 		return nil, errors.New("missing env var for commit sha")
 	}
-	beforeCommitSha, ok := os.LookupEnv(CircleBeforeCommitEnvVar)
-	if !ok && beforeCommitSha != "" {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBeforeCommitEnvVar))
-		return nil, errors.New("missing env var for prev commit sha")
-	}
+	beforeCommitSha, _ := os.LookupEnv(CircleBeforeCommitEnvVar)
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
 		BaseBranch: "master",
@@ -97,7 +92,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
 		return nil, errors.New("missing env var for repository name")
 	}
-	prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
+	/*prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CirclePullRequestUrlEnvVar))
 		return nil, errors.New("missing env var for pull request url")
@@ -106,12 +101,12 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
 		return nil, errors.New("invalid format of pull request url env var")
-	}
+	}*/
 	s.PrDetails = prDetails{
 		CommitSha: commitSha,
 		Owner:     owner,
 		Repo:      repo,
-		PrNumber:  prNumber,
+		//PrNumber:  prNumber,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
@@ -119,7 +114,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
-	if !ok && nightfallAPIKey != "" {
+	if !ok || nightfallAPIKey == "" {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("missing env var for nightfall api key")
 	}
@@ -165,11 +160,11 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	}
 	githubComments := s.createGithubComments(comments)
 	for _, c := range githubComments {
-		_, _, err := s.GithubClient.PullRequestsService().CreateComment(
+		_, _, err := s.GithubClient.RepositoriesService().CreateComment(
 			context.Background(),
 			s.PrDetails.Owner,
 			s.PrDetails.Repo,
-			s.PrDetails.PrNumber,
+			s.PrDetails.CommitSha, //s.PrDetails.PrNumber,
 			c,
 		)
 		if err != nil {
@@ -180,15 +175,15 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	return errors.New("potentially sensitive items found")
 }
 
-func (s *Service) createGithubComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {
-	githubComments := make([]*github.PullRequestComment, len(comments))
+func (s *Service) createGithubComments(comments []*diffreviewer.Comment) []*github.RepositoryComment {
+	githubComments := make([]*github.RepositoryComment, len(comments))
 	for i, comment := range comments {
-		githubComments[i] = &github.PullRequestComment{
+		githubComments[i] = &github.RepositoryComment{
 			CommitID: &s.PrDetails.CommitSha,
 			Body:     &comment.Body,
 			Path:     &comment.FilePath,
-			Line:     &comment.LineNumber,
-			Side:     github.String(GithubCommentRightSide),
+			Position: &comment.LineNumber,
+			//Side:     github.String(GithubCommentRightSide),
 		}
 	}
 	return githubComments

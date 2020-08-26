@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-github/v31/github"
@@ -28,10 +29,13 @@ const (
 	CircleCurrentCommitShaEnvVar = "CIRCLE_SHA1"
 	CircleBeforeCommitEnvVar     = "EVENT_BEFORE"
 	CirclePullRequestUrlEnvVar   = "CIRCLE_PULL_REQUEST"
+	CircleBranchEnvVar           = "CIRCLE_BRANCH"        // branch that triggered the workflow
+	GithubMasterBranchEnvVar     = "GITHUB_MASTER_BRANCH" // optional user input variable if master branch is not named "master"
 
 	// right side is reserved for additions and unchanged lines
 	// https://developer.github.com/v3/pulls/comments/#create-a-review-comment-for-a-pull-request
-	GithubCommentRightSide = "RIGHT"
+	GithubCommentRightSide  = "RIGHT"
+	DefaultMasterBranchName = "master"
 )
 
 // Service contains the github client that makes Github api calls
@@ -46,7 +50,7 @@ type prDetails struct {
 	CommitSha string
 	Owner     string
 	Repo      string
-	PrNumber  int
+	PrNumber  *int
 }
 
 // NewCircleCiService creates a new CircleCi service
@@ -76,12 +80,23 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, _ := os.LookupEnv(CircleBeforeCommitEnvVar)
+	workflowBranch, ok := os.LookupEnv(CircleBranchEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBranchEnvVar))
+		return nil, errors.New("missing env var for branch name")
+	}
+	var baseBranch string
+	// if master branch triggered the workflow, do not set the baseBranch
+	if workflowBranch != DefaultMasterBranchName {
+		baseBranch = DefaultMasterBranchName
+	}
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
-		BaseBranch: "master",
+		BaseBranch: baseBranch,
 		BaseSHA:    beforeCommitSha,
 		Head:       commitSha,
 	}
+
 	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
 	if !ok {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleOwnerNameEnvVar))
@@ -92,21 +107,22 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
 		return nil, errors.New("missing env var for repository name")
 	}
-	/*prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
-	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CirclePullRequestUrlEnvVar))
-		return nil, errors.New("missing env var for pull request url")
+	prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
+	var prNumber *int
+	if ok && prNumberUrl != "" {
+		prNum, err := strconv.Atoi(prNumberUrl[strings.LastIndex(prNumberUrl, "/")+1:])
+		if err != nil {
+			s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
+			return nil, errors.New("invalid format of pull request url env var")
+		}
+		prNumber = &prNum
 	}
-	prNumber, err := strconv.Atoi(prNumberUrl[strings.LastIndex(prNumberUrl, "/")+1:])
-	if err != nil {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
-		return nil, errors.New("invalid format of pull request url env var")
-	}*/
+
 	s.PrDetails = prDetails{
 		CommitSha: commitSha,
 		Owner:     owner,
 		Repo:      repo,
-		//PrNumber:  prNumber,
+		PrNumber:  prNumber,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
@@ -156,26 +172,58 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	if len(comments) == 0 {
+		s.Logger.Debug("no sensitive items found")
 		return nil
 	}
-	githubComments := s.createGithubComments(comments)
-	for _, c := range githubComments {
-		_, _, err := s.GithubClient.RepositoriesService().CreateComment(
-			context.Background(),
-			s.PrDetails.Owner,
-			s.PrDetails.Repo,
-			s.PrDetails.CommitSha, //s.PrDetails.PrNumber,
-			c,
-		)
-		if err != nil {
-			s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+	if s.PrDetails.PrNumber != nil {
+		githubComments := s.createGithubPullRequestComments(comments)
+		for _, c := range githubComments {
+			_, _, err := s.GithubClient.PullRequestsService().CreateComment(
+				context.Background(),
+				s.PrDetails.Owner,
+				s.PrDetails.Repo,
+				*s.PrDetails.PrNumber,
+				c,
+			)
+			if err != nil {
+				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+			}
+		}
+	} else {
+		githubComments := s.createGithubRepositoryComments(comments)
+		for _, c := range githubComments {
+			_, _, err := s.GithubClient.RepositoriesService().CreateComment(
+				context.Background(),
+				s.PrDetails.Owner,
+				s.PrDetails.Repo,
+				s.PrDetails.CommitSha, //s.PrDetails.PrNumber,
+				c,
+			)
+			if err != nil {
+				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+			}
 		}
 	}
+
 	// returning error to fail circleCI step
 	return errors.New("potentially sensitive items found")
 }
 
-func (s *Service) createGithubComments(comments []*diffreviewer.Comment) []*github.RepositoryComment {
+func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {
+	githubComments := make([]*github.PullRequestComment, len(comments))
+	for i, comment := range comments {
+		githubComments[i] = &github.PullRequestComment{
+			CommitID: &s.PrDetails.CommitSha,
+			Body:     &comment.Body,
+			Path:     &comment.FilePath,
+			Line:     &comment.LineNumber,
+			Side:     github.String(GithubCommentRightSide),
+		}
+	}
+	return githubComments
+}
+
+func (s *Service) createGithubRepositoryComments(comments []*diffreviewer.Comment) []*github.RepositoryComment {
 	githubComments := make([]*github.RepositoryComment, len(comments))
 	for i, comment := range comments {
 		githubComments[i] = &github.RepositoryComment{
@@ -183,7 +231,6 @@ func (s *Service) createGithubComments(comments []*diffreviewer.Comment) []*gith
 			Body:     &comment.Body,
 			Path:     &comment.FilePath,
 			Position: &comment.LineNumber,
-			//Side:     github.String(GithubCommentRightSide),
 		}
 	}
 	return githubComments

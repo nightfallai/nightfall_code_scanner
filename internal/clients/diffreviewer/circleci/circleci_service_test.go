@@ -7,12 +7,100 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )
 
+const expectedDiffResponseStr = `diff --git a/README.md b/README.md
+index c8bdd38..47a0095 100644
+--- a/README.md
++++ b/README.md
+@@ -2,4 +2,4 @@
+ 
+ Blah Blah Blah this is a test 123
+ 
+-Hello Tom Cruise 4242-4242-4242-4242
++Hello John Wick
+diff --git a/blah.txt b/blah.txt
+new file mode 100644
+index 0000000..e9ea42a
+--- /dev/null
++++ b/blah.txt
+@@ -0,0 +1 @@
++this is a text file
+diff --git a/main.go b/main.go
+index e0fe924..0405bc6 100644
+--- a/main.go
++++ b/main.go
+@@ -3,5 +3,5 @@ package TestRepo
+ import "fmt"
+ 
+ func main() {
+-	fmt.Println("This is a test")
++	fmt.Println("This is a test: My name is Tom Cruise")
++ 
+ }`
+
+var expectedFileDiff1 = &diffreviewer.FileDiff{
+	PathOld: "README.md",
+	PathNew: "README.md",
+	Hunks: []*diffreviewer.Hunk{{
+		StartLineOld:  2,
+		LineLengthOld: 4,
+		StartLineNew:  2,
+		LineLengthNew: 4,
+		Lines: []*diffreviewer.Line{{
+			Type:     diffreviewer.LineAdded,
+			Content:  "Hello John Wick",
+			LnumDiff: 5,
+			LnumOld:  0,
+			LnumNew:  5,
+		}},
+	}},
+	Extended: []string{"diff --git a/README.md b/README.md", "index c8bdd38..47a0095 100644"},
+}
+var expectedFileDiff2 = &diffreviewer.FileDiff{
+	PathOld: "/dev/null",
+	PathNew: "blah.txt",
+	Hunks: []*diffreviewer.Hunk{{
+		StartLineOld:  0,
+		LineLengthOld: 0,
+		StartLineNew:  1,
+		LineLengthNew: 1,
+		Lines: []*diffreviewer.Line{{
+			Type:     diffreviewer.LineAdded,
+			Content:  "this is a text file",
+			LnumDiff: 1,
+			LnumOld:  0,
+			LnumNew:  1,
+		}},
+	}},
+	Extended: []string{"diff --git a/blah.txt b/blah.txt", "new file mode 100644", "index 0000000..e9ea42a"},
+}
+var expectedFileDiff3 = &diffreviewer.FileDiff{
+	PathOld: "main.go",
+	PathNew: "main.go",
+	Hunks: []*diffreviewer.Hunk{{
+		StartLineOld:  3,
+		LineLengthOld: 5,
+		StartLineNew:  3,
+		LineLengthNew: 5,
+		Section:       "package TestRepo",
+		Lines: []*diffreviewer.Line{{
+			Type: diffreviewer.LineAdded,
+			Content: "	fmt.Println(\"This is a test: My name is Tom Cruise\")",
+			LnumDiff: 5,
+			LnumOld:  0,
+			LnumNew:  6,
+		}},
+	}},
+	Extended: []string{"diff --git a/main.go b/main.go", "index e0fe924..0405bc6 100644"},
+}
+var expectedFileDiffs = []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2, expectedFileDiff3}
 var circleLogger = circlelogger.NewDefaultCircleLogger()
 
 type circleCiTestSuite struct {
@@ -102,7 +190,17 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 }
 
 func (c *circleCiTestSuite) TestGetDiff() {
-	//TODO: implement
+	tp := c.initTestParams()
+	ctrl := gomock.NewController(c.T())
+	defer ctrl.Finish()
+	mockGitDiff := gitdiff_mock.NewGitDiff(ctrl)
+	tp.cs.GitDiff = mockGitDiff
+
+	mockGitDiff.EXPECT().GetDiff().Return(expectedDiffResponseStr, nil)
+
+	fileDiffs, err := tp.cs.GetDiff()
+	c.NoError(err, "unexpected error in GetDiff")
+	c.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }
 
 func (c *circleCiTestSuite) TestWriteComments() {

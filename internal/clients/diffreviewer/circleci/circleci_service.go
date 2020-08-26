@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
@@ -91,8 +93,20 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
-	//TODO: implement
-	return nil, nil
+	s.Logger.Debug("Getting diff from Github")
+	content, err := s.GitDiff.GetDiff()
+	if err != nil {
+		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
+		return nil, err
+	}
+
+	fileDiffs, err := diffutils.ParseMultiFile(strings.NewReader(content))
+	if err != nil {
+		s.Logger.Error("Error parsing the raw diff from Github")
+		return nil, err
+	}
+	fileDiffs = diffutils.FilterFileDiffs(fileDiffs)
+	return fileDiffs, nil
 }
 
 // WriteComments posts the findings as annotations to the github check

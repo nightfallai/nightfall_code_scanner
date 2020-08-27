@@ -144,12 +144,13 @@ const excludedIPRegex = "^127\\."
 
 var envVars = []string{
 	WorkspacePathEnvVar,
-	NightfallAPIKeyEnvVar,
 	CircleCurrentCommitShaEnvVar,
 	CircleBeforeCommitEnvVar,
+	CircleBranchEnvVar,
 	CircleOwnerNameEnvVar,
 	CircleRepoNameEnvVar,
-	//CirclePullRequestUrlEnvVar,
+	CirclePullRequestUrlEnvVar,
+	NightfallAPIKeyEnvVar,
 }
 
 func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {

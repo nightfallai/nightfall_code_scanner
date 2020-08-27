@@ -193,6 +193,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+				s.Logger.Error(*c.Body)
 			}
 		}
 	} else {
@@ -206,7 +207,8 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 				c,
 			)
 			if err != nil {
-				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
+				s.Logger.Error(fmt.Sprintf("Error writing comment to commit: %s", err.Error()))
+				s.Logger.Error(*c.Body)
 			}
 		}
 	}

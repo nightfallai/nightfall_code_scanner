@@ -80,15 +80,21 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, errors.New("missing env var for commit sha")
 	}
 	beforeCommitSha, _ := os.LookupEnv(CircleBeforeCommitEnvVar)
-	workflowBranch, ok := os.LookupEnv(CircleBranchEnvVar)
-	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBranchEnvVar))
-		return nil, errors.New("missing env var for branch name")
-	}
+
 	var baseBranch string
-	// if master branch triggered the workflow, do not set the baseBranch
-	if workflowBranch != DefaultMasterBranchName {
-		baseBranch = DefaultMasterBranchName
+	inputBaseBranch, ok := os.LookupEnv(GithubMasterBranchEnvVar)
+	if ok && inputBaseBranch != "" {
+		baseBranch = inputBaseBranch
+	} else {
+		workflowBranch, ok := os.LookupEnv(CircleBranchEnvVar)
+		if !ok {
+			s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBranchEnvVar))
+			return nil, errors.New("missing env var for branch name")
+		}
+		// if master branch triggered the workflow, do not set the baseBranch
+		if workflowBranch != DefaultMasterBranchName {
+			baseBranch = DefaultMasterBranchName
+		}
 	}
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
@@ -196,7 +202,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 				context.Background(),
 				s.PrDetails.Owner,
 				s.PrDetails.Repo,
-				s.PrDetails.CommitSha, //s.PrDetails.PrNumber,
+				s.PrDetails.CommitSha,
 				c,
 			)
 			if err != nil {
@@ -204,7 +210,6 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			}
 		}
 	}
-
 	// returning error to fail circleCI step
 	return errors.New("potentially sensitive items found")
 }

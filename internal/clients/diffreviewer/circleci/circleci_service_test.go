@@ -9,6 +9,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
@@ -131,6 +133,7 @@ func (c *circleCiTestSuite) initTestParams() *testParams {
 
 const commitSha = "7b46da6e4d3259b1a1c470ee468e2cb3d9733802"
 const prevCommitSha = "15bf9548d16caff9f398b5aae78a611fc60d55bd"
+const testBranch = "testBranch"
 const testOwner = "alan20854"
 const testRepo = "TestRepo"
 const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
@@ -168,10 +171,11 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(WorkspacePathEnvVar, workspacePath)
 	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
 	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
-	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+	os.Setenv(CircleBranchEnvVar, testBranch)
 	os.Setenv(CircleOwnerNameEnvVar, testOwner)
 	os.Setenv(CircleRepoNameEnvVar, testRepo)
-	//os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
@@ -195,6 +199,7 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 	os.Setenv(WorkspacePathEnvVar, workspacePath)
 	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
 	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	os.Setenv(CircleBranchEnvVar, testBranch)
 	os.Setenv(CircleOwnerNameEnvVar, testOwner)
 	os.Setenv(CircleRepoNameEnvVar, testRepo)
 
@@ -220,26 +225,120 @@ func (c *circleCiTestSuite) TestGetDiff() {
 	c.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }
 
-func (c *circleCiTestSuite) TestWriteComments() {
+func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	tp := c.initTestParams()
 	ctrl := gomock.NewController(c.T())
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
-	//mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
-	mockRepositories := githubrepositories_mock.NewGithubRepositories(tp.ctrl)
+	mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
-		Logger:       nil,
+		Logger:       circlelogger.NewDefaultCircleLogger(),
 		PrDetails: prDetails{
 			CommitSha: commitSha,
 			Owner:     testOwner,
 			Repo:      testRepo,
-			//PrNumber:  3,
+			PrNumber:  github.Int(3),
 		},
 	}
 	tp.cs = testCircleService
 
-	testComments, testGithubComments := makeTestGithubComments(
+	testComments, testGithubComments := makeTestGithubPullRequestComments(
+		"testComment",
+		"/comments.txt",
+		tp.cs.PrDetails.CommitSha,
+		60,
+	)
+	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.PullRequestComment{}
+
+	tests := []struct {
+		giveComments       []*diffreviewer.Comment
+		giveGithubComments []*github.PullRequestComment
+		wantError          error
+		desc               string
+	}{
+		{
+			giveComments:       testComments,
+			giveGithubComments: testGithubComments,
+			wantError:          errors.New("potentially sensitive items found"),
+			desc:               "single batch comments test",
+		},
+		{
+			giveComments:       emptyComments,
+			giveGithubComments: emptyGithubComments,
+			wantError:          nil,
+			desc:               "no comments test",
+		},
+	}
+
+	for _, tt := range tests {
+		for _, gc := range tt.giveGithubComments {
+			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
+			mockPullRequests.EXPECT().CreateComment(
+				context.Background(),
+				testCircleService.PrDetails.Owner,
+				testCircleService.PrDetails.Repo,
+				*testCircleService.PrDetails.PrNumber,
+				gc,
+			)
+		}
+		err := tp.cs.WriteComments(tt.giveComments)
+		if len(tt.giveComments) > 0 {
+			c.EqualError(
+				err,
+				tt.wantError.Error(),
+				fmt.Sprintf("invalid error writing comments for %s test", tt.desc),
+			)
+		} else {
+			c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
+		}
+	}
+}
+
+func makeTestGithubPullRequestComments(
+	body,
+	filePath,
+	commitSha string,
+	size int,
+) ([]*diffreviewer.Comment, []*github.PullRequestComment) {
+	comments := make([]*diffreviewer.Comment, size)
+	githubComments := make([]*github.PullRequestComment, size)
+	for i := 0; i < size; i++ {
+		comments[i] = &diffreviewer.Comment{
+			Title:      "title",
+			Body:       body,
+			FilePath:   filePath,
+			LineNumber: i + 1,
+		}
+		githubComments[i] = &github.PullRequestComment{
+			CommitID: &commitSha,
+			Body:     &body,
+			Path:     &filePath,
+			Line:     &comments[i].LineNumber,
+			Side:     github.String(GithubCommentRightSide),
+		}
+	}
+	return comments, githubComments
+}
+
+func (c *circleCiTestSuite) TestWriteRepositoryComments() {
+	tp := c.initTestParams()
+	ctrl := gomock.NewController(c.T())
+	defer ctrl.Finish()
+	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
+	mockRepositories := githubrepositories_mock.NewGithubRepositories(tp.ctrl)
+	testCircleService := &Service{
+		GithubClient: mockClient,
+		Logger:       circlelogger.NewDefaultCircleLogger(),
+		PrDetails: prDetails{
+			CommitSha: commitSha,
+			Owner:     testOwner,
+			Repo:      testRepo,
+		},
+	}
+	tp.cs = testCircleService
+
+	testComments, testGithubComments := makeTestGithubRepositoryComments(
 		"testComment",
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
@@ -291,7 +390,12 @@ func (c *circleCiTestSuite) TestWriteComments() {
 	}
 }
 
-func makeTestGithubComments(body, filePath, commitSha string, size int) ([]*diffreviewer.Comment, []*github.RepositoryComment) {
+func makeTestGithubRepositoryComments(
+	body,
+	filePath,
+	commitSha string,
+	size int,
+) ([]*diffreviewer.Comment, []*github.RepositoryComment) {
 	comments := make([]*diffreviewer.Comment, size)
 	githubComments := make([]*github.RepositoryComment, size)
 	for i := 0; i < size; i++ {

@@ -29,13 +29,14 @@ const (
 	CircleCurrentCommitShaEnvVar = "CIRCLE_SHA1"
 	CircleBeforeCommitEnvVar     = "EVENT_BEFORE"
 	CirclePullRequestUrlEnvVar   = "CIRCLE_PULL_REQUEST"
-	CircleBranchEnvVar           = "CIRCLE_BRANCH"        // branch that triggered the workflow
-	GithubMasterBranchEnvVar     = "GITHUB_MASTER_BRANCH" // optional user input variable if master branch is not named "master"
+	CircleBranchEnvVar           = "CIRCLE_BRANCH" // branch that triggered the workflow
+
+	GithubBaseBranchEnvVar = "GITHUB_BASE_BRANCH" // optional user input variable if base branch is not master
+	DefaultBaseBranchName  = "master"             // diff against base branch if workflow triggered by PR
 
 	// right side is reserved for additions and unchanged lines
 	// https://developer.github.com/v3/pulls/comments/#create-a-review-comment-for-a-pull-request
-	GithubCommentRightSide  = "RIGHT"
-	DefaultMasterBranchName = "master"
+	GithubCommentRightSide = "RIGHT"
 )
 
 // Service contains the github client that makes Github api calls
@@ -74,61 +75,21 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
 		return nil, errors.New("missing env var for workspace path")
 	}
-	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
-	if !ok || commitSha == "" {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
-		return nil, errors.New("missing env var for commit sha")
-	}
 	beforeCommitSha, _ := os.LookupEnv(CircleBeforeCommitEnvVar)
-
-	var baseBranch string
-	inputBaseBranch, ok := os.LookupEnv(GithubMasterBranchEnvVar)
-	if ok && inputBaseBranch != "" {
-		baseBranch = inputBaseBranch
-	} else {
-		workflowBranch, ok := os.LookupEnv(CircleBranchEnvVar)
-		if !ok {
-			s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBranchEnvVar))
-			return nil, errors.New("missing env var for branch name")
-		}
-		// if master branch triggered the workflow, do not set the baseBranch
-		if workflowBranch != DefaultMasterBranchName {
-			baseBranch = DefaultMasterBranchName
-		}
+	baseBranch, err := s.getBaseBranch()
+	if err != nil {
+		return nil, err
 	}
+	prDetails, err := s.getPrDetails()
+	if err != nil {
+		return nil, err
+	}
+	s.PrDetails = *prDetails
 	s.GitDiff = &gitdiff.GitDiff{
 		WorkDir:    workspacePath,
 		BaseBranch: baseBranch,
 		BaseSHA:    beforeCommitSha,
-		Head:       commitSha,
-	}
-
-	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
-	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleOwnerNameEnvVar))
-		return nil, errors.New("missing env var for repo owner")
-	}
-	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
-	if !ok {
-		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
-		return nil, errors.New("missing env var for repository name")
-	}
-	prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
-	var prNumber *int
-	if ok && prNumberUrl != "" {
-		prNum, err := strconv.Atoi(prNumberUrl[strings.LastIndex(prNumberUrl, "/")+1:])
-		if err != nil {
-			s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
-			return nil, errors.New("invalid format of pull request url env var")
-		}
-		prNumber = &prNum
-	}
-
-	s.PrDetails = prDetails{
-		CommitSha: commitSha,
-		Owner:     owner,
-		Repo:      repo,
-		PrNumber:  prNumber,
+		Head:       s.PrDetails.CommitSha,
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
@@ -154,6 +115,62 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 		FileInclusionList:          nightfallConfig.FileInclusionList,
 		FileExclusionList:          nightfallConfig.FileExclusionList,
+	}, nil
+}
+
+func (s *Service) getBaseBranch() (string, error) {
+	var baseBranch string
+	workflowBranch, ok := os.LookupEnv(CircleBranchEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleBranchEnvVar))
+		return "", errors.New("missing env var for branch name")
+	}
+	inputBaseBranch, ok := os.LookupEnv(GithubBaseBranchEnvVar)
+	if ok && inputBaseBranch != "" {
+		// don't set base branch if branch that triggered the workflow is the inputBaseBranch
+		if inputBaseBranch != workflowBranch {
+			baseBranch = inputBaseBranch
+		}
+	} else {
+		// if master branch triggered the workflow, do not set the baseBranch
+		if workflowBranch != DefaultBaseBranchName {
+			baseBranch = DefaultBaseBranchName
+		}
+	}
+	return baseBranch, nil
+}
+
+func (s *Service) getPrDetails() (*prDetails, error) {
+	commitSha, ok := os.LookupEnv(CircleCurrentCommitShaEnvVar)
+	if !ok || commitSha == "" {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleCurrentCommitShaEnvVar))
+		return nil, errors.New("missing env var for commit sha")
+	}
+	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleOwnerNameEnvVar))
+		return nil, errors.New("missing env var for repo owner")
+	}
+	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
+	if !ok {
+		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
+		return nil, errors.New("missing env var for repository name")
+	}
+	prNumberUrl, ok := os.LookupEnv(CirclePullRequestUrlEnvVar)
+	var prNumber *int
+	if ok && prNumberUrl != "" {
+		prNum, err := strconv.Atoi(prNumberUrl[strings.LastIndex(prNumberUrl, "/")+1:])
+		if err != nil {
+			s.Logger.Error(fmt.Sprintf("Environment variable %s has an invalid format: %s", CirclePullRequestUrlEnvVar, prNumberUrl))
+			return nil, errors.New("invalid format of pull request url env var")
+		}
+		prNumber = &prNum
+	}
+	return &prDetails{
+		CommitSha: commitSha,
+		Owner:     owner,
+		Repo:      repo,
+		PrNumber:  prNumber,
 	}, nil
 }
 

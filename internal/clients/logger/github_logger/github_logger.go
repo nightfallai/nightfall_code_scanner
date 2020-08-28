@@ -39,6 +39,11 @@ func (l *GithubLogger) Debug(msg string) {
 	l.log.Printf("%s%s\n", debugPrefix, msg)
 }
 
+// Info logs an info message
+func (l *GithubLogger) Info(msg string) {
+	l.log.Println(msg)
+}
+
 // Warning logs a warning message
 func (l *GithubLogger) Warning(msg string) {
 	l.log.Printf("%s%s\n", warningPrefix, msg)

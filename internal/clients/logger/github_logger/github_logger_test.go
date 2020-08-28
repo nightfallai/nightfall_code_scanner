@@ -40,6 +40,16 @@ func TestDebug(t *testing.T) {
 	}
 }
 
+func TestInfo(t *testing.T) {
+	ghLogger, buf := setupTest()
+
+	for _, tt := range tests {
+		buf.Reset()
+		ghLogger.Info(tt)
+		assert.Equal(t, fmt.Sprintf("%s\n", tt), buf.String())
+	}
+}
+
 func TestWarning(t *testing.T) {
 	ghLogger, buf := setupTest()
 

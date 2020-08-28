@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	debugPrefix   = "[INFO]"
+	debugPrefix   = "[DEBUG]"
+	infoPrefix    = "[INFO]"
 	warningPrefix = "[WARNING]"
 	errorPrefix   = "[ERROR]"
 )
@@ -34,6 +35,11 @@ func NewCircleLogger(logger *log.Logger) logger.Logger {
 // Debug logs a debug message
 func (l *CircleLogger) Debug(msg string) {
 	l.log.Printf("%s %s\n", debugPrefix, msg)
+}
+
+// Info logs an info message
+func (l *CircleLogger) Info(msg string) {
+	l.log.Printf("%s %s\n", infoPrefix, msg)
 }
 
 // Warning logs a warning message

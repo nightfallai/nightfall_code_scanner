@@ -69,7 +69,7 @@ func (s *Service) GetLogger() logger.Logger {
 
 // LoadConfig gets all config values from files or environment and creates a config
 func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error) {
-	s.Logger.Debug("Loading configuration")
+	s.Logger.Info("Loading configuration")
 	workspacePath, ok := os.LookupEnv(WorkspacePathEnvVar)
 	if !ok || workspacePath == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", WorkspacePathEnvVar))
@@ -176,7 +176,7 @@ func (s *Service) getPrDetails() (*prDetails, error) {
 
 // GetDiff retrieves the file diff from the requested pull request
 func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
-	s.Logger.Debug("Getting diff from Github")
+	s.Logger.Info("Getting diff from Github")
 	content, err := s.GitDiff.GetDiff()
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
@@ -195,7 +195,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	if len(comments) == 0 {
-		s.Logger.Debug("no sensitive items found")
+		s.Logger.Info("no sensitive items found")
 		return nil
 	}
 	if s.PrDetails.PrNumber != nil {

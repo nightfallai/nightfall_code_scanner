@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	debugPrefix   = "[DEBUG]"
+	debugPrefix   = "[INFO]"
 	warningPrefix = "[WARNING]"
 	errorPrefix   = "[ERROR]"
 )

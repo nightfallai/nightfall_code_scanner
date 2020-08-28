@@ -243,7 +243,7 @@ func (n *Client) scanContent(
 
 	// Determine findings from response and create comments
 	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)
-	logger.Debug(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
+	logger.Info(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
 }
 
@@ -260,7 +260,7 @@ func (n *Client) scanAllContent(
 	// Integer round up division
 	numRequestsRequired := (len(cts) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
 
-	logger.Debug(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
+	logger.Info(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
 	for i := 0; i < numRequestsRequired; i++ {
 		// Use max number of items to determine content to send in request
 		contentSlice := sliceListBySize(i, maxItemsForAPIReq, cts)

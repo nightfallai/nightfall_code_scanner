@@ -14,6 +14,7 @@ import (
 
 const (
 	debugPrefix   = "[DEBUG]"
+	infoPrefix    = "[INFO]"
 	warningPrefix = "[WARNING]"
 	errorPrefix   = "[ERROR]"
 )
@@ -37,6 +38,16 @@ func TestDebug(t *testing.T) {
 		buf.Reset()
 		ciLogger.Debug(tt)
 		assert.Equal(t, fmt.Sprintf("%s %s\n", debugPrefix, tt), buf.String())
+	}
+}
+
+func TestInfo(t *testing.T) {
+	ciLogger, buf := setupTest()
+
+	for _, tt := range tests {
+		buf.Reset()
+		ciLogger.Info(tt)
+		assert.Equal(t, fmt.Sprintf("%s %s\n", infoPrefix, tt), buf.String())
 	}
 }
 

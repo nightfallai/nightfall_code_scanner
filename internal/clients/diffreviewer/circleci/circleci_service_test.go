@@ -273,6 +273,14 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	}
 
 	for _, tt := range tests {
+		mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
+		mockPullRequests.EXPECT().ListComments(
+			context.Background(),
+			testCircleService.PrDetails.Owner,
+			testCircleService.PrDetails.Repo,
+			testCircleService.PrDetails.PrNumber,
+			github.PullRequestListCommentsOptions{},
+		)
 		for _, gc := range tt.giveGithubComments {
 			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
 			mockPullRequests.EXPECT().CreateComment(

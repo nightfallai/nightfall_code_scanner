@@ -199,8 +199,19 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		return nil
 	}
 	if s.PrDetails.PrNumber != nil {
+		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
+			context.Background(),
+			s.PrDetails.Owner,
+			s.PrDetails.Repo,
+			*s.PrDetails.PrNumber,
+			&github.PullRequestListCommentsOptions{},
+		)
+		if err != nil {
+			s.Logger.Error(fmt.Sprintf("Error listing existing pull request comments: %s", err.Error()))
+		}
 		githubComments := s.createGithubPullRequestComments(comments)
-		for _, c := range githubComments {
+		filteredGithubComments := s.filterExistingComments(githubComments, existingComments)
+		for _, c := range filteredGithubComments {
 			_, _, err := s.GithubClient.PullRequestsService().CreateComment(
 				context.Background(),
 				s.PrDetails.Owner,
@@ -210,7 +221,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
-				s.Logger.Error(*c.Body)
+				s.Logger.Error(*c.Body) // log comment that was not written to circle ui
 			}
 		}
 	} else {
@@ -258,4 +269,34 @@ func (s *Service) createGithubRepositoryComments(comments []*diffreviewer.Commen
 		}
 	}
 	return githubComments
+}
+
+type prComment struct {
+	Body string
+	Path string
+	Line int
+}
+
+func (s *Service) filterExistingComments(comments []*github.PullRequestComment, existingComments []*github.PullRequestComment) []*github.PullRequestComment {
+	existingCommentsMap := make(map[prComment]bool, len(existingComments))
+	for _, ec := range existingComments {
+		comment := prComment{
+			Body: *ec.Body,
+			Path: *ec.Path,
+			Line: *ec.Line,
+		}
+		existingCommentsMap[comment] = true
+	}
+	filteredComments := []*github.PullRequestComment{}
+	for _, c := range comments {
+		comment := prComment{
+			Body: *c.Body,
+			Path: *c.Path,
+			Line: *c.Line,
+		}
+		if _, ok := existingCommentsMap[comment]; !ok {
+			filteredComments = append(filteredComments, c)
+		}
+	}
+	return filteredComments
 }

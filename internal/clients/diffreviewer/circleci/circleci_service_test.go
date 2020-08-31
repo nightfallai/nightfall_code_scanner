@@ -445,19 +445,26 @@ func (c *circleCiTestSuite) TestFilterExistingComments() {
 			Line: &lineNums[2],
 		},
 	}
-	newComment := &github.PullRequestComment{
+	newComment1 := &github.PullRequestComment{
 		Body: &bodyStrs[0],
 		Path: &pathStrs[0],
 		Line: &lineNums[3],
+	}
+	newComment2 := &github.PullRequestComment{
+		Body: &bodyStrs[1],
+		Path: &pathStrs[1],
+		Line: &lineNums[2],
 	}
 	comments := []*github.PullRequestComment{
 		existingComments[0],
 		existingComments[1],
 		existingComments[2],
-		newComment,
+		newComment1,
+		newComment2,
 	}
 	expectedFilteredComments := []*github.PullRequestComment{
-		newComment,
+		newComment1,
+		newComment2,
 	}
 	filteredComments := filterExistingComments(comments, existingComments)
 	c.Equal(expectedFilteredComments, filteredComments, "invalid filtered comments value")

@@ -287,7 +287,7 @@ func filterExistingComments(comments []*github.PullRequestComment, existingComme
 		}
 		existingCommentsMap[comment] = true
 	}
-	filteredComments := []*github.PullRequestComment{}
+	filteredComments := make([]*github.PullRequestComment, 0, len(comments))
 	for _, c := range comments {
 		comment := prComment{
 			Body: *c.Body,

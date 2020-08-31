@@ -210,7 +210,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			s.Logger.Error(fmt.Sprintf("Error listing existing pull request comments: %s", err.Error()))
 		}
 		githubComments := s.createGithubPullRequestComments(comments)
-		filteredGithubComments := s.filterExistingComments(githubComments, existingComments)
+		filteredGithubComments := filterExistingComments(githubComments, existingComments)
 		for _, c := range filteredGithubComments {
 			_, _, err := s.GithubClient.PullRequestsService().CreateComment(
 				context.Background(),
@@ -277,7 +277,7 @@ type prComment struct {
 	Line int
 }
 
-func (s *Service) filterExistingComments(comments []*github.PullRequestComment, existingComments []*github.PullRequestComment) []*github.PullRequestComment {
+func filterExistingComments(comments []*github.PullRequestComment, existingComments []*github.PullRequestComment) []*github.PullRequestComment {
 	existingCommentsMap := make(map[prComment]bool, len(existingComments))
 	for _, ec := range existingComments {
 		comment := prComment{

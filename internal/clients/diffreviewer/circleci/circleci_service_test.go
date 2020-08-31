@@ -278,8 +278,8 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 			context.Background(),
 			testCircleService.PrDetails.Owner,
 			testCircleService.PrDetails.Repo,
-			testCircleService.PrDetails.PrNumber,
-			github.PullRequestListCommentsOptions{},
+			*testCircleService.PrDetails.PrNumber,
+			&github.PullRequestListCommentsOptions{},
 		)
 		for _, gc := range tt.giveGithubComments {
 			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
@@ -422,6 +422,45 @@ func makeTestGithubRepositoryComments(
 		}
 	}
 	return comments, githubComments
+}
+
+func (c *circleCiTestSuite) TestFilterExistingComments() {
+	bodyStrs := []string{"a", "b", "c"}
+	pathStrs := []string{"a.txt", "b.txt", "c.txt"}
+	lineNums := []int{1, 2, 3, 6}
+	existingComments := []*github.PullRequestComment{
+		{
+			Body: &bodyStrs[0],
+			Path: &pathStrs[0],
+			Line: &lineNums[0],
+		},
+		{
+			Body: &bodyStrs[1],
+			Path: &pathStrs[1],
+			Line: &lineNums[1],
+		},
+		{
+			Body: &bodyStrs[2],
+			Path: &pathStrs[2],
+			Line: &lineNums[2],
+		},
+	}
+	newComment := &github.PullRequestComment{
+		Body: &bodyStrs[0],
+		Path: &pathStrs[0],
+		Line: &lineNums[3],
+	}
+	comments := []*github.PullRequestComment{
+		existingComments[0],
+		existingComments[1],
+		existingComments[2],
+		newComment,
+	}
+	expectedFilteredComments := []*github.PullRequestComment{
+		newComment,
+	}
+	filteredComments := filterExistingComments(comments, existingComments)
+	c.Equal(expectedFilteredComments, filteredComments, "invalid filtered comments value")
 }
 
 func TestCircleCiClient(t *testing.T) {

@@ -147,12 +147,12 @@ func (s *Service) getPrDetails() (*prDetails, error) {
 		return nil, errors.New("missing env var for commit sha")
 	}
 	owner, ok := os.LookupEnv(CircleOwnerNameEnvVar)
-	if !ok {
+	if !ok || owner == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleOwnerNameEnvVar))
 		return nil, errors.New("missing env var for repo owner")
 	}
 	repo, ok := os.LookupEnv(CircleRepoNameEnvVar)
-	if !ok {
+	if !ok || repo == "" {
 		s.Logger.Error(fmt.Sprintf("Environment variable %s cannot be found", CircleRepoNameEnvVar))
 		return nil, errors.New("missing env var for repository name")
 	}

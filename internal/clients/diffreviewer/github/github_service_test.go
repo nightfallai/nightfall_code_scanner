@@ -376,7 +376,7 @@ func (g *githubTestSuite) TestWriteComments() {
 			).Return(expectedLastUpdatedCheckRun, nil, nil)
 		}
 		err := tp.gc.WriteComments(tt.giveComments)
-		g.NoError(err, fmt.Sprintf("Error getting actions dump for %s test", tt.desc))
+		g.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
 	}
 }
 

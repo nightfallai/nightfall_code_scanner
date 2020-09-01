@@ -24,7 +24,17 @@ func NewAuthenticatedClient(token string) *Client {
 	return &Client{githubClient}
 }
 
-// ChecksService gets the github clients checks service
+// ChecksService gets the github client's checks service
 func (c *Client) ChecksService() githubintf.GithubChecks {
 	return c.Client.Checks
+}
+
+// PullRequestsService gets the github client's pull requests service
+func (c *Client) PullRequestsService() githubintf.GithubPullRequests {
+	return c.Client.PullRequests
+}
+
+// RepositoriesService gets the github client's repositories service
+func (c *Client) RepositoriesService() githubintf.GithubRepositories {
+	return c.Client.Repositories
 }

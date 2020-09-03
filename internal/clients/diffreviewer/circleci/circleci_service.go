@@ -65,7 +65,8 @@ func NewAuthenticatedCircleCiService(token string) diffreviewer.DiffReviewer {
 // NewUnauthenticatedCircleCiService creates a new CircleCi service
 func NewUnauthenticatedCircleCiService() diffreviewer.DiffReviewer {
 	return &Service{
-		Logger: circlelogger.NewDefaultCircleLogger(),
+		GithubClient: nil,
+		Logger:       circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
@@ -199,27 +200,16 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	return fileDiffs, nil
 }
 
-func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {
-	for _, comment := range comments {
-		s.Logger.Error(fmt.Sprintf(
-			"%s at %s on line %d",
-			comment.Body,
-			comment.FilePath,
-			comment.LineNumber,
-		))
-	}
-}
-
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	if len(comments) == 0 {
 		s.Logger.Info("no sensitive items found")
 		return nil
 	}
-	s.logCommentsToCircle(comments)
+	/*s.logCommentsToCircle(comments)
 	if s.GithubClient == nil {
 		return nil
-	}
+	}*/
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
 			context.Background(),
@@ -262,6 +252,17 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	}
 	// returning error to fail circleCI step
 	return errors.New("potentially sensitive items found")
+}
+
+func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {
+	for _, comment := range comments {
+		s.Logger.Error(fmt.Sprintf(
+			"%s at %s on line %d",
+			comment.Body,
+			comment.FilePath,
+			comment.LineNumber,
+		))
+	}
 }
 
 func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {

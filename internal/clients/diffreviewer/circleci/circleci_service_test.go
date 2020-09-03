@@ -8,17 +8,15 @@ import (
 	"path"
 	"testing"
 
-	logger_mock "github.com/nightfallai/nightfall_code_scanner/internal/mocks/logger"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubrepositories_mock"
+	logger_mock "github.com/nightfallai/nightfall_code_scanner/internal/mocks/logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"

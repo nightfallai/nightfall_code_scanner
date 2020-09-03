@@ -54,11 +54,18 @@ type prDetails struct {
 	PrNumber  *int
 }
 
-// NewCircleCiService creates a new CircleCi service
-func NewCircleCiService(token string) diffreviewer.DiffReviewer {
+// NewAuthenticatedCircleCiService creates a new CircleCi service with an authenticated Github client
+func NewAuthenticatedCircleCiService(token string) diffreviewer.DiffReviewer {
 	return &Service{
 		GithubClient: gc.NewAuthenticatedClient(token),
 		Logger:       circlelogger.NewDefaultCircleLogger(),
+	}
+}
+
+// NewUnauthenticatedCircleCiService creates a new CircleCi service
+func NewUnauthenticatedCircleCiService() diffreviewer.DiffReviewer {
+	return &Service{
+		Logger: circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
@@ -192,10 +199,25 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	return fileDiffs, nil
 }
 
+func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {
+	for _, comment := range comments {
+		s.Logger.Error(fmt.Sprintf(
+			"%s at %s on line %d",
+			comment.Body,
+			comment.FilePath,
+			comment.LineNumber,
+		))
+	}
+}
+
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	if len(comments) == 0 {
 		s.Logger.Info("no sensitive items found")
+		return nil
+	}
+	s.logCommentsToCircle(comments)
+	if s.GithubClient == nil {
 		return nil
 	}
 	if s.PrDetails.PrNumber != nil {
@@ -221,7 +243,6 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
-				s.Logger.Error(*c.Body) // log comment that was not written to circle ui
 			}
 		}
 	} else {
@@ -236,7 +257,6 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to commit: %s", err.Error()))
-				s.Logger.Error(*c.Body)
 			}
 		}
 	}

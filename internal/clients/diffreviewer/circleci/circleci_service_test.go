@@ -226,6 +226,51 @@ func (c *circleCiTestSuite) TestGetDiff() {
 	c.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }
 
+func (c *circleCiTestSuite) TestWriteCircleComments() {
+	tp := c.initTestParams()
+	ctrl := gomock.NewController(c.T())
+	defer ctrl.Finish()
+	testCircleService := &Service{
+		Logger: circlelogger.NewDefaultCircleLogger(),
+		PrDetails: prDetails{
+			CommitSha: commitSha,
+			Owner:     testOwner,
+			Repo:      testRepo,
+		},
+	}
+	tp.cs = testCircleService
+
+	testComments, _ := makeTestGithubRepositoryComments(
+		"testComment",
+		"/comments.txt",
+		tp.cs.PrDetails.CommitSha,
+		60,
+	)
+	emptyComments := []*diffreviewer.Comment{}
+
+	tests := []struct {
+		giveComments []*diffreviewer.Comment
+		wantError    error
+		desc         string
+	}{
+		{
+			giveComments: testComments,
+			wantError:    nil,
+			desc:         "single batch comments test",
+		},
+		{
+			giveComments: emptyComments,
+			wantError:    nil,
+			desc:         "no comments test",
+		},
+	}
+
+	for _, tt := range tests {
+		err := tp.cs.WriteComments(tt.giveComments)
+		c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
+	}
+}
+
 func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	tp := c.initTestParams()
 	ctrl := gomock.NewController(c.T())

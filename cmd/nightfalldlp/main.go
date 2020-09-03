@@ -91,9 +91,9 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 	case usingCircleCi():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok {
-			return nil, fmt.Errorf("could not find required %s environment variable", githubTokenEnvVar)
+			return circleci.NewUnauthenticatedCircleCiService(), nil
 		}
-		return circleci.NewCircleCiService(githubToken), nil
+		return circleci.NewAuthenticatedCircleCiService(githubToken), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

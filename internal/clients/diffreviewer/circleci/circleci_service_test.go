@@ -444,6 +444,11 @@ func (c *circleCiTestSuite) TestFilterExistingComments() {
 			Path: &pathStrs[2],
 			Line: &lineNums[2],
 		},
+		{
+			Body: &bodyStrs[0],
+			Path: &pathStrs[0],
+			Line: nil,
+		},
 	}
 	newComment1 := &github.PullRequestComment{
 		Body: &bodyStrs[0],

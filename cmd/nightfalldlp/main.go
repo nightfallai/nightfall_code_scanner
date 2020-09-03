@@ -91,11 +91,11 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 	case usingCircleCi():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok || githubToken == "" {
-			circleService := circleci.NewUnauthenticatedCircleCiService()
+			circleService := circleci.NewCircleCiService()
 			circleService.GetLogger().Info("Github Token not found - findings will only be posted to CircleCI UI")
 			return circleService, nil
 		}
-		return circleci.NewAuthenticatedCircleCiService(githubToken), nil
+		return circleci.NewCircleCiServiceWithGithubComments(githubToken), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

@@ -39,6 +39,8 @@ const (
 	GithubCommentRightSide = "RIGHT"
 )
 
+var errSensitiveItemsFound = errors.New("potentially sensitive items found")
+
 // Service contains the github client that makes Github api calls
 type Service struct {
 	GithubClient githubintf.GithubClient
@@ -54,18 +56,18 @@ type prDetails struct {
 	PrNumber  *int
 }
 
-// NewAuthenticatedCircleCiService creates a new CircleCi service with an authenticated Github client
-func NewAuthenticatedCircleCiService(token string) diffreviewer.DiffReviewer {
+// NewCircleCiService creates a new CircleCi service
+func NewCircleCiService() diffreviewer.DiffReviewer {
 	return &Service{
-		GithubClient: gc.NewAuthenticatedClient(token),
-		Logger:       circlelogger.NewDefaultCircleLogger(),
+		Logger: circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
-// NewUnauthenticatedCircleCiService creates a new CircleCi service
-func NewUnauthenticatedCircleCiService() diffreviewer.DiffReviewer {
+// NewCircleCiServiceWithGithubComments creates a new CircleCi service with an authenticated Github client
+func NewCircleCiServiceWithGithubComments(token string) diffreviewer.DiffReviewer {
 	return &Service{
-		Logger: circlelogger.NewDefaultCircleLogger(),
+		GithubClient: gc.NewAuthenticatedClient(token),
+		Logger:       circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
@@ -207,7 +209,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	}
 	s.logCommentsToCircle(comments)
 	if s.GithubClient == nil {
-		return nil
+		return errSensitiveItemsFound
 	}
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
@@ -250,7 +252,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		}
 	}
 	// returning error to fail circleCI step
-	return errors.New("potentially sensitive items found")
+	return errSensitiveItemsFound
 }
 
 func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {

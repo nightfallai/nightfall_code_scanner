@@ -301,18 +301,18 @@ func filterExistingComments(comments []*github.PullRequestComment, existingComme
 	existingCommentsMap := make(map[prComment]bool, len(existingComments))
 	for _, ec := range existingComments {
 		comment := prComment{
-			Body: *ec.Body,
-			Path: *ec.Path,
-			Line: *ec.Line,
+			Body: ec.GetBody(),
+			Path: ec.GetPath(),
+			Line: ec.GetLine(),
 		}
 		existingCommentsMap[comment] = true
 	}
 	filteredComments := make([]*github.PullRequestComment, 0, len(comments))
 	for _, c := range comments {
 		comment := prComment{
-			Body: *c.Body,
-			Path: *c.Path,
-			Line: *c.Line,
+			Body: c.GetBody(),
+			Path: c.GetPath(),
+			Line: c.GetLine(),
 		}
 		if _, ok := existingCommentsMap[comment]; !ok {
 			filteredComments = append(filteredComments, c)

@@ -226,7 +226,6 @@ func (c *circleCiTestSuite) TestGetDiff() {
 	c.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }
 
-/*
 func (c *circleCiTestSuite) TestWriteCircleComments() {
 	tp := c.initTestParams()
 	ctrl := gomock.NewController(c.T())
@@ -270,7 +269,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		err := tp.cs.WriteComments(tt.giveComments)
 		c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
 	}
-}*/
+}
 
 func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	tp := c.initTestParams()

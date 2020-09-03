@@ -65,8 +65,7 @@ func NewAuthenticatedCircleCiService(token string) diffreviewer.DiffReviewer {
 // NewUnauthenticatedCircleCiService creates a new CircleCi service
 func NewUnauthenticatedCircleCiService() diffreviewer.DiffReviewer {
 	return &Service{
-		GithubClient: nil,
-		Logger:       circlelogger.NewDefaultCircleLogger(),
+		Logger: circlelogger.NewDefaultCircleLogger(),
 	}
 }
 
@@ -206,10 +205,10 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		s.Logger.Info("no sensitive items found")
 		return nil
 	}
-	/*s.logCommentsToCircle(comments)
+	s.logCommentsToCircle(comments)
 	if s.GithubClient == nil {
 		return nil
-	}*/
+	}
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
 			context.Background(),

@@ -2,14 +2,11 @@ package circleci
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http/httptest"
 	"os"
 	"path"
 	"testing"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
@@ -17,7 +14,9 @@ import (
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
+	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubrepositories_mock"
+	logger_mock "github.com/nightfallai/nightfall_code_scanner/internal/mocks/logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
@@ -226,15 +225,77 @@ func (c *circleCiTestSuite) TestGetDiff() {
 	c.Equal(expectedFileDiffs, fileDiffs, "invalid fileDiff return value")
 }
 
+func (c *circleCiTestSuite) TestWriteCircleComments() {
+	tp := c.initTestParams()
+	ctrl := gomock.NewController(c.T())
+	defer ctrl.Finish()
+	mockLogger := logger_mock.NewLogger(ctrl)
+	testCircleService := &Service{
+		Logger: mockLogger,
+		PrDetails: prDetails{
+			CommitSha: commitSha,
+			Owner:     testOwner,
+			Repo:      testRepo,
+		},
+	}
+	tp.cs = testCircleService
+
+	testComments, _ := makeTestGithubRepositoryComments(
+		"testComment",
+		"/comments.txt",
+		tp.cs.PrDetails.CommitSha,
+		60,
+	)
+	emptyComments := []*diffreviewer.Comment{}
+
+	tests := []struct {
+		giveComments []*diffreviewer.Comment
+		wantErr      error
+		desc         string
+	}{
+		{
+			giveComments: testComments,
+			wantErr:      errSensitiveItemsFound,
+			desc:         "single batch comments test",
+		},
+		{
+			giveComments: emptyComments,
+			wantErr:      nil,
+			desc:         "no comments test",
+		},
+	}
+
+	for _, tt := range tests {
+		if len(tt.giveComments) == 0 {
+			mockLogger.EXPECT().Info("no sensitive items found")
+		}
+		for _, comment := range tt.giveComments {
+			mockLogger.EXPECT().Error(fmt.Sprintf(
+				"%s at %s on line %d",
+				comment.Body,
+				comment.FilePath,
+				comment.LineNumber,
+			))
+		}
+		err := tp.cs.WriteComments(tt.giveComments)
+		if len(tt.giveComments) == 0 {
+			c.NoError(err, fmt.Sprintf("unexpected error writing comments for %s test", tt.desc))
+		} else {
+			c.EqualError(err, tt.wantErr.Error(), fmt.Sprintf("invalid error writing comments for %s test", tt.desc))
+		}
+	}
+}
+
 func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	tp := c.initTestParams()
 	ctrl := gomock.NewController(c.T())
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
 	mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
+	mockLogger := logger_mock.NewLogger(ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
-		Logger:       circlelogger.NewDefaultCircleLogger(),
+		Logger:       mockLogger,
 		PrDetails: prDetails{
 			CommitSha: commitSha,
 			Owner:     testOwner,
@@ -261,7 +322,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 		{
 			giveComments:       testComments,
 			giveGithubComments: testGithubComments,
-			wantError:          errors.New("potentially sensitive items found"),
+			wantError:          errSensitiveItemsFound,
 			desc:               "single batch comments test",
 		},
 		{
@@ -281,6 +342,9 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 			*testCircleService.PrDetails.PrNumber,
 			&github.PullRequestListCommentsOptions{},
 		)
+		if len(tt.giveComments) == 0 {
+			mockLogger.EXPECT().Info("no sensitive items found")
+		}
 		for _, gc := range tt.giveGithubComments {
 			mockClient.EXPECT().PullRequestsService().Return(mockPullRequests)
 			mockPullRequests.EXPECT().CreateComment(
@@ -290,6 +354,12 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 				*testCircleService.PrDetails.PrNumber,
 				gc,
 			)
+			mockLogger.EXPECT().Error(fmt.Sprintf(
+				"%s at %s on line %d",
+				gc.GetBody(),
+				gc.GetPath(),
+				gc.GetLine(),
+			))
 		}
 		err := tp.cs.WriteComments(tt.giveComments)
 		if len(tt.giveComments) > 0 {
@@ -336,9 +406,10 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
 	mockRepositories := githubrepositories_mock.NewGithubRepositories(tp.ctrl)
+	mockLogger := logger_mock.NewLogger(ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
-		Logger:       circlelogger.NewDefaultCircleLogger(),
+		Logger:       mockLogger,
 		PrDetails: prDetails{
 			CommitSha: commitSha,
 			Owner:     testOwner,
@@ -364,7 +435,7 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 		{
 			giveComments:       testComments,
 			giveGithubComments: testGithubComments,
-			wantError:          errors.New("potentially sensitive items found"),
+			wantError:          errSensitiveItemsFound,
 			desc:               "single batch comments test",
 		},
 		{
@@ -376,7 +447,10 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	}
 
 	for _, tt := range tests {
-		for _, gc := range tt.giveGithubComments {
+		if len(tt.giveGithubComments) == 0 {
+			mockLogger.EXPECT().Info("no sensitive items found")
+		}
+		for index, gc := range tt.giveGithubComments {
 			mockClient.EXPECT().RepositoriesService().Return(mockRepositories)
 			mockRepositories.EXPECT().CreateComment(
 				context.Background(),
@@ -385,6 +459,12 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 				testCircleService.PrDetails.CommitSha,
 				gc,
 			)
+			mockLogger.EXPECT().Error(fmt.Sprintf(
+				"%s at %s on line %d",
+				gc.GetBody(),
+				gc.GetPath(),
+				tt.giveComments[index].LineNumber,
+			))
 		}
 		err := tp.cs.WriteComments(tt.giveComments)
 		if len(tt.giveComments) > 0 {

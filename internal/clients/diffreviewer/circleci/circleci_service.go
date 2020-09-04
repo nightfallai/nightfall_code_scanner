@@ -39,6 +39,8 @@ const (
 	GithubCommentRightSide = "RIGHT"
 )
 
+var errSensitiveItemsFound = errors.New("potentially sensitive items found")
+
 // Service contains the github client that makes Github api calls
 type Service struct {
 	GithubClient githubintf.GithubClient
@@ -55,7 +57,14 @@ type prDetails struct {
 }
 
 // NewCircleCiService creates a new CircleCi service
-func NewCircleCiService(token string) diffreviewer.DiffReviewer {
+func NewCircleCiService() diffreviewer.DiffReviewer {
+	return &Service{
+		Logger: circlelogger.NewDefaultCircleLogger(),
+	}
+}
+
+// NewCircleCiServiceWithGithubComments creates a new CircleCi service with an authenticated Github client
+func NewCircleCiServiceWithGithubComments(token string) diffreviewer.DiffReviewer {
 	return &Service{
 		GithubClient: gc.NewAuthenticatedClient(token),
 		Logger:       circlelogger.NewDefaultCircleLogger(),
@@ -198,6 +207,10 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		s.Logger.Info("no sensitive items found")
 		return nil
 	}
+	s.logCommentsToCircle(comments)
+	if s.GithubClient == nil {
+		return errSensitiveItemsFound
+	}
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
 			context.Background(),
@@ -221,7 +234,6 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to pull request: %s", err.Error()))
-				s.Logger.Error(*c.Body) // log comment that was not written to circle ui
 			}
 		}
 	} else {
@@ -236,12 +248,22 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			)
 			if err != nil {
 				s.Logger.Error(fmt.Sprintf("Error writing comment to commit: %s", err.Error()))
-				s.Logger.Error(*c.Body)
 			}
 		}
 	}
 	// returning error to fail circleCI step
-	return errors.New("potentially sensitive items found")
+	return errSensitiveItemsFound
+}
+
+func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {
+	for _, comment := range comments {
+		s.Logger.Error(fmt.Sprintf(
+			"%s at %s on line %d",
+			comment.Body,
+			comment.FilePath,
+			comment.LineNumber,
+		))
+	}
 }
 
 func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {

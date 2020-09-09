@@ -9,12 +9,9 @@ import (
 	"os"
 	"strings"
 
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
-
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
-
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
@@ -22,6 +19,7 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 type Level string

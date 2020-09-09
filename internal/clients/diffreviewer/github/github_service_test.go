@@ -9,13 +9,12 @@ import (
 	"path"
 	"testing"
 
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
-
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	githubservice "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"

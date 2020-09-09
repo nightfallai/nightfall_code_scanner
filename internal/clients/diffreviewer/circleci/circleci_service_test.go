@@ -12,7 +12,6 @@ import (
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
@@ -233,11 +232,11 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
 		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
-		NightfallMaxNumberRoutines: nightfall.MaxConcurrentRoutinesCap,
+		NightfallMaxNumberRoutines: 20,
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)
-	c.NoError(err, "Error in LoadConfig")
+	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 

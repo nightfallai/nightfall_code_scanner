@@ -14,7 +14,6 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	githubservice "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
@@ -216,7 +215,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
 		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
-		NightfallMaxNumberRoutines: nightfall.MaxConcurrentRoutinesCap,
+		NightfallMaxNumberRoutines: 20,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

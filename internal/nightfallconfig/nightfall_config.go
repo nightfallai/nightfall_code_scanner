@@ -11,6 +11,8 @@ import (
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
+// maximum number of routines (scan request + response) running at once
+const MaxConcurrentRoutinesCap = 50
 const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
 const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)"
@@ -68,7 +70,7 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 		logger.Info(defaultDetectorsInfoMessage)
 		return defaultNightfallConfig
 	}
-	if nightfallConfig.MaxNumberRoutines <= 0 {
+	if nightfallConfig.MaxNumberRoutines > MaxConcurrentRoutinesCap || nightfallConfig.MaxNumberRoutines <= 0 {
 		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines
 	}
 	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)

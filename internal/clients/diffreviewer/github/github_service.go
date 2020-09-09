@@ -19,7 +19,6 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 type Level string
@@ -45,9 +44,6 @@ var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
-
-var apiKeyDetector = nightfallAPI.API_KEY
-var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
 
 type ownerLogin struct {
 	Login string `json:"login"`

@@ -19,7 +19,6 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 const (
@@ -41,8 +40,6 @@ const (
 )
 
 var errSensitiveItemsFound = errors.New("potentially sensitive items found")
-var apiKeyDetector = nightfallAPI.API_KEY
-var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
 
 // Service contains the github client that makes Github api calls
 type Service struct {

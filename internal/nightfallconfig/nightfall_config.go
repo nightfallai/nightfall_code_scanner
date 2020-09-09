@@ -8,12 +8,12 @@ import (
 	"path"
 
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
-
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
 const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
+const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)"
 
 var apiKeyDetector = nightfallAPI.API_KEY
 var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
@@ -46,26 +46,26 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error opening nightfall config: %s", err.Error()))
-		logger.Info("Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)")
+		logger.Info(defaultDetectorsInfoMessage)
 		return defaultNightfallConfig
 	}
 	defer nightfallConfigFile.Close()
 	byteValue, err := ioutil.ReadAll(nightfallConfigFile)
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error reading nightfall config: %s", err.Error()))
-		logger.Info("Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)")
+		logger.Info(defaultDetectorsInfoMessage)
 		return defaultNightfallConfig
 	}
 	var nightfallConfig NightfallConfigFileStructure
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
 		logger.Warning("Invalid nightfall config")
-		logger.Info("Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)")
+		logger.Info(defaultDetectorsInfoMessage)
 		return defaultNightfallConfig
 	}
 	if len(nightfallConfig.Detectors) < 1 {
 		logger.Warning("Nightfall config requires at least one detector")
-		logger.Info("Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)")
+		logger.Info(defaultDetectorsInfoMessage)
 		return defaultNightfallConfig
 	}
 	if nightfallConfig.MaxNumberRoutines <= 0 {

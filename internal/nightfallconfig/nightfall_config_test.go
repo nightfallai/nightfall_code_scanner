@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
-
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/assert"

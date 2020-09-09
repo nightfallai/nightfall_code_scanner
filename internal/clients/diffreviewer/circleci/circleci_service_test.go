@@ -188,7 +188,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
-	c.NoError(err, "Error in LoadConfig")
+	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 

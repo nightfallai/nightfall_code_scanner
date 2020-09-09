@@ -190,9 +190,9 @@ func (g *githubTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.gc.LoadConfig(testConfigFileName)
-	g.NoError(err, "Error in LoadConfig")
+	g.NoError(err, "Unexpected error in LoadConfig")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
-	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
 }
 
 func (g *githubTestSuite) TestLoadEmptyConfig() {
@@ -225,9 +225,9 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	}
 
 	nightfallConfig, err := tp.gc.LoadConfig(testEmptyConfigFileName)
-	g.NoError(err, "Error in LoadConfig")
+	g.NoError(err, "Unexpected error in LoadConfig")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
-	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
 }
 
 func (g *githubTestSuite) TestGetDiff() {

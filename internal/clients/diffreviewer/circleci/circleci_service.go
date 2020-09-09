@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
@@ -40,6 +42,8 @@ const (
 )
 
 var errSensitiveItemsFound = errors.New("potentially sensitive items found")
+var apiKeyDetector = nightfallAPI.API_KEY
+var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
 
 // Service contains the github client that makes Github api calls
 type Service struct {
@@ -102,8 +106,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
-		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
-		return nil, err
+		s.Logger.Warning("Issue retrieving valid Nightfall config file, using default detectors instead. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
+		nightfallConfig = &nightfallconfig.NightfallConfigFileStructure{
+			Detectors: []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
+		}
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok || nightfallAPIKey == "" {
@@ -112,7 +118,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 
 	var maxNumberRoutines int
-	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
+	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap && nightfallConfig.MaxNumberRoutines > 0 {
 		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
 	} else {
 		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap

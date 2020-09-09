@@ -9,6 +9,8 @@ import (
 	"os"
 	"strings"
 
+	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
+
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 
 	"github.com/google/go-github/v31/github"
@@ -45,6 +47,9 @@ var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
+
+var apiKeyDetector = nightfallAPI.API_KEY
+var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -191,8 +196,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
 	if err != nil {
-		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
-		return nil, err
+		s.Logger.Warning("Issue retrieving valid Nightfall config file, using default detectors instead. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
+		nightfallConfig = &nightfallconfig.NightfallConfigFileStructure{
+			Detectors: []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
+		}
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok || nightfallAPIKey == "" {
@@ -200,7 +207,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		return nil, errors.New("Missing env var for nightfall api key")
 	}
 	var maxNumberRoutines int
-	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
+	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap && nightfallConfig.MaxNumberRoutines > 0 {
 		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
 	} else {
 		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap

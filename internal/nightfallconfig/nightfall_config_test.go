@@ -43,7 +43,7 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
 		Detectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
-		MaxNumberRoutines: 20,
+		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 	actualConfig := nightfallconfig.GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")

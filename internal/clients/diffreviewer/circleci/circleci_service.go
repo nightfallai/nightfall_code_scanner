@@ -111,10 +111,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 
 	var maxNumberRoutines int
-	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap && nightfallConfig.MaxNumberRoutines > 0 {
+	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
 		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
 	} else {
-		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap
+		maxNumberRoutines = nightfallconfig.DefaultMaxNumberRoutines
 	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:            nightfallAPIKey,

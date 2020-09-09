@@ -12,7 +12,7 @@ import (
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
-const defaultMaxNumberRoutines = 20
+const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
 
 var apiKeyDetector = nightfallAPI.API_KEY
@@ -41,7 +41,7 @@ type Config struct {
 func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) *NightfallConfigFileStructure {
 	defaultNightfallConfig := &NightfallConfigFileStructure{
 		Detectors:         []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
-		MaxNumberRoutines: defaultMaxNumberRoutines,
+		MaxNumberRoutines: DefaultMaxNumberRoutines,
 	}
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))
 	if err != nil {
@@ -68,8 +68,8 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 		logger.Info("Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)")
 		return defaultNightfallConfig
 	}
-	if nightfallConfig.MaxNumberRoutines == 0 {
-		nightfallConfig.MaxNumberRoutines = defaultMaxNumberRoutines
+	if nightfallConfig.MaxNumberRoutines <= 0 {
+		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines
 	}
 	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)
 	return &nightfallConfig

@@ -215,7 +215,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
 		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
-		NightfallMaxNumberRoutines: 20,
+		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{
 		Owner:       owner,

@@ -232,7 +232,7 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
 		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
-		NightfallMaxNumberRoutines: 20,
+		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)

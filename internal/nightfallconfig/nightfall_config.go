@@ -62,13 +62,9 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	var nightfallConfig NightfallConfigFileStructure
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
-		logger.Warning("Invalid nightfall config")
-		logger.Info(defaultDetectorsInfoMessage)
 		return nil, err
 	}
 	if len(nightfallConfig.Detectors) < 1 {
-		logger.Warning("Nightfall config requires at least one detector")
-		logger.Info(defaultDetectorsInfoMessage)
 		return nil, errors.New("Nightfall config file is missing detectors")
 	}
 	if nightfallConfig.MaxNumberRoutines <= 0 {

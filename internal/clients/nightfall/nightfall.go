@@ -31,8 +31,6 @@ const (
 	maxItemsForAPIReq = 479
 	// timeout for the total time spent sending scan requests and receiving responses for a diff
 	defaultTimeout = time.Minute * 20
-	// maximum number of routines (scan request + response) running at once
-	MaxConcurrentRoutinesCap = 50
 	// maximum attempts to Nightfall API upon receiving 429 Too Many Requests before failing
 	MaxScanAttempts = 5
 	// initial delay before re-attempting scan request

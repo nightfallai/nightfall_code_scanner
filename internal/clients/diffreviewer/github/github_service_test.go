@@ -138,6 +138,7 @@ func (g *githubTestSuite) initTestParams() *testParams {
 }
 
 const testConfigFileName = "nightfall_test_config.json"
+const testEmptyConfigFileName = "nightfall_test_empty_config.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
@@ -189,9 +190,44 @@ func (g *githubTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.gc.LoadConfig(testConfigFileName)
-	g.NoError(err, "Error in LoadConfig")
+	g.NoError(err, "Unexpected error in LoadConfig")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
-	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
+}
+
+func (g *githubTestSuite) TestLoadEmptyConfig() {
+	tp := g.initTestParams()
+	apiKey := "api-key"
+	sha := "1234"
+	owner := "nightfallai"
+	repo := "testRepo"
+	apiDetector := nightfallAPI.API_KEY
+	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
+	pullRequest := 1
+	workspace, err := os.Getwd()
+	g.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
+	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
+	os.Setenv(githubservice.EventPathEnvVar, eventPath)
+	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
+
+	expectedNightfallConfig := &nightfallconfig.Config{
+		NightfallAPIKey:            apiKey,
+		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
+	}
+	expectedGithubCheckRequest := &githubservice.CheckRequest{
+		Owner:       owner,
+		Repo:        repo,
+		SHA:         sha,
+		PullRequest: pullRequest,
+	}
+
+	nightfallConfig, err := tp.gc.LoadConfig(testEmptyConfigFileName)
+	g.NoError(err, "Unexpected error in LoadConfig")
+	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
 }
 
 func (g *githubTestSuite) TestGetDiff() {

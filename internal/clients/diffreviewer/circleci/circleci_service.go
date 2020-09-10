@@ -15,7 +15,6 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/gitdiff"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/gitdiffintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
@@ -100,7 +99,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		BaseSHA:    beforeCommitSha,
 		Head:       s.PrDetails.CommitSha,
 	}
-	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName)
+	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName, s.Logger)
 	if err != nil {
 		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
 		return nil, err
@@ -110,17 +109,10 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))
 		return nil, errors.New("missing env var for nightfall api key")
 	}
-
-	var maxNumberRoutines int
-	if nightfallConfig.MaxNumberRoutines < nightfall.MaxConcurrentRoutinesCap {
-		maxNumberRoutines = nightfallConfig.MaxNumberRoutines
-	} else {
-		maxNumberRoutines = nightfall.MaxConcurrentRoutinesCap
-	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:            nightfallAPIKey,
 		NightfallDetectors:         nightfallConfig.Detectors,
-		NightfallMaxNumberRoutines: maxNumberRoutines,
+		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
 		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 		FileInclusionList:          nightfallConfig.FileInclusionList,
 		FileExclusionList:          nightfallConfig.FileExclusionList,

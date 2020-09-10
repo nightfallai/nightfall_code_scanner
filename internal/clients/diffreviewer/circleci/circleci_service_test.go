@@ -137,6 +137,7 @@ const testOwner = "alan20854"
 const testRepo = "TestRepo"
 const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
 const testConfigFileName = "nightfall_test_config.json"
+const testEmptyConfigFileName = "nightfall_empty_test_config.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
@@ -187,7 +188,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
-	c.NoError(err, "Error in LoadConfig")
+	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 
@@ -209,6 +210,34 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 		"missing env var for nightfall api key",
 		"incorrect error from missing api key test",
 	)
+}
+
+func (c *circleCiTestSuite) TestLoadEmptyConfig() {
+	tp := c.initTestParams()
+	apiKey := "api-key"
+	apiDetector := nightfallAPI.API_KEY
+	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	os.Setenv(CircleBranchEnvVar, testBranch)
+	os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	os.Setenv(CircleRepoNameEnvVar, testRepo)
+	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+
+	expectedNightfallConfig := &nightfallconfig.Config{
+		NightfallAPIKey:            apiKey,
+		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
+	}
+
+	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)
+	c.NoError(err, "Unexpected error in LoadConfig")
+	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 
 func (c *circleCiTestSuite) TestGetDiff() {

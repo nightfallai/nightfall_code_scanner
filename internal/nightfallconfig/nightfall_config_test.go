@@ -31,7 +31,8 @@ func TestGetNightfallConfig(t *testing.T) {
 		FileInclusionList:  []string{"*"},
 		FileExclusionList:  []string{".nightfalldlp/config.json"},
 	}
-	actualConfig := nightfallconfig.GetNightfallConfigFile(workspacePath, testFileName, nil)
+	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testFileName, nil)
+	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }
 
@@ -45,6 +46,7 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 		Detectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
 		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
-	actualConfig := nightfallconfig.GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
+	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
+	assert.NoError(t, err, "Unexpected error in test GetNightfallConfigMissingConfigFile")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }

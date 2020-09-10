@@ -187,7 +187,11 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		BaseSHA:    event.Before,
 		Head:       s.CheckRequest.SHA,
 	}
-	nightfallConfig := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName, s.Logger)
+	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName, s.Logger)
+	if err != nil {
+		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
+		return nil, err
+	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
 	if !ok || nightfallAPIKey == "" {
 		s.Logger.Error(fmt.Sprintf("Error getting Nightfall API key. Ensure you have %s set in the Github secrets of the repo", NightfallAPIKeyEnvVar))

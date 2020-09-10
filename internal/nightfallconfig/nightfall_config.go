@@ -2,6 +2,7 @@ package nightfallconfig
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -40,7 +41,7 @@ type Config struct {
 }
 
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid
-func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) *NightfallConfigFileStructure {
+func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) (*NightfallConfigFileStructure, error) {
 	defaultNightfallConfig := &NightfallConfigFileStructure{
 		Detectors:         []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
 		MaxNumberRoutines: DefaultMaxNumberRoutines,
@@ -49,30 +50,32 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error opening nightfall config: %s", err.Error()))
 		logger.Info(defaultDetectorsInfoMessage)
-		return defaultNightfallConfig
+		return defaultNightfallConfig, nil
 	}
 	defer nightfallConfigFile.Close()
 	byteValue, err := ioutil.ReadAll(nightfallConfigFile)
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error reading nightfall config: %s", err.Error()))
 		logger.Info(defaultDetectorsInfoMessage)
-		return defaultNightfallConfig
+		return defaultNightfallConfig, nil
 	}
 	var nightfallConfig NightfallConfigFileStructure
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
 		logger.Warning("Invalid nightfall config")
 		logger.Info(defaultDetectorsInfoMessage)
-		return defaultNightfallConfig
+		return nil, err
 	}
 	if len(nightfallConfig.Detectors) < 1 {
 		logger.Warning("Nightfall config requires at least one detector")
 		logger.Info(defaultDetectorsInfoMessage)
-		return defaultNightfallConfig
+		return nil, errors.New("Nightfall config file is missing detectors")
 	}
-	if nightfallConfig.MaxNumberRoutines > MaxConcurrentRoutinesCap || nightfallConfig.MaxNumberRoutines <= 0 {
+	if nightfallConfig.MaxNumberRoutines <= 0 {
 		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines
+	} else if nightfallConfig.MaxNumberRoutines > MaxConcurrentRoutinesCap {
+		nightfallConfig.MaxNumberRoutines = MaxConcurrentRoutinesCap
 	}
 	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)
-	return &nightfallConfig
+	return &nightfallConfig, nil
 }

@@ -216,7 +216,7 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
 	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
+	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")

@@ -15,8 +15,8 @@ github.com/google/go-github/v31 v31.0.0 h1:JJUxlP9lFK+ziXKimTCprajMApV1ecWD4NB6C
 github.com/google/go-github/v31 v31.0.0/go.mod h1:NQPZol8/1sMoWYGN2yaALIBytu17gAWfhbweiEed3pM=
 github.com/google/go-querystring v1.0.0 h1:Xkwi/a1rcvNg1PPYe5vI8GbeBY/jrVuDX5ASuANWTrk=
 github.com/google/go-querystring v1.0.0/go.mod h1:odCYkC5MyYFN7vkCjXpyrEuKhc/BUO6wN/zVPAxq5ck=
-github.com/nightfallai/nightfall_go_client v0.0.2 h1:CrERjmU+HDOuzkX7qYo+gPKHXVPqEC3AAiCdVZH0Da4=
-github.com/nightfallai/nightfall_go_client v0.0.2/go.mod h1:sv20Ki2CQcMFm4xkaPiEX9OzrhvAuqj4nc2bUP7biDk=
+github.com/nightfallai/nightfall_go_client v0.0.3 h1:QBftTJG2TxnoGiQnQwiwkAtfAEy+jlTx8r1XeBgVCiQ=
+github.com/nightfallai/nightfall_go_client v0.0.3/go.mod h1:sv20Ki2CQcMFm4xkaPiEX9OzrhvAuqj4nc2bUP7biDk=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

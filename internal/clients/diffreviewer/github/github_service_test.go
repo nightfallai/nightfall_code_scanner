@@ -202,7 +202,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	owner := "nightfallai"
 	repo := "testRepo"
 	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
+	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")

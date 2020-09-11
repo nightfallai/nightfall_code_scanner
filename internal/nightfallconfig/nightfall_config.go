@@ -16,10 +16,10 @@ import (
 const MaxConcurrentRoutinesCap = 50
 const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
-const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_TOKEN)"
+const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_KEY)"
 
 var apiKeyDetector = nightfallAPI.API_KEY
-var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
+var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_KEY
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {

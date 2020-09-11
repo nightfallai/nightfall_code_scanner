@@ -38,7 +38,7 @@ func TestGetNightfallConfig(t *testing.T) {
 
 func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
+	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")

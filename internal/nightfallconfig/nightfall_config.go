@@ -38,15 +38,6 @@ var defaultNightfallConfig = &NightfallConfigFileStructure{
 			MinNumFindings: 1,
 			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
 		},
-		{
-			Detector: nightfallAPI.Detector{
-				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
-				DisplayName:       string("DELTE ME"),
-			},
-			MinNumFindings: 1,
-			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-		},
 	},
 	MaxNumberRoutines: DefaultMaxNumberRoutines,
 }

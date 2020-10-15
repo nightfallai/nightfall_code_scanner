@@ -320,9 +320,8 @@ func (n *Client) makeScanRequestWithRetries(
 			}
 			logger.Error(
 				fmt.Sprintf(
-					"Error from Nightfall API, unable to successfully scan %d items with err: %v",
+					"Error from Nightfall API, unable to successfully scan %d items",
 					len(request.Payload),
-					err,
 				),
 			)
 			return nil, err

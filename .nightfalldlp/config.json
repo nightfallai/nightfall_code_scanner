@@ -4,25 +4,33 @@
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
                 "nightfallDetector": "CREDIT_CARD_NUMBER"
-            }
+            },
+            "minNumFindings": 1,
+            "minConfidence": "POSSIBLE"
         },
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
                 "nightfallDetector": "PHONE_NUMBER"
-            }
+            },
+            "minNumFindings": 1,
+            "minConfidence": "POSSIBLE"
         },
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
                 "nightfallDetector": "API_KEY"
-            }
+            },
+            "minNumFindings": 1,
+            "minConfidence": "POSSIBLE"
         },
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
                 "nightfallDetector": "CRYPTOGRAPHIC_KEY"
-            }
+            },
+            "minNumFindings": 1,
+            "minConfidence": "POSSIBLE"
         }
     ],
     "maxNumberConcurrentRoutines": 5,

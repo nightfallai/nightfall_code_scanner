@@ -19,7 +19,7 @@ const nightfallConfigFilename = ".nightfalldlp/config.json"
 const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_KEY)"
 
 var apiKeyDetector = nightfallAPI.API_KEY
-var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_KEY
+var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_TOKEN
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
@@ -43,7 +43,9 @@ type Config struct {
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid
 func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) (*NightfallConfigFileStructure, error) {
 	defaultNightfallConfig := &NightfallConfigFileStructure{
-		Detectors:         []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
+		Detectors: []*nightfallAPI.Detector{
+			&apiKeyDetector, &cryptoKeyDetector,
+		},
 		MaxNumberRoutines: DefaultMaxNumberRoutines,
 	}
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))

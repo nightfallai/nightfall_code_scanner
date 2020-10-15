@@ -18,9 +18,6 @@ const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
 func TestGetNightfallConfig(t *testing.T) {
-	//cc := nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
-	//ip := nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
-	//phone := nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")

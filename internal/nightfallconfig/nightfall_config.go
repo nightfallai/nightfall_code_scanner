@@ -19,28 +19,6 @@ const nightfallConfigFilename = ".nightfalldlp/config.json"
 const defaultConditionsInfoMessage = "Using default Conditions with detectors API_KEY and CRYPTOGRAPHIC_KEY"
 
 var defaultNightfallConfig = &NightfallConfigFileStructure{
-	//Conditions: []*nightfallAPI.Condition{
-	//	{
-	//		Detector: nightfallAPI.Detector{
-	//			DisplayName:       "",
-	//			DetectorType:      "",
-	//			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
-	//			Regex:             nightfallAPI.Regex{},
-	//			WordList:          nightfallAPI.WordList{},
-	//			ContextRules:      nil,
-	//			ExclusionRules:    nil,
-	//		},
-	//	},
-	//	{
-	//		Detector: nightfallAPI.Detector{
-	//			DisplayName:       "",
-	//			DetectorType:      "",
-	//			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
-	//			ContextRules:      nil,
-	//			ExclusionRules:    nil,
-	//		},
-	//	},
-	//},
 	Conditions: []*nightfallAPI.Condition{
 		{
 			Detector: nightfallAPI.Detector{

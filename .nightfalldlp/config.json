@@ -22,7 +22,8 @@
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
                 "nightfallDetector": "CRYPTOGRAPHIC_KEY"
-            },
+            }
+        }
     ],
     "maxNumberConcurrentRoutines": 5,
     "tokenExclusionList": [

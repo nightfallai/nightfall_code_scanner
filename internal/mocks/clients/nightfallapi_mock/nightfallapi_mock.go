@@ -36,10 +36,10 @@ func (m *NightfallAPI) EXPECT() *NightfallAPIMockRecorder {
 }
 
 // ScanPayload mocks base method
-func (m *NightfallAPI) ScanPayload(ctx context.Context, scanReq openapi.ScanRequest) ([][]openapi.ScanResponse, *http.Response, error) {
+func (m *NightfallAPI) ScanPayload(ctx context.Context, scanReq openapi.ScanRequestV2) ([][]openapi.ScanResponseV2, *http.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ScanPayload", ctx, scanReq)
-	ret0, _ := ret[0].([][]openapi.ScanResponse)
+	ret0, _ := ret[0].([][]openapi.ScanResponseV2)
 	ret1, _ := ret[1].(*http.Response)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2

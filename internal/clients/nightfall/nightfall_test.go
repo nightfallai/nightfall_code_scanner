@@ -27,24 +27,33 @@ type nightfallTestSuite struct {
 	suite.Suite
 }
 
-var ccDetector = nightfallAPI.CREDIT_CARD_NUMBER
-var phoneDetector = nightfallAPI.PHONE_NUMBER
-var testDetectors = []*nightfallAPI.Detector{&ccDetector, &phoneDetector}
+var testConditions = []*nightfallAPI.Condition{
+	{
+		Detector: nightfallAPI.Detector{
+			DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+		},
+	},
+	{
+		Detector: nightfallAPI.Detector{
+			DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+		},
+	},
+}
 var testItems = []string{
 	"this is a string",
 	fmt.Sprintf("this has a credit card number %s", exampleCreditCardNumber),
 	"tom cruise!!!!!!",
 }
 
-var expectedScanResponse = [][]nightfallAPI.ScanResponse{
+var expectedScanResponse = [][]nightfallAPI.ScanResponseV2{
 	{},
 	{
 		{
-			Fragment: exampleCreditCardNumber,
-			Detector: string(ccDetector),
-			Confidence: nightfallAPI.ScanResponseConfidence{
-				Bucket: string(nightfallAPI.LIKELY),
-			},
+			Fragment:     exampleCreditCardNumber,
+			DetectorName: string(nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
+			Confidence:   nightfallAPI.CONFIDENCE_LIKELY,
 		},
 	},
 	{},
@@ -59,7 +68,7 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 	client := nightfall.Client{
 		APIClient:         mockAPIClient,
-		Detectors:         testDetectors,
+		Conditions:        testConditions,
 		MaxNumberRoutines: 2,
 	}
 
@@ -94,8 +103,8 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	c := diffreviewer.Comment{
 		FilePath:   filePath,
 		LineNumber: lineNum,
-		Body:       fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredCreditCard, nightfallAPI.CREDIT_CARD_NUMBER),
-		Title:      fmt.Sprintf("Detected %s", nightfallAPI.CREDIT_CARD_NUMBER),
+		Body:       fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredCreditCard, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
+		Title:      fmt.Sprintf("Detected %s", nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
 	}
 	expectedComments := []*diffreviewer.Comment{&c, &c, &c}
 
@@ -126,13 +135,13 @@ func (n *nightfallTestSuite) TestSuccessfulScanPaths() {
 	ctrl := gomock.NewController(n.T())
 	defer ctrl.Finish()
 	client := nightfall.Client{
-		Detectors: testDetectors,
+		Conditions: testConditions,
 	}
 	expectedScanReq := client.CreateScanRequest(testItems)
 
 	tests := []struct {
 		haveNumRequests int
-		wantResponse    [][]nightfallAPI.ScanResponse
+		wantResponse    [][]nightfallAPI.ScanResponseV2
 		desc            string
 	}{
 		{
@@ -155,13 +164,13 @@ func (n *nightfallTestSuite) TestSuccessfulScanPaths() {
 		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 		client := nightfall.Client{
 			APIClient:         mockAPIClient,
-			Detectors:         testDetectors,
+			Conditions:        testConditions,
 			InitialRetryDelay: time.Millisecond,
 		}
 
 		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
 			Return(
-				[][]nightfallAPI.ScanResponse{nil},
+				[][]nightfallAPI.ScanResponseV2{nil},
 				expectedTooManyRequestsHTTPResponse,
 				nightfall.ErrMaxScanRetries,
 			).Times(tt.haveNumRequests - 1)
@@ -183,27 +192,27 @@ func (n *nightfallTestSuite) TestFailedScanPaths() {
 	defer ctrl.Finish()
 
 	client := nightfall.Client{
-		Detectors: testDetectors,
+		Conditions: testConditions,
 	}
 	expectedScanReq := client.CreateScanRequest(testItems)
 
 	tests := []struct {
 		haveNumRequests       int
-		wantResponse          [][]nightfallAPI.ScanResponse
+		wantResponse          [][]nightfallAPI.ScanResponseV2
 		wantFinalErr          error
 		wantFinalHTTPResponse *http.Response
 		desc                  string
 	}{
 		{
 			haveNumRequests:       nightfall.MaxScanAttempts,
-			wantResponse:          [][]nightfallAPI.ScanResponse(nil),
+			wantResponse:          [][]nightfallAPI.ScanResponseV2(nil),
 			wantFinalErr:          nightfall.ErrMaxScanRetries,
 			wantFinalHTTPResponse: expectedTooManyRequestsHTTPResponse,
 			desc:                  "failed after max retries",
 		},
 		{
 			haveNumRequests:       3,
-			wantResponse:          [][]nightfallAPI.ScanResponse(nil),
+			wantResponse:          [][]nightfallAPI.ScanResponseV2(nil),
 			wantFinalErr:          errors.New("500 Internal Server Error"),
 			wantFinalHTTPResponse: expectedInternalServorErrorHTTPResponse,
 			desc:                  "failed on third attempt with non-429 error",
@@ -213,18 +222,18 @@ func (n *nightfallTestSuite) TestFailedScanPaths() {
 		mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
 		client := nightfall.Client{
 			APIClient:         mockAPIClient,
-			Detectors:         testDetectors,
+			Conditions:        testConditions,
 			InitialRetryDelay: time.Millisecond,
 		}
 
 		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
 			Return(
-				[][]nightfallAPI.ScanResponse{nil},
+				[][]nightfallAPI.ScanResponseV2{nil},
 				expectedTooManyRequestsHTTPResponse,
 				nightfall.ErrMaxScanRetries,
 			).Times(tt.haveNumRequests - 1)
 		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).
-			Return([][]nightfallAPI.ScanResponse{nil}, tt.wantFinalHTTPResponse, tt.wantFinalErr)
+			Return([][]nightfallAPI.ScanResponseV2{nil}, tt.wantFinalHTTPResponse, tt.wantFinalErr)
 
 		resp, err := client.Scan(context.Background(), githublogger.NewDefaultGithubLogger(), testItems)
 		n.EqualError(

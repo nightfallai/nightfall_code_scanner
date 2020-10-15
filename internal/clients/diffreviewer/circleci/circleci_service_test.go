@@ -163,9 +163,6 @@ func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
 func (c *circleCiTestSuite) TestLoadConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	ip := nightfallAPI.IP_ADDRESS
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -180,15 +177,24 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallDetectors: []*nightfallAPI.Detector{
+		NightfallConditions: []*nightfallAPI.Condition{
 			{
-				NightfallDetector: phone,
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				},
 			},
 			{
-				NightfallDetector: ip,
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				},
 			},
 			{
-				NightfallDetector: cc,
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				},
 			},
 		},
 		NightfallMaxNumberRoutines: 20,
@@ -225,8 +231,6 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_TOKEN
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -241,12 +245,18 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallDetectors: []*nightfallAPI.Detector{
+		NightfallConditions: []*nightfallAPI.Condition{
 			{
-				NightfallDetector: apiDetector,
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+				},
 			},
 			{
-				NightfallDetector: cryptoDetector,
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+				},
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,

@@ -33,7 +33,7 @@ var defaultNightfallConfig = &NightfallConfigFileStructure{
 			Detector: nightfallAPI.Detector{
 				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
 				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
-				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
 			},
 			MinNumFindings: 1,
 			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,

@@ -62,13 +62,19 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 				Detector: nightfallAPI.Detector{
 					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
 					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
 				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
 			},
 			{
 				Detector: nightfallAPI.Detector{
 					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
 					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
 				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
 			},
 		},
 		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,

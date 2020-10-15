@@ -3,7 +3,8 @@
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "CREDIT_CARD_NUMBER"
+                "nightfallDetector": "CREDIT_CARD_NUMBER",
+                "displayName": "cc num"
             },
             "minNumFindings": 1,
             "minConfidence": "VERY_UNLIKELY"
@@ -11,7 +12,8 @@
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "PHONE_NUMBER"
+                "nightfallDetector": "PHONE_NUMBER",
+                "displayName": "phone num"
             },
             "minNumFindings": 1,
             "minConfidence": "VERY_UNLIKELY"
@@ -19,7 +21,8 @@
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "API_KEY"
+                "nightfallDetector": "API_KEY",
+                "displayName": "api key"
             },
             "minNumFindings": 1,
             "minConfidence": "VERY_UNLIKELY"
@@ -27,7 +30,8 @@
         {
             "detector": {
                 "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "CRYPTOGRAPHIC_KEY"
+                "nightfallDetector": "CRYPTOGRAPHIC_KEY",
+                "displayName": "crypto key"
             },
             "minNumFindings": 1,
             "minConfidence": "VERY_UNLIKELY"

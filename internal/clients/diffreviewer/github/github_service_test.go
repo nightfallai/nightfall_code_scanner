@@ -139,6 +139,8 @@ func (g *githubTestSuite) initTestParams() *testParams {
 
 const testConfigFileName = "nightfall_test_config.json"
 const testEmptyConfigFileName = "nightfall_test_empty_config.json"
+const testConfigConditionSetUUIDFileName = "nightfall_test_config_condition_set_uuid.json"
+const testConditionSetUUID = "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
@@ -206,6 +208,42 @@ func (g *githubTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.gc.LoadConfig(testConfigFileName)
+	g.NoError(err, "Unexpected error in LoadConfig")
+	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
+}
+
+func (g *githubTestSuite) TestLoadConfigConditionSetUUID() {
+	tp := g.initTestParams()
+	apiKey := "api-key"
+	sha := "1234"
+	owner := "nightfallai"
+	repo := "testRepo"
+	pullRequest := 1
+	workspace, err := os.Getwd()
+	g.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
+	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
+	os.Setenv(githubservice.EventPathEnvVar, eventPath)
+	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
+
+	expectedNightfallConfig := &nightfallconfig.Config{
+		NightfallAPIKey:            apiKey,
+		NightfallConditionSetUUID:  testConditionSetUUID,
+		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:          []string{"*"},
+		FileExclusionList:          []string{".nightfalldlp/config.json"},
+	}
+	expectedGithubCheckRequest := &githubservice.CheckRequest{
+		Owner:       owner,
+		Repo:        repo,
+		SHA:         sha,
+		PullRequest: pullRequest,
+	}
+
+	nightfallConfig, err := tp.gc.LoadConfig(testConfigConditionSetUUIDFileName)
 	g.NoError(err, "Unexpected error in LoadConfig")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")

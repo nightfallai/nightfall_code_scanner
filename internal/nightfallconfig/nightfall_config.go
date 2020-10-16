@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/google/uuid"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
@@ -44,6 +45,7 @@ var defaultNightfallConfig = &NightfallConfigFileStructure{
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
+	ConditionSetUUID   string                    `json:"conditionSetUUID"`
 	Conditions         []*nightfallAPI.Condition `json:"conditions"`
 	MaxNumberRoutines  int                       `json:"maxNumberConcurrentRoutines"`
 	TokenExclusionList []string                  `json:"tokenExclusionList"`
@@ -54,6 +56,7 @@ type NightfallConfigFileStructure struct {
 // Config general config struct
 type Config struct {
 	NightfallAPIKey            string
+	NightfallConditionSetUUID  string
 	NightfallConditions        []*nightfallAPI.Condition
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
@@ -81,8 +84,14 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	if err != nil {
 		return nil, err
 	}
-	if len(nightfallConfig.Conditions) < 1 {
-		return nil, errors.New("Nightfall config file is missing Conditions")
+	if nightfallConfig.ConditionSetUUID != "" {
+		_, err := uuid.Parse(nightfallConfig.ConditionSetUUID)
+		if err != nil {
+			return nil, fmt.Errorf("Nightfall config file has an invalid ConditionSetUUID: %w", err)
+		}
+	}
+	if nightfallConfig.ConditionSetUUID == "" && len(nightfallConfig.Conditions) < 1 {
+		return nil, errors.New("Nightfall config file is missing ConditionSetUUID or inline Conditions")
 	}
 	if nightfallConfig.MaxNumberRoutines <= 0 {
 		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines

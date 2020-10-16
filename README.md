@@ -15,7 +15,7 @@ security, and ensure you never accidentally leak secrets or other sensitive info
 
 ## Nightfalldlp Config File
 
-The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors and content you want to scan for pull requests. It includes following fields available to adjust to fit your needs.
+The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors and content you want to scan for pull requests. It includes following adjustable fields available to fit your needs.
 
 ### ConditionSetUUID
 
@@ -130,7 +130,7 @@ detectorType field.
   Besides to define which detector to call, we also allow you to optionally specify some rules you want to attach surround the findinds and finding themselves. They are contextRules and exclusionRules.
 
   - contextRules
-    A context rule is defined as the surrounding context(pre/post chars) of a finding, you can define a trigger/rule in this section. Once it's trigger, the confidence of finding will be adjusted accordingly base on your confid.
+    A context rule is defined as the surrounding context(pre/post chars) of a finding, you can define a trigger/rule in this section. Once it's triggered, the confidence of finding will be adjusted accordingly base on your confid.
 
     Example:
 
@@ -161,7 +161,7 @@ detectorType field.
     - proximity specifies how many pre|post chars surround findings we want to do the search
     - confidenceAdjustment specifies what's the confidence you want to change for the finding once trigger the rule
 
-    In this example, if we have real test like test cc: 4242-4242-4242-4242, and 4242-4242-4242-4242 is detected as a credit card number with confidence of POSSIBLE. After we applied such context rules, since the pre chars test cc matches the regex, the confidence of such findings will drop down to VERY_UNLIKELY as specified
+    In this example, if we have a real text like test cc: 4242-4242-4242-4242, and 4242-4242-4242-4242 is detected as a credit card number with confidence of POSSIBLE. After we applied such context rules, since the pre chars test cc matches the regex, the confidence of such findings will drop down to VERY_UNLIKELY as specified
 
   - exclusionRules
     Similar to context rules, you can also apply rules on findings themselves, in case you find certain findings or patterns appear to be super noisy in your case. To deactivate such appearance, you can do

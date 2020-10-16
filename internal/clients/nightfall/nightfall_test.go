@@ -8,9 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/nightfall"

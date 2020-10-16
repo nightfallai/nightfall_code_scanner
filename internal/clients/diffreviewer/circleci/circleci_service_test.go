@@ -178,8 +178,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:           apiKey,
-		NightfallConditionSetUUID: "",
+		NightfallAPIKey: apiKey,
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
 				Detector: nightfallAPI.Detector{
@@ -277,8 +276,7 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:           apiKey,
-		NightfallConditionSetUUID: "",
+		NightfallAPIKey: apiKey,
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
 				Detector: nightfallAPI.Detector{

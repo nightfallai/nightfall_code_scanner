@@ -9,7 +9,6 @@ import (
 	"path"
 
 	"github.com/google/uuid"
-
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )

@@ -1,0 +1,49 @@
+{
+  "conditions": [
+    {
+      "detector": {
+        "detectorType": "NIGHTFALL_DETECTOR",
+        "nightfallDetector": "CREDIT_CARD_NUMBER",
+        "displayName": "cc num"
+      },
+      "minNumFindings": 1,
+      "minConfidence": "VERY_UNLIKELY"
+    },
+    {
+      "detector": {
+        "detectorType": "NIGHTFALL_DETECTOR",
+        "nightfallDetector": "PHONE_NUMBER",
+        "displayName": "phone num"
+      },
+      "minNumFindings": 1,
+      "minConfidence": "VERY_UNLIKELY"
+    },
+    {
+      "detector": {
+        "detectorType": "NIGHTFALL_DETECTOR",
+        "nightfallDetector": "API_KEY",
+        "displayName": "api key"
+      },
+      "minNumFindings": 1,
+      "minConfidence": "VERY_UNLIKELY"
+    },
+    {
+      "detector": {
+        "detectorType": "NIGHTFALL_DETECTOR",
+        "nightfallDetector": "CRYPTOGRAPHIC_KEY",
+        "displayName": "crypto key"
+      },
+      "minNumFindings": 1,
+      "minConfidence": "VERY_UNLIKELY"
+    }
+  ],
+  "maxNumberConcurrentRoutines": 5,
+  "tokenExclusionList": [
+    "4916-6734-7572-5015",
+    "4242-4242-4242-4242",
+    "301-123-4567",
+    "1-240-925-5721",
+    "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
+  ],
+  "fileInclusionList": ["*"]
+}

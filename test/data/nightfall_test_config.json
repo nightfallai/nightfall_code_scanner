@@ -1,8 +1,23 @@
 {
-    "detectors": [
-        "CREDIT_CARD_NUMBER",
-        "PHONE_NUMBER",
-        "IP_ADDRESS"
+    "conditions": [
+        {
+            "detector": {
+                "detectorType": "NIGHTFALL_DETECTOR",
+                "nightfallDetector": "CREDIT_CARD_NUMBER"
+            }
+        },
+        {
+            "detector": {
+                "detectorType": "NIGHTFALL_DETECTOR",
+                "nightfallDetector": "PHONE_NUMBER"
+            }
+        },
+        {
+            "detector": {
+                "detectorType": "NIGHTFALL_DETECTOR",
+                "nightfallDetector": "IP_ADDRESS"
+            }
+        }
     ],
     "maxNumberConcurrentRoutines": 20,
     "tokenExclusionList": ["4242-4242-4242-[0-9]{4}", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv", "^127\\."],

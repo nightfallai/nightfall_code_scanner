@@ -162,9 +162,6 @@ func (g *githubTestSuite) TestLoadConfig() {
 	sha := "1234"
 	owner := "nightfallai"
 	repo := "testRepo"
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	ip := nightfallAPI.IP_ADDRESS
 	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")
@@ -175,8 +172,27 @@ func (g *githubTestSuite) TestLoadConfig() {
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				},
+			},
+		},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
@@ -201,8 +217,6 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	sha := "1234"
 	owner := "nightfallai"
 	repo := "testRepo"
-	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	pullRequest := 1
 	workspace, err := os.Getwd()
 	g.NoError(err, "Error getting workspace")
@@ -213,8 +227,27 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 	expectedGithubCheckRequest := &githubservice.CheckRequest{

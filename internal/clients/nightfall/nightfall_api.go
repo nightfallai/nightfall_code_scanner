@@ -23,7 +23,7 @@ func NewAPIClient() *APIClient {
 // ScanPayload makes the scan request to the nightfallAPI
 func (c *APIClient) ScanPayload(
 	ctx context.Context,
-	scanReq nightfallAPI.ScanRequest,
-) ([][]nightfallAPI.ScanResponse, *http.Response, error) {
-	return c.APIClient.ScanApi.ScanPayload(ctx, scanReq)
+	scanReq nightfallAPI.ScanRequestV2,
+) ([][]nightfallAPI.ScanResponseV2, *http.Response, error) {
+	return c.APIClient.ScanV2Api.ScanPayloadV2(ctx, scanReq)
 }

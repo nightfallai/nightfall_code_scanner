@@ -163,9 +163,6 @@ func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
 func (c *circleCiTestSuite) TestLoadConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	ip := nightfallAPI.IP_ADDRESS
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -179,8 +176,27 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				},
+			},
+		},
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
@@ -215,8 +231,6 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -230,8 +244,27 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 

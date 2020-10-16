@@ -16,24 +16,45 @@ import (
 const MaxConcurrentRoutinesCap = 50
 const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
-const defaultDetectorsInfoMessage = "Using default detectors (API_KEY and CRYTOGRAPHIC_KEY)"
+const defaultConditionsInfoMessage = "Using default Conditions with detectors API_KEY and CRYPTOGRAPHIC_KEY"
 
-var apiKeyDetector = nightfallAPI.API_KEY
-var cryptoKeyDetector = nightfallAPI.CRYPTOGRAPHIC_KEY
+var defaultNightfallConfig = &NightfallConfigFileStructure{
+	Conditions: []*nightfallAPI.Condition{
+		{
+			Detector: nightfallAPI.Detector{
+				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+			},
+			MinNumFindings: 1,
+			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+		},
+		{
+			Detector: nightfallAPI.Detector{
+				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+			},
+			MinNumFindings: 1,
+			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+		},
+	},
+	MaxNumberRoutines: DefaultMaxNumberRoutines,
+}
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {
-	Detectors          []*nightfallAPI.Detector `json:"detectors"`
-	MaxNumberRoutines  int                      `json:"maxNumberConcurrentRoutines"`
-	TokenExclusionList []string                 `json:"tokenExclusionList"`
-	FileInclusionList  []string                 `json:"fileInclusionList"`
-	FileExclusionList  []string                 `json:"fileExclusionList"`
+	Conditions         []*nightfallAPI.Condition `json:"conditions"`
+	MaxNumberRoutines  int                       `json:"maxNumberConcurrentRoutines"`
+	TokenExclusionList []string                  `json:"tokenExclusionList"`
+	FileInclusionList  []string                  `json:"fileInclusionList"`
+	FileExclusionList  []string                  `json:"fileExclusionList"`
 }
 
 // Config general config struct
 type Config struct {
 	NightfallAPIKey            string
-	NightfallDetectors         []*nightfallAPI.Detector
+	NightfallConditions        []*nightfallAPI.Condition
 	NightfallMaxNumberRoutines int
 	TokenExclusionList         []string
 	FileInclusionList          []string
@@ -42,21 +63,17 @@ type Config struct {
 
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid
 func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) (*NightfallConfigFileStructure, error) {
-	defaultNightfallConfig := &NightfallConfigFileStructure{
-		Detectors:         []*nightfallAPI.Detector{&apiKeyDetector, &cryptoKeyDetector},
-		MaxNumberRoutines: DefaultMaxNumberRoutines,
-	}
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error opening nightfall config: %s", err.Error()))
-		logger.Info(defaultDetectorsInfoMessage)
+		logger.Info(defaultConditionsInfoMessage)
 		return defaultNightfallConfig, nil
 	}
 	defer nightfallConfigFile.Close()
 	byteValue, err := ioutil.ReadAll(nightfallConfigFile)
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error reading nightfall config: %s", err.Error()))
-		logger.Info(defaultDetectorsInfoMessage)
+		logger.Info(defaultConditionsInfoMessage)
 		return defaultNightfallConfig, nil
 	}
 	var nightfallConfig NightfallConfigFileStructure
@@ -64,8 +81,8 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	if err != nil {
 		return nil, err
 	}
-	if len(nightfallConfig.Detectors) < 1 {
-		return nil, errors.New("Nightfall config file is missing detectors")
+	if len(nightfallConfig.Conditions) < 1 {
+		return nil, errors.New("Nightfall config file is missing Conditions")
 	}
 	if nightfallConfig.MaxNumberRoutines <= 0 {
 		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines

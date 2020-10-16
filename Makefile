@@ -7,12 +7,12 @@ GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 
-SERVICE_NAME=nightfall_code_scanner
+SERVICE_NAME=nightfall_dlp
 BINARY_NAME=./$(SERVICE_NAME)
 GO_TEST_ENV?=test
 
 NAME=nightfallai/$(SERVICE_NAME)
-TAG=ADD_YOUR_RELEASE_VERSION
+TAG=test_condition_set
 VERSION=$(NAME):$(TAG)
 LATEST=$(NAME):latest
 

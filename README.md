@@ -37,14 +37,14 @@ Conditions are a list of conditions specified inline. Each condition has a detec
   "conditions": [
     {
       "minNumFindings": 1,
-      "minConfidence": "Possible",
+      "minConfidence": "POSSIBLE",
       "detector": {}
     }
   ]
 }
 ```
 
-minNumFindings specify minimal number of findings to trigger findings to return for one request, e.g. if you set minNumFindings to be 2, and only 1 finding within the request payload, then this finding will be filtered.
+minNumFindings specifies minimal number of findings to trigger findings to return for one request, e.g. if you set minNumFindings to be 2, and only 1 finding within the request payload, then this finding will be filtered.
 
 minConfidence specifies the minimal threshold to trigger a potential finding to be captured, in total we have five levels of confidence from least sensitive to most sensitive:
 

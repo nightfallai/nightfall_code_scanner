@@ -24,12 +24,12 @@ const (
 	apiKeyContent            = "my api key is yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
 )
 
-var allLikelihoods = []nightfallAPI.Likelihood{
-	nightfallAPI.VERY_UNLIKELY,
-	nightfallAPI.UNLIKELY,
-	nightfallAPI.POSSIBLE,
-	nightfallAPI.LIKELY,
-	nightfallAPI.VERY_LIKELY,
+var allLikelihoods = []nightfallAPI.Confidence{
+	nightfallAPI.CONFIDENCE_VERY_LIKELY,
+	nightfallAPI.CONFIDENCE_UNLIKELY,
+	nightfallAPI.CONFIDENCE_POSSIBLE,
+	nightfallAPI.CONFIDENCE_LIKELY,
+	nightfallAPI.CONFIDENCE_VERY_LIKELY,
 }
 
 func TestChunkContent(t *testing.T) {
@@ -131,13 +131,13 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 	creditCard2Regex := "4242-4242-4242-[0-9]{4}"
 	localIpRegex := "^127\\."
 	tokenExclusionList := []string{creditCard2Regex, localIpRegex}
-	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.CREDIT_CARD_NUMBER)
-	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.CREDIT_CARD_NUMBER)
-	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.API_KEY)
-	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.IP_ADDRESS)
+	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER)
+	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER)
+	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
+	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS)
 	tests := []struct {
 		haveContentToScanList  []*contentToScan
-		haveScanResponseList   [][]nightfallAPI.ScanResponse
+		haveScanResponseList   [][]nightfallAPI.ScanResponseV2
 		haveTokenExclusionList []string
 		want                   []*diffreviewer.Comment
 		desc                   string
@@ -149,7 +149,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan(apiKeyContent),
 				createContentToScan(creditCardNumber2Content),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
 				{
 					creditCardResponse,
 				},
@@ -176,7 +176,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
 				{},
 				{},
 				{},
@@ -194,7 +194,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan(exampleLocalHostIP),
 				createContentToScan(exampleIP),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponse{
+			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
 				{},
 				{
 					creditCardResponse,
@@ -381,16 +381,16 @@ func TestMatchGlob(t *testing.T) {
 		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
 	}
 }
-func createScanResponse(fragment string, detector nightfallAPI.Detector) nightfallAPI.ScanResponse {
-	return nightfallAPI.ScanResponse{
-		Fragment: fragment,
-		Detector: string(detector),
-		Location: nightfallAPI.ScanResponseLocation{
-			ByteRange: nightfallAPI.ScanResponseLocationByteRange{
+func createScanResponse(fragment string, detType nightfallAPI.NightfallDetectorType) nightfallAPI.ScanResponseV2 {
+	return nightfallAPI.ScanResponseV2{
+		Fragment:     fragment,
+		DetectorName: string(detType),
+		Location: nightfallAPI.ScanResponseV2Location{
+			ByteRange: nightfallAPI.ScanResponseV2LocationByteRange{
 				Start: 0,
 				End:   int32(len(fragment)),
 			},
-			UnicodeRange: nightfallAPI.ScanResponseLocationUnicodeRange{
+			UnicodeRange: nightfallAPI.ScanResponseV2LocationUnicodeRange{
 				Start: 0,
 				End:   int32(len(fragment)),
 			},
@@ -413,7 +413,7 @@ func createContentToScan(content string) *contentToScan {
 	}
 }
 
-func createComment(finding nightfallAPI.ScanResponse) *diffreviewer.Comment {
+func createComment(finding nightfallAPI.ScanResponseV2) *diffreviewer.Comment {
 	return &diffreviewer.Comment{
 		Body:       getCommentMsg(finding),
 		FilePath:   filePath,

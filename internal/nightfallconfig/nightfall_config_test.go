@@ -18,14 +18,30 @@ const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
 func TestGetNightfallConfig(t *testing.T) {
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	ip := nightfallAPI.IP_ADDRESS
-	phone := nightfallAPI.PHONE_NUMBER
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
-		Detectors:          []*nightfallAPI.Detector{&cc, &phone, &ip},
+		Conditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				},
+			},
+		},
 		MaxNumberRoutines:  20,
 		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:  []string{"*"},
@@ -37,13 +53,30 @@ func TestGetNightfallConfig(t *testing.T) {
 }
 
 func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
-	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
-		Detectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		Conditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+		},
 		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())

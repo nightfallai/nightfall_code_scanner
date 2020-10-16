@@ -189,7 +189,9 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 	nightfallConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, nightfallConfigFileName, s.Logger)
 	if err != nil {
-		s.Logger.Error("Error getting Nightfall config file. Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json with at least one Detector enabled")
+		s.Logger.Error("Error getting Nightfall config file. " +
+			"Ensure you have a Nightfall config file located in the root of your repository at .nightfalldlp/config.json " +
+			"with either a Condition Set UUID or at least one inline Condition enabled")
 		return nil, err
 	}
 	nightfallAPIKey, ok := os.LookupEnv(NightfallAPIKeyEnvVar)
@@ -199,7 +201,8 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 	}
 	return &nightfallconfig.Config{
 		NightfallAPIKey:            nightfallAPIKey,
-		NightfallDetectors:         nightfallConfig.Detectors,
+		NightfallConditionSetUUID:  nightfallConfig.ConditionSetUUID,
+		NightfallConditions:        nightfallConfig.Conditions,
 		NightfallMaxNumberRoutines: nightfallConfig.MaxNumberRoutines,
 		TokenExclusionList:         nightfallConfig.TokenExclusionList,
 		FileInclusionList:          nightfallConfig.FileInclusionList,

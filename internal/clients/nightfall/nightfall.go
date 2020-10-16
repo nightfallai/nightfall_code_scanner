@@ -47,7 +47,8 @@ var (
 type Client struct {
 	APIClient          nightfallintf.NightfallAPI
 	APIKey             string
-	Detectors          []*nightfallAPI.Detector
+	ConditionSetUUID   string
+	Conditions         []*nightfallAPI.Condition
 	MaxNumberRoutines  int
 	InitialRetryDelay  time.Duration
 	TokenExclusionList []string
@@ -60,7 +61,8 @@ func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
 		APIClient:          NewAPIClient(),
 		APIKey:             config.NightfallAPIKey,
-		Detectors:          config.NightfallDetectors,
+		ConditionSetUUID:   config.NightfallConditionSetUUID,
+		Conditions:         config.NightfallConditions,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
 		InitialRetryDelay:  initialDelay,
 		TokenExclusionList: config.TokenExclusionList,
@@ -89,13 +91,13 @@ func blurContent(content string) string {
 	return blurredContent
 }
 
-func getCommentMsg(finding nightfallAPI.ScanResponse) string {
+func getCommentMsg(finding nightfallAPI.ScanResponseV2) string {
 	blurredContent := blurContent(finding.Fragment)
-	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.Detector)
+	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.DetectorName)
 }
 
-func getCommentTitle(finding nightfallAPI.ScanResponse) string {
-	return fmt.Sprintf("Detected %s", finding.Detector)
+func getCommentTitle(finding nightfallAPI.ScanResponseV2) string {
+	return fmt.Sprintf("Detected %s", finding.DetectorName)
 }
 
 // wordSplitter is of type bufio.SplitFunc (https://golang.org/pkg/bufio/#SplitFunc)
@@ -164,7 +166,7 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 
 func createCommentsFromScanResp(
 	inputContent []*contentToScan,
-	resp [][]nightfallAPI.ScanResponse,
+	resp [][]nightfallAPI.ScanResponseV2,
 	tokenExclusionList []string,
 ) []*diffreviewer.Comment {
 	comments := []*diffreviewer.Comment{}
@@ -205,18 +207,19 @@ func matchRegex(finding string, regexPatterns []string) bool {
 	return false
 }
 
-func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequest {
-	detectors := make([]nightfallAPI.ScanRequestDetectors, 0, len(n.Detectors))
-	for _, d := range n.Detectors {
-		detectors = append(detectors, nightfallAPI.ScanRequestDetectors{
-			Name: string(*d),
-		})
+func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequestV2 {
+	conds := make([]nightfallAPI.Condition, 0, len(n.Conditions))
+	for _, d := range n.Conditions {
+		conds = append(conds, *d)
 	}
-	return nightfallAPI.ScanRequest{
-		Detectors: detectors,
-		Payload: nightfallAPI.ScanRequestPayload{
-			Items: items,
+	return nightfallAPI.ScanRequestV2{
+		Config: nightfallAPI.ScanRequestV2Config{
+			ConditionSetUUID: n.ConditionSetUUID,
+			ConditionSet: nightfallAPI.ScanRequestV2ConfigConditionSet{
+				Conditions: conds,
+			},
 		},
+		Payload: items,
 	}
 }
 
@@ -288,7 +291,7 @@ func (n *Client) Scan(
 	ctx context.Context,
 	logger logger.Logger,
 	items []string,
-) ([][]nightfallAPI.ScanResponse, error) {
+) ([][]nightfallAPI.ScanResponseV2, error) {
 	APIKey := nightfallAPI.APIKey{
 		Key:    n.APIKey,
 		Prefix: "",
@@ -301,8 +304,8 @@ func (n *Client) Scan(
 func (n *Client) makeScanRequestWithRetries(
 	ctx context.Context,
 	logger logger.Logger,
-	request nightfallAPI.ScanRequest,
-) ([][]nightfallAPI.ScanResponse, error) {
+	request nightfallAPI.ScanRequestV2,
+) ([][]nightfallAPI.ScanResponseV2, error) {
 	delay := n.InitialRetryDelay
 	for i := 0; i < MaxScanAttempts; i++ {
 		resp, httpResp, err := n.APIClient.ScanPayload(ctx, request)
@@ -321,7 +324,7 @@ func (n *Client) makeScanRequestWithRetries(
 			logger.Error(
 				fmt.Sprintf(
 					"Error from Nightfall API, unable to successfully scan %d items",
-					len(request.Payload.Items),
+					len(request.Payload),
 				),
 			)
 			return nil, err

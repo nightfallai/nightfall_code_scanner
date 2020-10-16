@@ -138,6 +138,8 @@ const testRepo = "TestRepo"
 const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
 const testConfigFileName = "nightfall_test_config.json"
 const testEmptyConfigFileName = "nightfall_empty_test_config.json"
+const testConfigConditionSetUUIDFileName = "nightfall_test_config_condition_set_uuid.json"
+const testConditionSetUUID = "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
@@ -163,9 +165,54 @@ func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
 func (c *circleCiTestSuite) TestLoadConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	cc := nightfallAPI.CREDIT_CARD_NUMBER
-	phone := nightfallAPI.PHONE_NUMBER
-	ip := nightfallAPI.IP_ADDRESS
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	os.Setenv(CircleBranchEnvVar, testBranch)
+	os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	os.Setenv(CircleRepoNameEnvVar, testRepo)
+	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+
+	expectedNightfallConfig := &nightfallconfig.Config{
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				},
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				},
+			},
+		},
+		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:          []string{"*"},
+		FileExclusionList:          []string{".nightfalldlp/config.json"},
+	}
+
+	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
+	c.NoError(err, "Unexpected error in LoadConfig")
+	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+}
+
+func (c *circleCiTestSuite) TestLoadConfigConditionSetUUID() {
+	tp := c.initTestParams()
+	apiKey := "api-key"
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -180,14 +227,15 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&cc, &phone, &ip},
+		NightfallConditionSetUUID:  testConditionSetUUID,
+		NightfallConditions:        nil,
 		NightfallMaxNumberRoutines: 20,
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
 		FileExclusionList:          []string{".nightfalldlp/config.json"},
 	}
 
-	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
+	nightfallConfig, err := tp.cs.LoadConfig(testConfigConditionSetUUIDFileName)
 	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
@@ -215,8 +263,6 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
-	apiDetector := nightfallAPI.API_KEY
-	cryptoDetector := nightfallAPI.CRYPTOGRAPHIC_KEY
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
@@ -230,8 +276,27 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallDetectors:         []*nightfallAPI.Detector{&apiDetector, &cryptoDetector},
+		NightfallAPIKey: apiKey,
+		NightfallConditions: []*nightfallAPI.Condition{
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+			{
+				Detector: nightfallAPI.Detector{
+					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
+					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
+					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				},
+				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
+				MinNumFindings: 1,
+			},
+		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
 

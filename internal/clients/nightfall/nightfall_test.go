@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/golang/mock/gomock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
@@ -69,6 +71,76 @@ func (n *nightfallTestSuite) TestReviewDiff() {
 	client := nightfall.Client{
 		APIClient:         mockAPIClient,
 		Conditions:        testConditions,
+		MaxNumberRoutines: 2,
+	}
+
+	numLines := 20
+	numFiles := 50
+	numScanReq := ((numLines * numFiles) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
+	filePath := "test/data"
+	lineNum := 0
+	content := fmt.Sprintf("this has a credit card number %s", exampleCreditCardNumber)
+
+	lines := make([]*diffreviewer.Line, numLines)
+	for i := range lines {
+		lines[i] = &diffreviewer.Line{
+			LnumNew: lineNum,
+			Content: content,
+		}
+	}
+
+	input := make([]*diffreviewer.FileDiff, numFiles)
+	for i := range input {
+		h := &diffreviewer.Hunk{
+			Lines: lines,
+		}
+		input[i] = &diffreviewer.FileDiff{
+			Hunks: []*diffreviewer.Hunk{
+				h,
+			},
+			PathNew: filePath,
+		}
+	}
+
+	c := diffreviewer.Comment{
+		FilePath:   filePath,
+		LineNumber: lineNum,
+		Body:       fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredCreditCard, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
+		Title:      fmt.Sprintf("Detected %s", nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
+	}
+	expectedComments := []*diffreviewer.Comment{&c, &c, &c}
+
+	totalItems := make([]string, numLines*numFiles)
+	for i := 0; i < numLines*numFiles; i++ {
+		totalItems[i] = content
+	}
+
+	for i := 0; i < numScanReq; i++ {
+		startIndex := i * maxItemsForAPIReq
+		var endIndex int
+		if len(totalItems) < startIndex+maxItemsForAPIReq {
+			endIndex = len(totalItems)
+		} else {
+			endIndex = startIndex + maxItemsForAPIReq
+		}
+
+		expectedScanReq := client.CreateScanRequest(totalItems[startIndex:endIndex])
+		mockAPIClient.EXPECT().ScanPayload(gomock.Any(), expectedScanReq).Return(expectedScanResponse, nil, nil)
+	}
+
+	comments, err := client.ReviewDiff(context.Background(), githublogger.NewDefaultGithubLogger(), input)
+	n.NoError(err, "Received error from ReviewDiff")
+	n.Equal(expectedComments, comments, "Received incorrect response from ReviewDiff")
+}
+
+func (n *nightfallTestSuite) TestReviewDiffConditionSetUUID() {
+	ctrl := gomock.NewController(n.T())
+	defer ctrl.Finish()
+	mockAPIClient := nightfallapi_mock.NewNightfallAPI(ctrl)
+	testConditionSetUUID := uuid.New().String()
+	client := nightfall.Client{
+		APIClient:         mockAPIClient,
+		ConditionSetUUID:  testConditionSetUUID,
 		MaxNumberRoutines: 2,
 	}
 

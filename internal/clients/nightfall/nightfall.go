@@ -47,6 +47,7 @@ var (
 type Client struct {
 	APIClient          nightfallintf.NightfallAPI
 	APIKey             string
+	ConditionSetUUID   string
 	Conditions         []*nightfallAPI.Condition
 	MaxNumberRoutines  int
 	InitialRetryDelay  time.Duration
@@ -60,6 +61,7 @@ func NewClient(config nightfallconfig.Config) *Client {
 	n := Client{
 		APIClient:          NewAPIClient(),
 		APIKey:             config.NightfallAPIKey,
+		ConditionSetUUID:   config.NightfallConditionSetUUID,
 		Conditions:         config.NightfallConditions,
 		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
 		InitialRetryDelay:  initialDelay,
@@ -212,6 +214,7 @@ func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequestV2 {
 	}
 	return nightfallAPI.ScanRequestV2{
 		Config: nightfallAPI.ScanRequestV2Config{
+			ConditionSetUUID: n.ConditionSetUUID,
 			ConditionSet: nightfallAPI.ScanRequestV2ConfigConditionSet{
 				Conditions: conds,
 			},

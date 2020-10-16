@@ -138,6 +138,8 @@ const testRepo = "TestRepo"
 const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
 const testConfigFileName = "nightfall_test_config.json"
 const testEmptyConfigFileName = "nightfall_empty_test_config.json"
+const testConfigConditionSetUUIDFileName = "nightfall_test_config_condition_set_uuid.json"
+const testConditionSetUUID = "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
@@ -176,7 +178,8 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey: apiKey,
+		NightfallAPIKey:           apiKey,
+		NightfallConditionSetUUID: "",
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
 				Detector: nightfallAPI.Detector{
@@ -204,6 +207,36 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
+	c.NoError(err, "Unexpected error in LoadConfig")
+	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
+}
+
+func (c *circleCiTestSuite) TestLoadConfigConditionSetUUID() {
+	tp := c.initTestParams()
+	apiKey := "api-key"
+	workspace, err := os.Getwd()
+	c.NoError(err, "Error getting workspace")
+	workspacePath := path.Join(workspace, "../../../../test/data")
+	os.Setenv(WorkspacePathEnvVar, workspacePath)
+	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	os.Setenv(CircleBranchEnvVar, testBranch)
+	os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	os.Setenv(CircleRepoNameEnvVar, testRepo)
+	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+
+	expectedNightfallConfig := &nightfallconfig.Config{
+		NightfallAPIKey:            apiKey,
+		NightfallConditionSetUUID:  testConditionSetUUID,
+		NightfallConditions:        nil,
+		NightfallMaxNumberRoutines: 20,
+		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:          []string{"*"},
+		FileExclusionList:          []string{".nightfalldlp/config.json"},
+	}
+
+	nightfallConfig, err := tp.cs.LoadConfig(testConfigConditionSetUUIDFileName)
 	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
@@ -244,7 +277,8 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey: apiKey,
+		NightfallAPIKey:           apiKey,
+		NightfallConditionSetUUID: "",
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
 				Detector: nightfallAPI.Detector{

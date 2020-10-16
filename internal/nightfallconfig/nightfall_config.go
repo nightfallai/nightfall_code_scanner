@@ -8,6 +8,8 @@ import (
 	"os"
 	"path"
 
+	"github.com/google/uuid"
+
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
@@ -82,6 +84,12 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
 		return nil, err
+	}
+	if nightfallConfig.ConditionSetUUID != "" {
+		_, err := uuid.Parse(nightfallConfig.ConditionSetUUID)
+		if err != nil {
+			return nil, fmt.Errorf("Nightfall config file has an invalid ConditionSetUUID: %w", err)
+		}
 	}
 	if nightfallConfig.ConditionSetUUID == "" && len(nightfallConfig.Conditions) < 1 {
 		return nil, errors.New("Nightfall config file is missing ConditionSetUUID or inline Conditions")

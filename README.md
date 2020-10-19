@@ -15,22 +15,22 @@ security, and ensure you never accidentally leak secrets or other sensitive info
 
 ## Nightfalldlp Config File
 
-The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors and content you want to scan for pull requests. It includes following adjustable fields available to fit your needs.
+The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors to scan with and what content you want to scan for pull requests. It includes the following adjustable fields to fit your needs.
 
 ### ConditionSetUUID
 
 A condition set uuid is a unique identifier of a condition set, also called policy, which can be defined through app.nightfall.ai UI.
-Once defined, you can only input the uuid in the your config file, e.g.
+Once defined, you can simply input the uuid in the your config file, e.g.
 
 ```json
 { "conditionSetUUID": "A0BA0D76-78B4-4E10-B653-32996060316B" }
 ```
 
-Note: by default, if both conditionSetUUID and conditions are specified, only conditionSetUUID will be used.
+Note: by default, if both conditionSetUUID and conditions are specified, only the conditionSetUUID will be used.
 
 ### Conditions
 
-Conditions are a list of conditions specified inline. Each condition has a detector struct within and two extra parameters of minNumFindings and minConfidence as below.
+Conditions are a list of conditions specified inline. Each condition contains a nested detector object as well as two additional parameters: minNumFindings and minConfidence.
 
 ```json
 {
@@ -44,9 +44,9 @@ Conditions are a list of conditions specified inline. Each condition has a detec
 }
 ```
 
-minNumFindings specifies minimal number of findings to trigger findings to return for one request, e.g. if you set minNumFindings to be 2, and only 1 finding within the request payload, then this finding will be filtered.
+minNumFindings specifies the minimal number of findings required to return for one request, e.g. if you set minNumFindings to be 2, and only 1 finding within the request payload related to that detector, that finding then will be filtered out from the response.
 
-minConfidence specifies the minimal threshold to trigger a potential finding to be captured, in total we have five levels of confidence from least sensitive to most sensitive:
+minConfidence specifies the minimal threshold to trigger a potential finding to be captured. We have five levels of confidence from least sensitive to most sensitive:
 
 - VERY_LIKELY
 - LIKELY
@@ -56,8 +56,7 @@ minConfidence specifies the minimal threshold to trigger a potential finding to 
 
 ### Detector
 
-A detector is either a prebuilt detector from nightfall or customized regex | wordlist by customer, specified by
-detectorType field.
+A detector is either a prebuilt detector from nightfall or customized regex or wordlist created by customer. This is specified by the detectorType field.
 
 - nightfall prebuilt detector
 
@@ -66,7 +65,7 @@ detectorType field.
     "detector": {
       "detectorType": "NIGHTFALL_DETECTOR",
       "nightfallDetector": "API_KEY",
-      "displayName": "credit card detector"
+      "displayName": "apiKeyDetector"
     }
   }
   ```
@@ -93,14 +92,14 @@ detectorType field.
 
 - customized regex
 
-  For convenience, we also support customized regex as a detector, which you can fill in as follow.
+  We also support customized regex as a detector, which are defined as followed:
 
   ```json
   {
     "detector": {
       "detectorType": "REGEX",
       "regex": {
-        "pattern": "coupon",
+        "pattern": "coupon:\\d{4,}",
         "isCaseSensitive": false
       },
       "displayName": "simpleRegexCouponDetector"
@@ -110,7 +109,7 @@ detectorType field.
 
 - word list
 
-  In case you are not famaliar what regex is, we also support word list searching, simply put in a list of words you want to find.
+  Word list detectors look for words you specify in its list. Example below:
 
   ```json
   {
@@ -127,21 +126,21 @@ detectorType field.
 
 - [Extra Parameters Within Detector]
 
-  Besides to define which detector to call, we also allow you to optionally specify some rules you want to attach surround the findinds and finding themselves. They are contextRules and exclusionRules.
+  Aside from specifying which detector to call, you can also specify some additional rules to attach. They are contextRules and exclusionRules.
 
   - contextRules
-    A context rule is defined as the surrounding context(pre/post chars) of a finding, you can define a trigger/rule in this section. Once it's triggered, the confidence of finding will be adjusted accordingly base on your confid.
+    A context rule evaluates the surrounding context(pre/post chars) of a finding, you can define such ruls in detector struct. Once it's triggered, the confidence of finding will be adjusted accordingly base on your config.
 
     Example:
 
     ```json
     {
       "detector": {
-        // ...... other detector fileds
+        // ...... other detector fields
         "contextRules": [
           {
             "regex": {
-              "pattern": "test cc",
+              "pattern": "my cc",
               "isCaseSensitive": true
             },
             "proximity": {
@@ -149,7 +148,7 @@ detectorType field.
               "windowAfter": 30
             },
             "confidenceAdjustment": {
-              "fixedConfidence": "VERY_UNLIKELY"
+              "fixedConfidence": "VERY_LIKELY"
             }
           }
         ]
@@ -158,13 +157,13 @@ detectorType field.
     ```
 
     - regex field specifies a regex to trigger
-    - proximity specifies how many pre|post chars surround findings we want to do the search
-    - confidenceAdjustment specifies what's the confidence you want to change for the finding once trigger the rule
+    - proximity is defined as the number pre|post chars surrounding the finding to conduct the search
+    - confidenceAdjustment is the confidence level to adjust for the findings that trigger the rule
 
     In this example, if we have a real text like test cc: 4242-4242-4242-4242, and 4242-4242-4242-4242 is detected as a credit card number with confidence of POSSIBLE. After we applied such context rules, since the pre chars test cc matches the regex, the confidence of such findings will drop down to VERY_UNLIKELY as specified
 
   - exclusionRules
-    Similar to context rules, you can also apply rules on findings themselves, in case you find certain findings or patterns appear to be super noisy in your case. To deactivate such appearance, you can do
+    Similar to context rules, you can also apply rules on findings themselves, in case you find certain findings or patterns appear to be noisy. To mute such appearance, you can do
 
     Example:
 
@@ -176,13 +175,13 @@ detectorType field.
           {
             "matchType": "PARTIAL",
             "exclusionType": "REGEX",
-            // specify one of these values base on type specified above
+            // specify one of these values based on type specified above
             "regex": {
-              "pattern": "4242-4242-4242-4242",
+              "pattern": "4242-4242-\\d{4}-\\d{4}",
               "isCaseSensitive": true
             },
             "wordList": {
-              "values": ["4242", "1234"],
+              "values": ["4242"],
               "isCaseSensitive": false
             }
           }
@@ -191,10 +190,9 @@ detectorType field.
     }
     ```
 
-    - exclusionType specifies either a REGEX or WORD_LIST, similar to how you define a customized regex or word list detector
+    - exclusionType specifies either a REGEX or WORD_LIST
     - regex field specifies a regex to trigger, if you choose to use REGEX type
-    - matchType could be either PARTIAL or FULL, PARTIAL means the regex only matches part of the finding, maybe first 5 chars, and with PARTIAL specified, we'd deactivate such findings as well, FULL means the regex has to match the whole finding context to deactivate
-      Suppose we have a finding of "4242-4242" with exclusion regex of 4242, if you use PARTIAL, this finding will be deactivated, while FULL then not, since the regex only matches partial of the finding
+    - matchType could be either PARTIAL or FULL, To be a full match, the entire finding must match the regex pattern or word exactly, whereas findings containing more than just the regex pattern or word are considered partial matches. Example: suppose we have a finding of "4242-4242" with exclusion regex of 4242, if you use PARTIAL, this finding will be deactivated, while FULL then not, since the regex only matches partial of the finding
 
 ## Additional Configuration
 
@@ -236,7 +234,7 @@ To summarize, we provide sevaral more examples as below
 { "conditionSetUUID": "UUID HERE" }
 ```
 
-- Config conditions inline with prebuilt detector
+- Inline condition set with Nightfall Detectors
 
 ```json
 {
@@ -275,7 +273,7 @@ To summarize, we provide sevaral more examples as below
       "detector": {
         "detectorType": "REGEX",
         "regex": {
-          "pattern": "coupon",
+          "pattern": "coupon:\\d{4,}",
           "isCaseSensitive": false
         },
         "displayName": "simpleRegexCouponDetector"
@@ -297,7 +295,7 @@ To summarize, we provide sevaral more examples as below
 }
 ```
 
-- Detailed configuration, if you find there're noisy results you want to get rid of.
+- Condition Set with condition containing context and exclusion rules:
 
 ```json
 {
@@ -325,7 +323,6 @@ To summarize, we provide sevaral more examples as below
           }
         }
       ],
-
       "exclusionRules": [
         {
           "matchType": "PARTIAL",

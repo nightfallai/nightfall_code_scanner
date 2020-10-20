@@ -56,7 +56,7 @@ minConfidence specifies the minimal threshold to trigger a potential finding to 
 
 ### Detector
 
-A detector is either a prebuilt detector from nightfall or customized regex or wordlist created by customer. This is specified by the detectorType field.
+A detector is either a prebuilt Nightfall detector or custom regex or wordlist detector that you can create. This is specified by the detectorType field.
 
 - nightfall prebuilt detector
 
@@ -126,10 +126,10 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
 
 - [Extra Parameters Within Detector]
 
-  Aside from specifying which detector to call, you can also specify some additional rules to attach. They are contextRules and exclusionRules.
+  Aside from specifying which detector to use for a condition, you can also specify some additional rules to attach. They are contextRules and exclusionRules.
 
   - contextRules
-    A context rule evaluates the surrounding context(pre/post chars) of a finding, you can define such ruls in detector struct. Once it's triggered, the confidence of finding will be adjusted accordingly base on your config.
+    A context rule evaluates the surrounding context(pre/post chars) of a finding and adjusts the finding's confidence if the input context rule pattern exists.
 
     Example:
 
@@ -158,12 +158,12 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
 
     - regex field specifies a regex to trigger
     - proximity is defined as the number pre|post chars surrounding the finding to conduct the search
-    - confidenceAdjustment is the confidence level to adjust for the findings that trigger the rule
+    - confidenceAdjustment is the confidence level to adjust the finding to upon existence of the input context
 
     As an example, say we have the following line of text in a file `my cc number: 4242-4242-4242-4242`, and `4242-4242-4242-4242` is detected as a credit card number with confidence of POSSIBLE. If we had the context rule above, the confidence level of this finding will be bumped up to `VERY_LIKELY` because the characters preceding the finding, `my cc`, match the regex.
 
   - exclusionRules
-    Similar to context rules, you can also apply rules on findings themselves, in case you find certain findings or patterns appear to be noisy. To mute such appearance, you can do
+    Exclusion rules on individual conditions are used to mute findings related to that condition's detector.
 
     Example:
 
@@ -175,7 +175,7 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
           {
             "matchType": "PARTIAL",
             "exclusionType": "REGEX",
-            // specify one of these values based on type specified above
+            // specify one of these values based on the type specified above
             "regex": {
               "pattern": "4242-4242-\\d{4}-\\d{4}",
               "isCaseSensitive": true
@@ -192,7 +192,7 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
 
     - exclusionType specifies either a REGEX or WORD_LIST
     - regex field specifies a regex to trigger, if you choose to use REGEX type
-    - matchType could be either PARTIAL or FULL, To be a full match, the entire finding must match the regex pattern or word exactly, whereas findings containing more than just the regex pattern or word are considered partial matches. Example: suppose we have a finding of "4242-4242" with exclusion regex of 4242, if you use PARTIAL, this finding will be deactivated, while FULL then not, since the regex only matches partial of the finding
+    - matchType could be either PARTIAL or FULL, To be a full match, the entire finding must match the regex pattern or word exactly, whereas findings containing more than just the regex pattern or word are considered partial matches. Example: suppose we have a finding of "4242-4242" with exclusion regex of 4242. If you use PARTIAL, this finding will be deactivated, while FULL not, since the regex only matches partial of the finding
 
 ## Additional Configuration
 

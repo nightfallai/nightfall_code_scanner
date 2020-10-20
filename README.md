@@ -19,7 +19,7 @@ The .nightfalldlp/config.json file is used as a centralized config file to contr
 
 ### ConditionSetUUID
 
-A condition set uuid is a unique identifier of a condition set, also called policy, which can be defined through app.nightfall.ai UI.
+A condition set uuid is a unique identifier of a condition set, which can be created via [app.nightfall.ai](app.nightfall.ai).
 Once defined, you can simply input the uuid in the your config file, e.g.
 
 ```json
@@ -160,7 +160,7 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
     - proximity is defined as the number pre|post chars surrounding the finding to conduct the search
     - confidenceAdjustment is the confidence level to adjust for the findings that trigger the rule
 
-    In this example, if we have a real text like test cc: 4242-4242-4242-4242, and 4242-4242-4242-4242 is detected as a credit card number with confidence of POSSIBLE. After we applied such context rules, since the pre chars test cc matches the regex, the confidence of such findings will drop down to VERY_UNLIKELY as specified
+    As an example, say we have the following line of text in a file `my cc number: 4242-4242-4242-4242`, and `4242-4242-4242-4242` is detected as a credit card number with confidence of POSSIBLE. If we had the context rule above, the confidence level of this finding will be bumped up to `VERY_LIKELY` because the characters preceding the finding, `my cc`, match the regex.
 
   - exclusionRules
     Similar to context rules, you can also apply rules on findings themselves, in case you find certain findings or patterns appear to be noisy. To mute such appearance, you can do
@@ -170,7 +170,7 @@ A detector is either a prebuilt detector from nightfall or customized regex or w
     ```json
     {
       "detector": {
-        // ...... other detector fileds
+        // ...... other detector fields
         "exclusionRules": [
           {
             "matchType": "PARTIAL",
@@ -228,7 +228,7 @@ Note: we are using [gobwas/glob](https://github.com/gobwas/glob) to match file p
 
 To summarize, we provide sevaral more examples as below
 
-- Config conditionSet through app.nightfall.ai UI
+- Using a pre-built condition set
 
 ```json
 { "conditionSetUUID": "UUID HERE" }

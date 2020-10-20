@@ -224,9 +224,7 @@ Here's an example use case:
 In the example, we are ignoring all file paths with a `tests` subdirectory, and only scanning on `go` and `json` files.
 Note: we are using [gobwas/glob](https://github.com/gobwas/glob) to match file path patterns. Unlike the token regex matching, file paths must be completely matched by the given pattern. e.g. If `tests` is a subdirectory, it will not be matched by `tests/*`, which is only a partial match.
 
-## Extra Real Examples
-
-To summarize, we provide sevaral more examples as below
+## Configuration Examples
 
 - Using a pre-built condition set
 
@@ -262,7 +260,7 @@ To summarize, we provide sevaral more examples as below
 }
 ```
 
-- Config conditions inline with your own regex | word list
+- Inline Conditions containing custom Regex and WordList detectors
 
 ```json
 {

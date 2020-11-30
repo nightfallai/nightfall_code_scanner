@@ -27,6 +27,8 @@ type Comment struct {
 	LineNumber int
 }
 
+// Git Structs from https://github.com/reviewdog/reviewdog/blob/master/diff/diff.go
+
 // FileDiff represents a unified diff for a single file.
 //
 // Example:

@@ -12,6 +12,8 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 )
 
+// Diff Parsing Code from https://github.com/reviewdog/reviewdog/blob/master/diff/parse.go
+
 const (
 	tokenDiffGit        = "diff --git" // diff --git a/sample.old.txt b/sample.new.txt
 	tokenOldFile        = "---"        // --- sample.old.txt	2016-10-13 05:09:35.820791185 +0900

@@ -128,9 +128,9 @@ type Service struct {
 }
 
 // NewAuthenticatedGithubService creates a new authenticated github service with the github token
-func NewAuthenticatedGithubService(githubToken string) diffreviewer.DiffReviewer {
+func NewAuthenticatedGithubService(githubToken, baseURL string) diffreviewer.DiffReviewer {
 	return &Service{
-		Client: NewAuthenticatedClient(githubToken),
+		Client: NewAuthenticatedClient(githubToken, baseURL),
 		Logger: githublogger.NewDefaultGithubLogger(),
 	}
 }
@@ -280,7 +280,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			Summary:     github.String(summaryNumFindings),
 			Annotations: remainingAnnotations,
 			Images: []*github.CheckRunImage{
-				&github.CheckRunImage{
+				{
 					Alt:      github.String(imageAlt),
 					ImageURL: github.String(imageURL),
 				},

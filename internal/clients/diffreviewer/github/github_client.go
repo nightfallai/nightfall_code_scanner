@@ -2,6 +2,8 @@ package github
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"github.com/google/go-github/v31/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
@@ -14,13 +16,24 @@ type Client struct {
 }
 
 // NewAuthenticatedClient generates an authenticated github client
-func NewAuthenticatedClient(token string) *Client {
+func NewAuthenticatedClient(token string, baseUrl string) *Client {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	githubClient := github.NewClient(tc)
+	// for enterprise
+	if baseUrl != "" {
+		u, _ := url.Parse(baseUrl)
+		if !strings.HasSuffix(u.Path, "/") {
+			u.Path += "/"
+		}
+		if !strings.HasSuffix(u.Path, "/api/v3/") {
+			u.Path += "api/v3/"
+		}
+		githubClient.BaseURL = u
+	}
 	return &Client{githubClient}
 }
 

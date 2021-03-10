@@ -63,9 +63,9 @@ func NewCircleCiService() diffreviewer.DiffReviewer {
 }
 
 // NewCircleCiServiceWithGithubComments creates a new CircleCi service with an authenticated Github client
-func NewCircleCiServiceWithGithubComments(token string) diffreviewer.DiffReviewer {
+func NewCircleCiServiceWithGithubComments(token, baseUrl string) diffreviewer.DiffReviewer {
 	return &Service{
-		GithubClient: gc.NewAuthenticatedClient(token),
+		GithubClient: gc.NewAuthenticatedClient(token, baseUrl),
 		Logger:       circlelogger.NewDefaultCircleLogger(),
 	}
 }

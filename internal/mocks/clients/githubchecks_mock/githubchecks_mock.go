@@ -7,7 +7,7 @@ package githubchecks_mock
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	github "github.com/google/go-github/v31/github"
+	github "github.com/google/go-github/v33/github"
 	reflect "reflect"
 )
 

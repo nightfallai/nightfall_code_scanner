@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/diffutils"
 	gc "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"

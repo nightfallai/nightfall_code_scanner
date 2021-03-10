@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"

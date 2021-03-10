@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 	"github.com/nightfallai/nightfall_code_scanner/internal/interfaces/githubintf"
 	"golang.org/x/oauth2"
 )

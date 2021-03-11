@@ -3,7 +3,7 @@ package githubintf
 import (
 	"context"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -destination=../../mocks/clients/githubchecks_mock/githubchecks_mock.go -source=../githubintf/github_checks.go -package=githubchecks_mock -mock_names=GithubChecks=GithubChecks

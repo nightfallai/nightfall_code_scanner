@@ -3,7 +3,7 @@ package githubintf
 import (
 	"context"
 
-	"github.com/google/go-github/v31/github"
+	"github.com/google/go-github/v33/github"
 )
 
 //go:generate go run github.com/golang/mock/mockgen -destination=../../mocks/clients/githubrepositories_mock/githubrepositories_mock.go -source=../githubintf/github_repositories.go -package=githubrepositories_mock -mock_names=GithubRepositories=GithubRepositories

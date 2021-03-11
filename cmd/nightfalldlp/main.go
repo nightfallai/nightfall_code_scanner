@@ -17,6 +17,7 @@ const (
 	nightfallConfigFileName = ".nightfalldlp/config.json"
 	githubActionsEnvVar     = "GITHUB_ACTIONS"
 	githubTokenEnvVar       = "GITHUB_TOKEN"
+	githubApiBaseUrlEnvVar  = "GITHUB_API_BASE_URL"
 	circleCiEnvVar          = "CIRCLECI"
 )
 
@@ -81,13 +82,14 @@ func usingCircleCi() bool {
 // CreateDiffReviewerClient determines the current environment that is running nightfalldlp
 // and returns the corresponding DiffReviewer client
 func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
+	baseUrl, _ := os.LookupEnv(githubApiBaseUrlEnvVar)
 	switch {
 	case usingGithubAction():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok {
 			return nil, fmt.Errorf("could not find required %s environment variable", githubTokenEnvVar)
 		}
-		return github.NewAuthenticatedGithubService(githubToken), nil
+		return github.NewAuthenticatedGithubService(githubToken, baseUrl), nil
 	case usingCircleCi():
 		githubToken, ok := os.LookupEnv(githubTokenEnvVar)
 		if !ok || githubToken == "" {
@@ -95,7 +97,7 @@ func CreateDiffReviewerClient() (diffreviewer.DiffReviewer, error) {
 			circleService.GetLogger().Info("Github Token not found - findings will only be posted to CircleCI UI")
 			return circleService, nil
 		}
-		return circleci.NewCircleCiServiceWithGithubComments(githubToken), nil
+		return circleci.NewCircleCiServiceWithGithubComments(githubToken, baseUrl), nil
 	default:
 		return nil, errors.New("current environment unknown")
 	}

@@ -17,7 +17,7 @@ const (
 	nightfallConfigFileName = ".nightfalldlp/config.json"
 	githubActionsEnvVar     = "GITHUB_ACTIONS"
 	githubTokenEnvVar       = "GITHUB_TOKEN"
-	githubApiBaseUrlEnvVar  = "GITHUB_API_BASE_URL"
+	githubApiBaseUrlEnvVar  = "BASE_URL"
 	circleCiEnvVar          = "CIRCLECI"
 )
 

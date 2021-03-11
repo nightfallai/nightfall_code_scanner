@@ -236,6 +236,10 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	if resp != nil {
 		s.Logger.Info(fmt.Sprintf("Github Response: %+v", resp))
 	}
+	if err != nil {
+		s.Logger.Error(fmt.Sprintf("Error listing PR comments: %s", err.Error()))
+		return err
+	}
 	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {

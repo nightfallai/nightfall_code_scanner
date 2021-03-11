@@ -230,6 +230,12 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+	prTestComments, resp, err := s.Client.PullRequestsService().ListComments(
+		context.Background(), s.CheckRequest.Owner, s.CheckRequest.Repo, 0, nil)
+	s.Logger.Info(fmt.Sprintf("Number of PR TEST COMMENTS: %d", len(prTestComments)))
+	if resp != nil {
+		s.Logger.Info(fmt.Sprintf("Github Response: %+v", resp))
+	}
 	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {

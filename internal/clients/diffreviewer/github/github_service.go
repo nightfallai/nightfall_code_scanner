@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"strings"
@@ -228,18 +229,28 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 	return fileDiffs, nil
 }
 
-// WriteComments posts the findings as annotations to the github check
-func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+func (s *Service) listComments() error {
+	httpClient := s.Client.
 	prTestComments, resp, err := s.Client.PullRequestsService().ListComments(
 		context.Background(), s.CheckRequest.Owner, s.CheckRequest.Repo, 0, nil)
 	s.Logger.Info(fmt.Sprintf("Number of PR TEST COMMENTS: %d", len(prTestComments)))
 	if resp != nil {
 		s.Logger.Info(fmt.Sprintf("Github Response: %+v", resp.Response))
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			s.Logger.Error(fmt.Sprintf("error reading resp body: %s", err.Error()))
+		}
+		s.Logger.Info(fmt.Sprintf("Github Response Body: %s", string(body)))
 	}
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("Error listing PR comments: %s", err.Error()))
 		return err
 	}
+}
+
+// WriteComments posts the findings as annotations to the github check
+func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+	s.listComments()
 	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {

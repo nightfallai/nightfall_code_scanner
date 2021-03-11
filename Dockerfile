@@ -18,6 +18,8 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_sc
 FROM alpine:3.8
 
 RUN apk add git --no-cache
+RUN apk update && apk add --no-cache docker-cli
+RUN docker build -t alpine-docker .
 
 COPY --from=builder /projects/nightfall_code_scanner/nightfall_code_scanner /nightfall_code_scanner
 

@@ -343,9 +343,7 @@ func (n *Client) ReviewDiff(
 	logger logger.Logger,
 	fileDiffs []*diffreviewer.FileDiff,
 ) ([]*diffreviewer.Comment, error) {
-	logger.Info(fmt.Sprintf("Len File Diffs: %d", len(fileDiffs)))
 	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
-	logger.Info(fmt.Sprintf("Len File Diffs: %d", len(fileDiffs)))
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {

@@ -218,36 +218,15 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 		s.Logger.Error(fmt.Sprintf("Error getting the raw diff from Github: %v", err))
 		return nil, err
 	}
-	s.Logger.Info(fmt.Sprintf("Diff Content: %s", content))
 
 	fileDiffs, err := diffutils.ParseMultiFile(strings.NewReader(content))
-	s.Logger.Info(fmt.Sprintf("fileDiffs len Post PMF : %d", len(fileDiffs)))
 	if err != nil {
 		s.Logger.Error("Error parsing the raw diff from Github")
 		return nil, err
 	}
 	fileDiffs = diffutils.FilterFileDiffs(fileDiffs)
-	s.Logger.Info(fmt.Sprintf("filterfileDiffs len Post PMF : %d", len(fileDiffs)))
 	return fileDiffs, nil
 }
-
-/*func (s *Service) listComments() error {
-	prTestComments, resp, err := s.Client.PullRequestsService().ListComments(
-		context.Background(), s.CheckRequest.Owner, s.CheckRequest.Repo, 0, nil)
-	s.Logger.Info(fmt.Sprintf("Number of PR TEST COMMENTS: %d", len(prTestComments)))
-	if resp != nil {
-		s.Logger.Info(fmt.Sprintf("Github Response: %+v", resp.Response))
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			s.Logger.Error(fmt.Sprintf("error reading resp body: %s", err.Error()))
-		}
-		s.Logger.Info(fmt.Sprintf("Github Response Body: %s", string(body)))
-	}
-	if err != nil {
-		s.Logger.Error(fmt.Sprintf("Error listing PR comments: %s", err.Error()))
-		return err
-	}
-}*/
 
 // WriteComments posts the findings as annotations to the github check
 func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {

@@ -25,8 +25,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	switch {
 	case gd.BaseBranch != "":
 		// PR event so get diff between base branch and current commit SHA
-		gitCmd := exec.Command("git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseBranch, "--depth=1")
-		err = gitCmd.Run()
+		err := exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		if err != nil {
 			return "", err
 		}

@@ -23,11 +23,9 @@ func NewAuthenticatedClient(token string, baseUrl string) *Client {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	githubClient := github.NewClient(tc)
-
 	// for enterprise
-	var u *url.URL
 	if baseUrl != "" {
-		u, _ = url.Parse(baseUrl)
+		u, _ := url.Parse(baseUrl)
 		if !strings.HasSuffix(u.Path, "/") {
 			u.Path += "/"
 		}

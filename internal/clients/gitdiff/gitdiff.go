@@ -21,11 +21,14 @@ type GitDiff struct {
 // GetDiff uses the command line to compute the diff
 func (gd *GitDiff) GetDiff() (string, error) {
 	err := os.Chdir(gd.WorkDir)
+	if err != nil {
+		return "", err
+	}
 	var diffCmd *exec.Cmd
 	switch {
 	case gd.BaseBranch != "":
 		// PR event so get diff between base branch and current commit SHA
-		err := exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		if err != nil {
 			return "", err
 		}

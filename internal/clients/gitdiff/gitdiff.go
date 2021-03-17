@@ -3,8 +3,6 @@ package gitdiff
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,17 +16,6 @@ type GitDiff struct {
 	BaseBranch string
 	BaseSHA    string
 	Head       string
-}
-
-func printFiles(dir string) {
-	fileInfos, err := ioutil.ReadDir(dir)
-	if err != nil {
-		log.Printf("Error in accessing directory:%s", err.Error())
-	}
-
-	for _, file := range fileInfos {
-		log.Printf(file.Name())
-	}
 }
 
 // GetDiff uses the command line to compute the diff

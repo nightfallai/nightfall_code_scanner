@@ -24,6 +24,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	var diffCmd *exec.Cmd
 	switch {
 	case gd.BaseBranch != "":

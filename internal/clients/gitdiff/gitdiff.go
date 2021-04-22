@@ -36,7 +36,8 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	case gd.BaseBranch != "":
 		// PR event so get diff between base branch and current commit SHA
 		logger.Info("Getting Diff between Base Branch and Current Commit SHA")
-		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+		//err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+		err = exec.Command("git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error getting diff between Base Branch and Current Commit SHA: %s", err.Error()))
 			return "", err
@@ -45,7 +46,8 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	case gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash:
 		// PUSH event for new branch so use git show to get the diff of the most recent commit
 		logger.Info("Getting Diff for new branch push event")
-		err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
+		//err = exec.Command("git", "fetch", "origin", gd.Head, "--depth=2").Run()
+		err = exec.Command("git", "-c", "http.sslVerify=false", "fetch", "origin", gd.Head, "--depth=2").Run()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error getting diff in new branch push event: %s", err.Error()))
 			return "", err
@@ -55,7 +57,8 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		// PUSH event where last commit action ran on exists
 		// use current commit SHA and previous action run commit SHA for diff
 		logger.Info("Getting Diff for new push event")
-		err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
+		//err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
+		err = exec.Command("git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error getting diff in push event: %s", err.Error()))
 			return "", err

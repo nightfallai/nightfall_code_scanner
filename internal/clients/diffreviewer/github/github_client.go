@@ -1,7 +1,8 @@
 package github
 
 import (
-	"context"
+	"crypto/tls"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -17,11 +18,25 @@ type Client struct {
 
 // NewAuthenticatedClient generates an authenticated github client
 func NewAuthenticatedClient(token string, baseUrl string) *Client {
-	ctx := context.Background()
+	/*
+		ctx := context.Background()
+
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: token},
+		)
+		tc := oauth2.NewClient(ctx, ts)
+	*/
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	tc := oauth2.NewClient(ctx, ts)
+	customTransport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	tc := &http.Client{
+		Transport: &oauth2.Transport{
+			Base:   customTransport,
+			Source: oauth2.ReuseTokenSource(nil, ts),
+		},
+	}
 	githubClient := github.NewClient(tc)
 	// for enterprise
 	if baseUrl != "" {

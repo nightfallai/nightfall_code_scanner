@@ -38,11 +38,13 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		logger.Info("Getting Diff between Base Branch and Current Commit SHA")
 		//err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		fetchCmd := exec.Command(
+			"git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseBranch, "--depth=1")
+		fetchCmd.Env = os.Environ()
+		fetchCmd.Env = append(fetchCmd.Env,
 			"GIT_TRACE=true",
 			"GIT_CURL_VERBOSE=true",
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
-			"GIT_TRACE_SHALLOW=true",
-			"git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseBranch, "--depth=1")
+			"GIT_TRACE_SHALLOW=true")
 		reader, err := fetchCmd.StdoutPipe()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))
@@ -87,12 +89,15 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		// use current commit SHA and previous action run commit SHA for diff
 		logger.Info("Getting Diff for new push event")
 		//err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
+
 		fetchCmd := exec.Command(
+			"git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseSHA, "--depth=1")
+		fetchCmd.Env = os.Environ()
+		fetchCmd.Env = append(fetchCmd.Env,
 			"GIT_TRACE=true",
 			"GIT_CURL_VERBOSE=true",
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
-			"GIT_TRACE_SHALLOW=true",
-			"git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseSHA, "--depth=1")
+			"GIT_TRACE_SHALLOW=true")
 		reader, err := fetchCmd.StdoutPipe()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))

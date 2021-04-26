@@ -1,4 +1,6 @@
-FROM golang:1.16-stretch AS builder
+FROM golang:1.16-alpine AS builder
+
+RUN apk add bash g++ make wget --no-cache
 
 WORKDIR /projects/nightfall_code_scanner
 

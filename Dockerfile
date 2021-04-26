@@ -17,8 +17,6 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_sc
 
 FROM ubuntu:18.04
 
-RUN apk add git --no-cache
-
 COPY --from=builder /projects/nightfall_code_scanner/nightfall_code_scanner /nightfall_code_scanner
 
 CMD ["/nightfall_code_scanner"]

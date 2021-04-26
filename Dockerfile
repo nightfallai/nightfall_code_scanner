@@ -15,7 +15,7 @@ COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_scanner ./cmd/nightfalldlp/
 
-FROM alpine:latest
+FROM alpine:3
 
 RUN apk add git --no-cache
 

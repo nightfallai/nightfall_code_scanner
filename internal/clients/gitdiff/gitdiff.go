@@ -1,6 +1,7 @@
 package gitdiff
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -46,25 +47,35 @@ func (gd *GitDiff) GetDiff() (string, error) {
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
 			"GIT_TRACE_SHALLOW=true")
 		reader, err := fetchCmd.StdoutPipe()
+		errReader, err := fetchCmd.StderrPipe()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))
 			return "", err
 		}
 		defer reader.Close()
+		defer errReader.Close()
+		multi := io.MultiReader(reader, errReader)
+		in := bufio.NewScanner(multi)
 		err = fetchCmd.Start()
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error starting git diff cmd: %s", err.Error()))
+			logger.Error(fmt.Sprintf("Error starting git fetch cmd: %s", err.Error()))
 			return "", nil
+		}
+		for in.Scan() {
+			logger.Info(in.Text()) // write each line to your log, or anything you need
+		}
+		if err := in.Err(); err != nil {
+			log.Printf("error: %s", err)
 		}
 		buf := new(strings.Builder)
 		_, err = io.Copy(buf, reader)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error copying git diff output: %s", err.Error()))
+			logger.Error(fmt.Sprintf("Error copying git fetch output: %s", err.Error()))
 			return "", err
 		}
 		err = fetchCmd.Wait()
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error waiting for git diff cmd to exit: %s", err.Error()))
+			logger.Error(fmt.Sprintf("Error waiting for git fetch cmd to exit: %s", err.Error()))
 			return "", err
 		}
 		logger.Info(fmt.Sprintf("Fetch Origin Logs: %s", buf.String()))
@@ -99,15 +110,25 @@ func (gd *GitDiff) GetDiff() (string, error) {
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
 			"GIT_TRACE_SHALLOW=true")
 		reader, err := fetchCmd.StdoutPipe()
+		errReader, err := fetchCmd.StderrPipe()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))
 			return "", err
 		}
 		defer reader.Close()
+		defer errReader.Close()
+		multi := io.MultiReader(reader, errReader)
+		in := bufio.NewScanner(multi)
 		err = fetchCmd.Start()
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error starting git diff cmd: %s", err.Error()))
+			logger.Error(fmt.Sprintf("Error starting git fetch cmd: %s", err.Error()))
 			return "", nil
+		}
+		for in.Scan() {
+			logger.Info(in.Text()) // write each line to your log, or anything you need
+		}
+		if err := in.Err(); err != nil {
+			log.Printf("error: %s", err)
 		}
 		buf := new(strings.Builder)
 		_, err = io.Copy(buf, reader)

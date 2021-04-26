@@ -1,6 +1,7 @@
 package gitdiff
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -35,11 +36,56 @@ func (gd *GitDiff) GetDiff() (string, error) {
 	case gd.BaseBranch != "":
 		logger.Info("Getting Diff between Base Branch and Current Commit SHA")
 		// PR event so get diff between base branch and current commit SHA
-		err = exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
+		fetchCmd := exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1")
+		fetchCmd.Env = os.Environ()
+		fetchCmd.Env = append(fetchCmd.Env,
+			"GIT_TRACE=true",
+			"GIT_CURL_VERBOSE=true",
+			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
+			"GIT_TRACE_SHALLOW=true")
+		reader, err := fetchCmd.StdoutPipe()
+		errReader, err := fetchCmd.StderrPipe()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))
+			return "", err
+		}
+		defer reader.Close()
+		defer errReader.Close()
+		multi := io.MultiReader(reader, errReader)
+		in := bufio.NewScanner(multi)
+		err = fetchCmd.Start()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error starting git fetch cmd: %s", err.Error()))
+			return "", nil
+		}
+		for in.Scan() {
+			logger.Info(in.Text()) // write each line to your log, or anything you need
+		}
+		if err := in.Err(); err != nil {
+			log.Printf("error: %s", err)
+		}
+		buf := new(strings.Builder)
+		_, err = io.Copy(buf, reader)
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error copying git fetch output: %s", err.Error()))
+			return "", err
+		}
+		err = fetchCmd.Wait()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error waiting for git fetch cmd to exit: %s", err.Error()))
+			return "", err
+		}
+		logger.Info(fmt.Sprintf("Fetch Origin Logs: %s", buf.String()))
+		/*err = exec.Command("git", "-c", "http.sslVerify=false", "fetch", "origin", gd.BaseBranch, "--depth=1").Run()
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error getting diff between Base Branch and Current Commit SHA: %s", err.Error()))
 			return "", err
-		}
+		}*/
+		/*err = fetchCmd.Run()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error getting diff between Base Branch and Current Commit SHA: %s", err.Error()))
+			return "", err
+		}*/
 		diffCmd = exec.Command("git", "diff", fmt.Sprintf("origin/%s", gd.BaseBranch))
 	case gd.BaseSHA == "" || gd.BaseSHA == unknownCommitHash:
 		logger.Info("Getting Diff for new branch push event")
@@ -54,11 +100,47 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		// PUSH event where last commit action ran on exists
 		// use current commit SHA and previous action run commit SHA for diff
 		logger.Info("Getting Diff for new push event")
-		err = exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1").Run()
+		fetchCmd := exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1")
+		fetchCmd.Env = os.Environ()
+		fetchCmd.Env = append(fetchCmd.Env,
+			"GIT_TRACE=true",
+			"GIT_CURL_VERBOSE=true",
+			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
+			"GIT_TRACE_SHALLOW=true")
+		reader, err := fetchCmd.StdoutPipe()
+		errReader, err := fetchCmd.StderrPipe()
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error fetching diff in push event: %s", err.Error()))
+			logger.Error(fmt.Sprintf("Error piping git fetch cmd: %s", err.Error()))
 			return "", err
 		}
+		defer reader.Close()
+		defer errReader.Close()
+		multi := io.MultiReader(reader, errReader)
+		in := bufio.NewScanner(multi)
+		err = fetchCmd.Start()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error starting git fetch cmd: %s", err.Error()))
+			return "", nil
+		}
+		for in.Scan() {
+			logger.Info(in.Text()) // write each line to your log, or anything you need
+		}
+		if err := in.Err(); err != nil {
+			log.Printf("error: %s", err)
+		}
+		buf := new(strings.Builder)
+		_, err = io.Copy(buf, reader)
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error copying git diff output: %s", err.Error()))
+			return "", err
+		}
+		err = fetchCmd.Wait()
+		if err != nil {
+			logger.Error(fmt.Sprintf("Error waiting for git diff cmd to exit: %s", err.Error()))
+			return "", err
+		}
+		logger.Info(fmt.Sprintf("Fetch Origin Logs: %s", buf.String()))
+
 		diffCmd = exec.Command("git", "diff", gd.BaseSHA, gd.Head)
 	}
 

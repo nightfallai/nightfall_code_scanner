@@ -13,9 +13,12 @@ RUN wget -O - -q https://raw.githubusercontent.com/reviewdog/reviewdog/master/in
 
 COPY . .
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_scanner ./cmd/nightfalldlp/
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o nightfall_code_scanner ./cmd/nightfalldlp/
 
 FROM ubuntu:18.04
+
+RUN apt update
+RUN apt install -y git
 
 COPY --from=builder /projects/nightfall_code_scanner/nightfall_code_scanner /nightfall_code_scanner
 

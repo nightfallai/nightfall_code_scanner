@@ -39,6 +39,8 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		fetchCmd := exec.Command("git", "fetch", "origin", gd.BaseBranch, "--depth=1")
 		fetchCmd.Env = os.Environ()
 		fetchCmd.Env = append(fetchCmd.Env,
+			"GIT_DISCOVERY_ACROSS_FILESYSTEM=1",
+			"GIT_TRACE=true",
 			"GIT_TRACE=true",
 			"GIT_CURL_VERBOSE=true",
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",
@@ -103,6 +105,7 @@ func (gd *GitDiff) GetDiff() (string, error) {
 		fetchCmd := exec.Command("git", "fetch", "origin", gd.BaseSHA, "--depth=1")
 		fetchCmd.Env = os.Environ()
 		fetchCmd.Env = append(fetchCmd.Env,
+			"GIT_DISCOVERY_ACROSS_FILESYSTEM=1",
 			"GIT_TRACE=true",
 			"GIT_CURL_VERBOSE=true",
 			"GIT_SSH_COMMAND=\"ssh -vvv\"\t",

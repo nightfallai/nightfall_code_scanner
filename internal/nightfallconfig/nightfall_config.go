@@ -19,29 +19,38 @@ const DefaultMaxNumberRoutines = 20
 const nightfallConfigFilename = ".nightfalldlp/config.json"
 const defaultConditionsInfoMessage = "Using default Conditions with detectors API_KEY and CRYPTOGRAPHIC_KEY"
 
-var defaultNightfallConfig = &NightfallConfigFileStructure{
-	Conditions: []*nightfallAPI.Condition{
-		{
-			Detector: nightfallAPI.Detector{
-				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
-				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+var (
+	one                           int32 = 1
+	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
+	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
+	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
+	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
+	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
+	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
+	defaultNightfallConfig              = &NightfallConfigFileStructure{
+		Conditions: []*nightfallAPI.Condition{
+			{
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallAPIKey,
+					DisplayName:       &nightfallAPIKeyName,
+				},
+				MinNumFindings: &one,
+				MinConfidence:  &confidencePossible,
 			},
-			MinNumFindings: 1,
-			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-		},
-		{
-			Detector: nightfallAPI.Detector{
-				DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-				NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
-				DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+			{
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallCryptographicKey,
+					DisplayName:       &nightfallCryptographicKeyName,
+				},
+				MinNumFindings: &one,
+				MinConfidence:  &confidencePossible,
 			},
-			MinNumFindings: 1,
-			MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
 		},
-	},
-	MaxNumberRoutines: DefaultMaxNumberRoutines,
-}
+		MaxNumberRoutines: DefaultMaxNumberRoutines,
+	}
+)
 
 // NightfallConfigFileStructure struct representation of nightfall config file
 type NightfallConfigFileStructure struct {

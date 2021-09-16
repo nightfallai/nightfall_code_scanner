@@ -25,5 +25,5 @@ func (c *APIClient) ScanPayload(
 	ctx context.Context,
 	scanReq nightfallAPI.ScanRequestV2,
 ) ([][]nightfallAPI.ScanResponseV2, *http.Response, error) {
-	return c.APIClient.ScanV2Api.ScanPayloadV2(ctx, scanReq)
+	return c.APIClient.ScanApi.ScanPayloadV2(ctx).ScanReqV2(scanReq).Execute()
 }

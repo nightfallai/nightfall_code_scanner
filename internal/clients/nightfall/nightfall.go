@@ -92,12 +92,18 @@ func blurContent(content string) string {
 }
 
 func getCommentMsg(finding nightfallAPI.ScanResponseV2) string {
-	blurredContent := blurContent(finding.Fragment)
-	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.DetectorName)
+	if finding.Fragment == nil || finding.DetectorName == nil {
+		return ""
+	}
+	blurredContent := blurContent(*finding.Fragment)
+	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, *finding.DetectorName)
 }
 
 func getCommentTitle(finding nightfallAPI.ScanResponseV2) string {
-	return fmt.Sprintf("Detected %s", finding.DetectorName)
+	if finding.DetectorName == nil {
+		return ""
+	}
+	return fmt.Sprintf("Detected %s", *finding.DetectorName)
 }
 
 // wordSplitter is of type bufio.SplitFunc (https://golang.org/pkg/bufio/#SplitFunc)
@@ -172,7 +178,7 @@ func createCommentsFromScanResp(
 	comments := []*diffreviewer.Comment{}
 	for j, findingList := range resp {
 		for _, finding := range findingList {
-			if !isFindingInTokenExclusionList(finding.Fragment, tokenExclusionList) {
+			if finding.Fragment != nil && !isFindingInTokenExclusionList(*finding.Fragment, tokenExclusionList) {
 				// Found sensitive info
 				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
@@ -212,14 +218,22 @@ func (n *Client) CreateScanRequest(items []string) nightfallAPI.ScanRequestV2 {
 	for _, d := range n.Conditions {
 		conds = append(conds, *d)
 	}
+	var conditionSetUUID *string = nil
+	if n.ConditionSetUUID != "" {
+		conditionSetUUID = &n.ConditionSetUUID
+	}
+	var conditionSet *nightfallAPI.ScanRequestV2ConfigConditionSet = nil
+	if len(conds) > 0 {
+		conditionSet = &nightfallAPI.ScanRequestV2ConfigConditionSet{
+			Conditions: &conds,
+		}
+	}
 	return nightfallAPI.ScanRequestV2{
-		Config: nightfallAPI.ScanRequestV2Config{
-			ConditionSetUUID: n.ConditionSetUUID,
-			ConditionSet: nightfallAPI.ScanRequestV2ConfigConditionSet{
-				Conditions: conds,
-			},
+		Config: &nightfallAPI.ScanRequestV2Config{
+			ConditionSetUUID: conditionSetUUID,
+			ConditionSet:     conditionSet,
 		},
-		Payload: items,
+		Payload: &items,
 	}
 }
 
@@ -296,7 +310,7 @@ func (n *Client) Scan(
 		Key:    n.APIKey,
 		Prefix: "",
 	}
-	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKey, APIKey)
+	newCtx := context.WithValue(ctx, nightfallAPI.ContextAPIKeys, map[string]nightfallAPI.APIKey{"apiKeyAuth": APIKey})
 	request := n.CreateScanRequest(items)
 	return n.makeScanRequestWithRetries(newCtx, logger, request)
 }
@@ -324,7 +338,7 @@ func (n *Client) makeScanRequestWithRetries(
 			logger.Error(
 				fmt.Sprintf(
 					"Error from Nightfall API, unable to successfully scan %d items",
-					len(request.Payload),
+					len(*request.Payload),
 				),
 			)
 			return nil, err

@@ -394,10 +394,10 @@ func (n *Client) ReviewDiff(
 }
 
 func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string, logger logger.Logger) []*diffreviewer.FileDiff {
-	if fileIncludeList != nil && len(fileIncludeList) > 0 {
+	if len(fileIncludeList) > 0 {
 		fileDiffs = filterByFilePath(fileDiffs, fileIncludeList, true, logger)
 	}
-	if fileExcludeList != nil && len(fileExcludeList) > 0 {
+	if len(fileExcludeList) > 0 {
 		fileDiffs = filterByFilePath(fileDiffs, fileExcludeList, false, logger)
 	}
 	return fileDiffs

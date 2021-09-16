@@ -24,14 +24,6 @@ const (
 	apiKeyContent            = "my api key is yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
 )
 
-var allLikelihoods = []nightfallAPI.Confidence{
-	nightfallAPI.CONFIDENCE_VERY_LIKELY,
-	nightfallAPI.CONFIDENCE_UNLIKELY,
-	nightfallAPI.CONFIDENCE_POSSIBLE,
-	nightfallAPI.CONFIDENCE_LIKELY,
-	nightfallAPI.CONFIDENCE_VERY_LIKELY,
-}
-
 func TestChunkContent(t *testing.T) {
 	tests := []struct {
 		haveBufSize int

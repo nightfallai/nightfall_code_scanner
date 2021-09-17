@@ -18,10 +18,19 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const (
+var (
 	exampleCreditCardNumber = "4916-6734-7572-5015"
 	blurredCreditCard       = "49********"
 	maxItemsForAPIReq       = 479
+
+	one                           int32 = 1
+	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
+	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
+	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
+	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
+	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
+	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
+	nightfallCreditCardName             = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER)
 )
 
 type nightfallTestSuite struct {
@@ -30,16 +39,22 @@ type nightfallTestSuite struct {
 
 var testConditions = []*nightfallAPI.Condition{
 	{
-		Detector: nightfallAPI.Detector{
-			DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+		Detector: &nightfallAPI.Detector{
+			DetectorType:      &nightfallDetectorType,
+			NightfallDetector: &nightfallAPIKey,
+			DisplayName:       &nightfallAPIKeyName,
 		},
+		MinNumFindings: &one,
+		MinConfidence:  &confidencePossible,
 	},
 	{
-		Detector: nightfallAPI.Detector{
-			DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-			NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+		Detector: &nightfallAPI.Detector{
+			DetectorType:      &nightfallDetectorType,
+			NightfallDetector: &nightfallCryptographicKey,
+			DisplayName:       &nightfallCryptographicKeyName,
 		},
+		MinNumFindings: &one,
+		MinConfidence:  &confidencePossible,
 	},
 }
 var testItems = []string{
@@ -52,9 +67,9 @@ var expectedScanResponse = [][]nightfallAPI.ScanResponseV2{
 	{},
 	{
 		{
-			Fragment:     exampleCreditCardNumber,
-			DetectorName: string(nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER),
-			Confidence:   nightfallAPI.CONFIDENCE_LIKELY,
+			Fragment:     &exampleCreditCardNumber,
+			DetectorName: &nightfallCreditCardName,
+			Confidence:   &confidencePossible,
 		},
 	},
 	{},

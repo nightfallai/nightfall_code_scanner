@@ -17,6 +17,19 @@ const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
+var (
+	one                           int32 = 1
+	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
+	ccDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
+	pnDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
+	ipDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
+	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
+	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
+	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
+	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
+	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
+)
+
 func TestGetNightfallConfig(t *testing.T) {
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
@@ -24,21 +37,21 @@ func TestGetNightfallConfig(t *testing.T) {
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
 		Conditions: []*nightfallAPI.Condition{
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &ccDetector,
 				},
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &pnDetector,
 				},
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &ipDetector,
 				},
 			},
 		},
@@ -59,22 +72,22 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
 		Conditions: []*nightfallAPI.Condition{
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
-					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallAPIKey,
+					DisplayName:       &nightfallAPIKeyName,
 				},
-				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-				MinNumFindings: 1,
+				MinNumFindings: &one,
+				MinConfidence:  &confidencePossible,
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
-					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallCryptographicKey,
+					DisplayName:       &nightfallCryptographicKeyName,
 				},
-				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-				MinNumFindings: 1,
+				MinNumFindings: &one,
+				MinConfidence:  &confidencePossible,
 			},
 		},
 		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,

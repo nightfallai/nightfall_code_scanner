@@ -24,14 +24,6 @@ const (
 	apiKeyContent            = "my api key is yr+ZWwIZp6ifFgaHV8410b2BxbRt5QiAj1EZx1qj"
 )
 
-var allLikelihoods = []nightfallAPI.Confidence{
-	nightfallAPI.CONFIDENCE_VERY_LIKELY,
-	nightfallAPI.CONFIDENCE_UNLIKELY,
-	nightfallAPI.CONFIDENCE_POSSIBLE,
-	nightfallAPI.CONFIDENCE_LIKELY,
-	nightfallAPI.CONFIDENCE_VERY_LIKELY,
-}
-
 func TestChunkContent(t *testing.T) {
 	tests := []struct {
 		haveBufSize int
@@ -382,17 +374,20 @@ func TestMatchGlob(t *testing.T) {
 	}
 }
 func createScanResponse(fragment string, detType nightfallAPI.NightfallDetectorType) nightfallAPI.ScanResponseV2 {
+	detectorName := string(detType)
+	zero := int32(0)
+	end := int32(len(fragment))
 	return nightfallAPI.ScanResponseV2{
-		Fragment:     fragment,
-		DetectorName: string(detType),
-		Location: nightfallAPI.ScanResponseV2Location{
-			ByteRange: nightfallAPI.ScanResponseV2LocationByteRange{
-				Start: 0,
-				End:   int32(len(fragment)),
+		Fragment:     &fragment,
+		DetectorName: &detectorName,
+		Location: &nightfallAPI.ScanResponseLocation{
+			ByteRange: &nightfallAPI.ScanResponseLocationByteRange{
+				Start: &zero,
+				End:   &end,
 			},
-			UnicodeRange: nightfallAPI.ScanResponseV2LocationUnicodeRange{
-				Start: 0,
-				End:   int32(len(fragment)),
+			UnicodeRange: &nightfallAPI.ScanResponseLocationUnicodeRange{
+				Start: &zero,
+				End:   &end,
 			},
 		},
 	}

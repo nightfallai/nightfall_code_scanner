@@ -144,6 +144,19 @@ const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
+var (
+	one                           int32 = 1
+	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
+	ccDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
+	pnDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
+	ipDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
+	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
+	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
+	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
+	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
+	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
+)
+
 var envVars = []string{
 	WorkspacePathEnvVar,
 	CircleCurrentCommitShaEnvVar,
@@ -181,21 +194,21 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 		NightfallAPIKey: apiKey,
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &ccDetector,
 				},
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &pnDetector,
 				},
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS,
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &ipDetector,
 				},
 			},
 		},
@@ -279,22 +292,22 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 		NightfallAPIKey: apiKey,
 		NightfallConditions: []*nightfallAPI.Condition{
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY,
-					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY),
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallAPIKey,
+					DisplayName:       &nightfallAPIKeyName,
 				},
-				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-				MinNumFindings: 1,
+				MinConfidence:  &confidencePossible,
+				MinNumFindings: &one,
 			},
 			{
-				Detector: nightfallAPI.Detector{
-					DetectorType:      nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR,
-					NightfallDetector: nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY,
-					DisplayName:       string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY),
+				Detector: &nightfallAPI.Detector{
+					DetectorType:      &nightfallDetectorType,
+					NightfallDetector: &nightfallCryptographicKey,
+					DisplayName:       &nightfallCryptographicKeyName,
 				},
-				MinConfidence:  nightfallAPI.CONFIDENCE_POSSIBLE,
-				MinNumFindings: 1,
+				MinConfidence:  &confidencePossible,
+				MinNumFindings: &one,
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,

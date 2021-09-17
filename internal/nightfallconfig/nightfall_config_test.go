@@ -1,8 +1,6 @@
 package nightfallconfig_test
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"path"
 	"testing"
@@ -63,8 +61,6 @@ func TestGetNightfallConfig(t *testing.T) {
 		FileExclusionList:  []string{".nightfalldlp/config.json"},
 	}
 	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testFileName, nil)
-	val, _ := json.Marshal(expectedConfig)
-	fmt.Println(string(val))
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }

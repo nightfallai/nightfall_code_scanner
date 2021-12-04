@@ -9,72 +9,66 @@ import (
 	"path"
 
 	"github.com/google/uuid"
+	nf "github.com/nightfallai/nightfall-go-sdk"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 )
 
-// maximum number of routines (scan request + response) running at once
-const MaxConcurrentRoutinesCap = 50
-const DefaultMaxNumberRoutines = 20
-const nightfallConfigFilename = ".nightfalldlp/config.json"
-const defaultConditionsInfoMessage = "Using default Conditions with detectors API_KEY and CRYPTOGRAPHIC_KEY"
+const (
+	// MaxConcurrentRoutinesCap is the maximum number of goroutines issuing concurrent requests to the Nightfall API
+	MaxConcurrentRoutinesCap = 50
+	DefaultMaxNumberRoutines = 20
 
-var (
-	one                           int32 = 1
-	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
-	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
-	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
-	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
-	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
-	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
-	defaultNightfallConfig              = &NightfallConfigFileStructure{
-		Conditions: []*nightfallAPI.Condition{
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallAPIKey,
-					DisplayName:       &nightfallAPIKeyName,
+	nightfallConfigFilename      = ".nightfalldlp/config.json"
+	defaultConditionsInfoMessage = "Using default Detection Rule with detectors API_KEY and CRYPTOGRAPHIC_KEY"
+)
+
+var defaultNightfallConfig = &ConfigFile{
+	DetectionRules: []nf.DetectionRule{
+		{
+			Detectors: []nf.Detector{
+				{
+					MinNumFindings:    1,
+					MinConfidence:     nf.ConfidencePossible,
+					DetectorType:      nf.DetectorTypeNightfallDetector,
+					NightfallDetector: "API_KEY",
+					DisplayName:       "API_KEY",
 				},
-				MinNumFindings: &one,
-				MinConfidence:  &confidencePossible,
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallCryptographicKey,
-					DisplayName:       &nightfallCryptographicKeyName,
+				{
+					MinNumFindings:    1,
+					MinConfidence:     nf.ConfidencePossible,
+					DetectorType:      nf.DetectorTypeNightfallDetector,
+					NightfallDetector: "CRYPTOGRAPHIC_KEY",
+					DisplayName:       "CRYPTOGRAPHIC_KEY",
 				},
-				MinNumFindings: &one,
-				MinConfidence:  &confidencePossible,
 			},
 		},
-		MaxNumberRoutines: DefaultMaxNumberRoutines,
-	}
-)
+	},
+	MaxNumberRoutines: DefaultMaxNumberRoutines,
+}
 
-// NightfallConfigFileStructure struct representation of nightfall config file
-type NightfallConfigFileStructure struct {
-	ConditionSetUUID   string                    `json:"conditionSetUUID"`
-	Conditions         []*nightfallAPI.Condition `json:"conditions"`
-	MaxNumberRoutines  int                       `json:"maxNumberConcurrentRoutines"`
-	TokenExclusionList []string                  `json:"tokenExclusionList"`
-	FileInclusionList  []string                  `json:"fileInclusionList"`
-	FileExclusionList  []string                  `json:"fileExclusionList"`
+// ConfigFile is the struct of the JSON nightfall config file
+type ConfigFile struct {
+	DetectionRuleUUIDs []uuid.UUID        `json:"detectionRuleUUIDs"`
+	DetectionRules     []nf.DetectionRule `json:"detectionRules"`
+	MaxNumberRoutines  int                `json:"maxNumberConcurrentRoutines"`
+	TokenExclusionList []string           `json:"tokenExclusionList"`
+	FileInclusionList  []string           `json:"fileInclusionList"`
+	FileExclusionList  []string           `json:"fileExclusionList"`
 }
 
 // Config general config struct
 type Config struct {
-	NightfallAPIKey            string
-	NightfallConditionSetUUID  string
-	NightfallConditions        []*nightfallAPI.Condition
-	NightfallMaxNumberRoutines int
-	TokenExclusionList         []string
-	FileInclusionList          []string
-	FileExclusionList          []string
+	NightfallAPIKey             string
+	NightfallDetectionRuleUUIDs []uuid.UUID
+	NightfallDetectionRules     []nf.DetectionRule
+	NightfallMaxNumberRoutines  int
+	TokenExclusionList          []string
+	FileInclusionList           []string
+	FileExclusionList           []string
 }
 
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid
-func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) (*NightfallConfigFileStructure, error) {
+func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger) (*ConfigFile, error) {
 	nightfallConfigFile, err := os.Open(path.Join(workspacePath, fileName))
 	if err != nil {
 		logger.Warning(fmt.Sprintf("Error opening nightfall config: %s", err.Error()))
@@ -88,19 +82,13 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 		logger.Info(defaultConditionsInfoMessage)
 		return defaultNightfallConfig, nil
 	}
-	var nightfallConfig NightfallConfigFileStructure
+	var nightfallConfig ConfigFile
 	err = json.Unmarshal(byteValue, &nightfallConfig)
 	if err != nil {
 		return nil, err
 	}
-	if nightfallConfig.ConditionSetUUID != "" {
-		_, err := uuid.Parse(nightfallConfig.ConditionSetUUID)
-		if err != nil {
-			return nil, fmt.Errorf("Nightfall config file has an invalid ConditionSetUUID: %w", err)
-		}
-	}
-	if nightfallConfig.ConditionSetUUID == "" && len(nightfallConfig.Conditions) < 1 {
-		return nil, errors.New("Nightfall config file is missing ConditionSetUUID or inline Conditions")
+	if len(nightfallConfig.DetectionRuleUUIDs) < 1 && len(nightfallConfig.DetectionRules) < 1 {
+		return nil, errors.New("nightfall config file is missing DetectionRuleUUIDs or inline DetectionRules")
 	}
 	if nightfallConfig.MaxNumberRoutines <= 0 {
 		nightfallConfig.MaxNumberRoutines = DefaultMaxNumberRoutines

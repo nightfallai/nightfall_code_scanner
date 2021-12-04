@@ -1,5 +1,5 @@
 {
-  "conditionSetUUID": "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684",
+  "detectionRuleUUIDs": ["9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"],
   "maxNumberConcurrentRoutines": 20,
   "tokenExclusionList": ["4242-4242-4242-[0-9]{4}", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv", "^127\\."],
   "fileInclusionList": ["*"]

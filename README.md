@@ -15,8 +15,10 @@ security, and ensure you never accidentally leak secrets or other sensitive info
 
 ## Nightfalldlp Config File
 
-The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors to scan with and what content you want to scan for pull requests. It includes the following adjustable fields to fit your needs.
+The `.nightfalldlp/config.json` file is used as a centralized config file to control what conditions/detectors to scan
+with and what content you want to scan for pull requests. It includes the following adjustable fields to fit your needs.
 
+TODO (emf): bump to DetectionRuleUUIDs
 ### ConditionSetUUID
 
 A condition set uuid is a unique identifier of a condition set, which can be created via [app.nightfall.ai](app.nightfall.ai).
@@ -30,6 +32,7 @@ Note: by default, if both conditionSetUUID and conditions are specified, only th
 
 ### Conditions
 
+TODO (emf): bump to DetectionRules
 Conditions are a list of conditions specified inline. Each condition contains a nested detector object as well as two additional parameters: minNumFindings and minConfidence.
 
 ```json

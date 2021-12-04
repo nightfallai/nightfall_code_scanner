@@ -1,4 +1,4 @@
-package github_test
+package github
 
 import (
 	"context"
@@ -11,14 +11,14 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v33/github"
+	"github.com/google/uuid"
+	nf "github.com/nightfallai/nightfall-go-sdk"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
-	githubservice "github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer/github"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubchecks_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -52,7 +52,7 @@ index e0fe924..0405bc6 100644
 + 
  }`
 
-var logger = githublogger.NewDefaultGithubLogger()
+var log = githublogger.NewDefaultGithubLogger()
 var expectedFileDiff1 = &diffreviewer.FileDiff{
 	PathOld: "README.md",
 	PathNew: "README.md",
@@ -110,7 +110,7 @@ var expectedFileDiff3 = &diffreviewer.FileDiff{
 }
 var expectedFileDiffs = []*diffreviewer.FileDiff{expectedFileDiff1, expectedFileDiff2, expectedFileDiff3}
 
-var testPRCheckRequest = &githubservice.CheckRequest{
+var testPRCheckRequest = &CheckRequest{
 	Owner:       "alan20854",
 	Repo:        "TestRepo",
 	PullRequest: 2,
@@ -123,7 +123,7 @@ type githubTestSuite struct {
 
 type testParams struct {
 	ctrl *gomock.Controller
-	gc   *githubservice.Service
+	gc   *Service
 	w    *httptest.ResponseRecorder
 }
 
@@ -131,40 +131,28 @@ func (g *githubTestSuite) initTestParams() *testParams {
 	tp := &testParams{}
 	tp.ctrl = gomock.NewController(g.T())
 	tp.w = httptest.NewRecorder()
-	tp.gc = &githubservice.Service{
-		Logger: logger,
+	tp.gc = &Service{
+		Logger: log,
 	}
 	return tp
 }
 
 const testConfigFileName = "nightfall_test_config.json"
 const testEmptyConfigFileName = "nightfall_test_empty_config.json"
-const testConfigConditionSetUUIDFileName = "nightfall_test_config_condition_set_uuid.json"
-const testConditionSetUUID = "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"
+const testConfigDetectionRuleUUIDFileName = "nightfall_test_config_detection_rule_uuid.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
-var (
-	one                           int32 = 1
-	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
-	ccDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
-	pnDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
-	ipDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
-	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
-	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
-	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
-	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
-	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
-)
-
 var envVars = []string{
-	githubservice.WorkspacePathEnvVar,
-	githubservice.EventPathEnvVar,
-	githubservice.NightfallAPIKeyEnvVar,
+	WorkspacePathEnvVar,
+	EventPathEnvVar,
+	NightfallAPIKeyEnvVar,
 }
 
-func (g *githubTestSuite) AfterTest(suiteName, testName string) {
+var testDetectionRuleUUID = uuid.MustParse("9c1fd2c9-8ef5-40c4-b661-bd750ff0d684")
+
+func (g *githubTestSuite) AfterTest(_, _ string) {
 	for _, e := range envVars {
 		err := os.Unsetenv(e)
 		g.NoErrorf(err, "Error unsetting var %s", e)
@@ -182,30 +170,39 @@ func (g *githubTestSuite) TestLoadConfig() {
 	g.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
 	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
-	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
-	os.Setenv(githubservice.EventPathEnvVar, eventPath)
-	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(EventPathEnvVar, eventPath)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallConditions: []*nightfallAPI.Condition{
+		NightfallDetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ccDetector,
+				Name: "my detection rule",
+				Detectors: []nf.Detector{
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "cc",
+						NightfallDetector: "CREDIT_CARD_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "phone",
+						NightfallDetector: "PHONE_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidenceLikely,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "ip",
+						NightfallDetector: "IP_ADDRESS",
+					},
 				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &pnDetector,
-				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ipDetector,
-				},
+				LogicalOp: nf.LogicalOpAny,
 			},
 		},
 		NightfallMaxNumberRoutines: 20,
@@ -213,7 +210,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 		FileInclusionList:          []string{"*"},
 		FileExclusionList:          []string{".nightfalldlp/config.json"},
 	}
-	expectedGithubCheckRequest := &githubservice.CheckRequest{
+	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
 		Repo:        repo,
 		SHA:         sha,
@@ -226,7 +223,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
 }
 
-func (g *githubTestSuite) TestLoadConfigConditionSetUUID() {
+func (g *githubTestSuite) TestLoadConfigDetectionRuleUUID() {
 	tp := g.initTestParams()
 	apiKey := "api-key"
 	sha := "1234"
@@ -237,26 +234,26 @@ func (g *githubTestSuite) TestLoadConfigConditionSetUUID() {
 	g.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
 	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
-	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
-	os.Setenv(githubservice.EventPathEnvVar, eventPath)
-	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(EventPathEnvVar, eventPath)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallConditionSetUUID:  testConditionSetUUID,
-		NightfallMaxNumberRoutines: 20,
-		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
-		FileInclusionList:          []string{"*"},
-		FileExclusionList:          []string{".nightfalldlp/config.json"},
+		NightfallAPIKey:             apiKey,
+		NightfallDetectionRuleUUIDs: []uuid.UUID{testDetectionRuleUUID},
+		NightfallMaxNumberRoutines:  20,
+		TokenExclusionList:          []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:           []string{"*"},
+		FileExclusionList:           []string{".nightfalldlp/config.json"},
 	}
-	expectedGithubCheckRequest := &githubservice.CheckRequest{
+	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
 		Repo:        repo,
 		SHA:         sha,
 		PullRequest: pullRequest,
 	}
 
-	nightfallConfig, err := tp.gc.LoadConfig(testConfigConditionSetUUIDFileName)
+	nightfallConfig, err := tp.gc.LoadConfig(testConfigDetectionRuleUUIDFileName)
 	g.NoError(err, "Unexpected error in LoadConfig")
 	g.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 	g.Equal(expectedGithubCheckRequest, tp.gc.CheckRequest, "Incorrect github check request")
@@ -273,35 +270,35 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 	g.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
 	eventPath := path.Join(workspace, "../../../../test/data/github_action_event.json")
-	os.Setenv(githubservice.WorkspacePathEnvVar, workspacePath)
-	os.Setenv(githubservice.EventPathEnvVar, eventPath)
-	os.Setenv(githubservice.NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(EventPathEnvVar, eventPath)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallConditions: []*nightfallAPI.Condition{
+		NightfallDetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallAPIKey,
-					DisplayName:       &nightfallAPIKeyName,
+				Detectors: []nf.Detector{
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "API_KEY",
+						DisplayName:       "API_KEY",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "CRYPTOGRAPHIC_KEY",
+						DisplayName:       "CRYPTOGRAPHIC_KEY",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
 				},
-				MinConfidence:  &confidencePossible,
-				MinNumFindings: &one,
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallCryptographicKey,
-					DisplayName:       &nightfallCryptographicKeyName,
-				},
-				MinConfidence:  &confidencePossible,
-				MinNumFindings: &one,
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
 	}
-	expectedGithubCheckRequest := &githubservice.CheckRequest{
+	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
 		Repo:        repo,
 		SHA:         sha,
@@ -334,10 +331,10 @@ func (g *githubTestSuite) TestWriteComments() {
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
 	mockChecks := githubchecks_mock.NewGithubChecks(tp.ctrl)
-	testGithubService := &githubservice.Service{
+	testGithubService := &Service{
 		Client:       mockClient,
 		CheckRequest: testPRCheckRequest,
-		Logger:       logger,
+		Logger:       log,
 	}
 	tp.gc = testGithubService
 
@@ -351,7 +348,7 @@ func (g *githubTestSuite) TestWriteComments() {
 		"/comments.txt",
 		120,
 	)
-	emptyComments, emptyAnnotations := []*diffreviewer.Comment{}, []*github.CheckRunAnnotation{}
+	emptyComments, emptyAnnotations := make([]*diffreviewer.Comment, 0), make([]*github.CheckRunAnnotation, 0)
 
 	failureConclusion := "failure"
 	successConclusion := "success"
@@ -422,7 +419,7 @@ func (g *githubTestSuite) TestWriteComments() {
 					Title:   &checkName,
 					Summary: github.String(summaryString),
 					Images: []*github.CheckRunImage{
-						&github.CheckRunImage{
+						{
 							Alt:      github.String(imageAlt),
 							ImageURL: github.String(imageURL),
 						},
@@ -438,10 +435,10 @@ func (g *githubTestSuite) TestWriteComments() {
 				successfulOpt,
 			)
 		} else {
-			numUpdateRequests := int(math.Ceil(float64(len(tt.wantAnnotations)) / githubservice.MaxAnnotationsPerRequest))
+			numUpdateRequests := int(math.Ceil(float64(len(tt.wantAnnotations)) / MaxAnnotationsPerRequest))
 			for i := 0; i < numUpdateRequests-1; i++ {
-				startCommentIdx := i * githubservice.MaxAnnotationsPerRequest
-				endCommentIdx := min(startCommentIdx+githubservice.MaxAnnotationsPerRequest, len(tt.wantAnnotations))
+				startCommentIdx := i * MaxAnnotationsPerRequest
+				endCommentIdx := min(startCommentIdx+MaxAnnotationsPerRequest, len(tt.wantAnnotations))
 				updateOpt := github.UpdateCheckRunOptions{
 					Name: checkName,
 					Output: &github.CheckRunOutput{
@@ -463,7 +460,7 @@ func (g *githubTestSuite) TestWriteComments() {
 					updateOpt,
 				).Return(expectedUpdatedCheckRun, nil, nil)
 			}
-			lastAnnotations := annotations[(numUpdateRequests-1)*githubservice.MaxAnnotationsPerRequest:]
+			lastAnnotations := annotations[(numUpdateRequests-1)*MaxAnnotationsPerRequest:]
 			lastUpdateOpt := github.UpdateCheckRunOptions{
 				Name:       checkName,
 				Status:     &checkRunCompletedStatus,
@@ -473,7 +470,7 @@ func (g *githubTestSuite) TestWriteComments() {
 					Summary:     github.String(summaryString),
 					Annotations: lastAnnotations,
 					Images: []*github.CheckRunImage{
-						&github.CheckRunImage{
+						{
 							Alt:      github.String(imageAlt),
 							ImageURL: github.String(imageURL),
 						},
@@ -521,13 +518,6 @@ func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffrev
 		}
 	}
 	return comments, annotations
-}
-
-func min(x, y int) int {
-	if x < y {
-		return x
-	}
-	return y
 }
 
 func TestGithubClient(t *testing.T) {

@@ -1,22 +1,31 @@
 {
-    "conditions": [
+    "detectionRules": [
         {
-            "detector": {
-                "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "CREDIT_CARD_NUMBER"
-            }
-        },
-        {
-            "detector": {
-                "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "PHONE_NUMBER"
-            }
-        },
-        {
-            "detector": {
-                "detectorType": "NIGHTFALL_DETECTOR",
-                "nightfallDetector": "IP_ADDRESS"
-            }
+            "logicalOp": "ANY",
+            "name": "my detection rule",
+            "detectors": [
+                {
+                    "detectorType": "NIGHTFALL_DETECTOR",
+                    "nightfallDetector": "CREDIT_CARD_NUMBER",
+                    "displayName": "cc",
+                    "minConfidence": "POSSIBLE",
+                    "minNumFindings": 1
+                },
+                {
+                    "detectorType": "NIGHTFALL_DETECTOR",
+                    "nightfallDetector": "PHONE_NUMBER",
+                    "displayName": "phone",
+                    "minConfidence": "POSSIBLE",
+                    "minNumFindings": 1
+                },
+                {
+                    "detectorType": "NIGHTFALL_DETECTOR",
+                    "nightfallDetector": "IP_ADDRESS",
+                    "displayName": "ip",
+                    "minConfidence": "LIKELY",
+                    "minNumFindings": 1
+                }
+            ]
         }
     ],
     "maxNumberConcurrentRoutines": 20,

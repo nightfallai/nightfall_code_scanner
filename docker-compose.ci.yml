@@ -12,7 +12,7 @@ services:
   nightfall_dlp:
     build:
       context: .
-    image: nightfall_dlp
+    image: nightfall_code_scanner
 
   wait:
     image: deliveroo/circleci:0.2.8

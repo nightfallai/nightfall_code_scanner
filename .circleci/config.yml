@@ -16,7 +16,7 @@ jobs:
           command: ci build
       - run:
           name: test docker
-          command: ci run --rm nightfall_dlp_build make test
+          command: ci run --rm nightfall_code_scanner_build make test
       - run:
           name: Clean up reusable Docker
           command: clean_up_reusable_docker
@@ -47,7 +47,7 @@ jobs:
             -e CIRCLE_PULL_REQUEST=$CIRCLE_PULL_REQUEST \
             -e CIRCLE_SHA1=$CIRCLE_SHA1 \
             -e REVIEWDOG_TOKEN=$REVIEWDOG_TOKEN \
-            --rm nightfall_dlp_build \
+            --rm nightfall_code_scanner_build \
             sh -c '$(go env GOPATH)/bin/golangci-lint run \
               | $(go env GOPATH)/bin/reviewdog -f=golangci-lint -name=golangci -reporter='"$CHECK_LEVEL"' -level=error'
       - run:

@@ -1,6 +1,6 @@
 version: '3.6'
 services:
-  nightfall_dlp_build:
+  nightfall_code_scanner_build:
     image: builder
     build:
       context: .
@@ -9,10 +9,10 @@ services:
       GO_ENV: ci
     command: ./nightfall_dlp
 
-  nightfall_dlp:
+  nightfall_code_scanner:
     build:
       context: .
-    image: nightfall_code_scanner
+    image: nightfallai/nightfall_code_scanner
 
   wait:
     image: deliveroo/circleci:0.2.8

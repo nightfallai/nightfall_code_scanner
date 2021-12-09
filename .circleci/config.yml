@@ -81,8 +81,14 @@ workflows:
   build_and_test:
     jobs:
       - build:
+          filters:
+            tags:
+              only: /.*/
           context: build
       - lint:
+          filters:
+            tags:
+              only: /.*/
           context: build
       - nightfall_code_scanner/scan:
           event_before: << pipeline.git.base_revision >>

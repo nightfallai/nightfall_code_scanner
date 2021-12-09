@@ -71,10 +71,10 @@ jobs:
           name: Push image to docker hub
           command: |
             push_image_to_docker_hub \
-            nightfallai/$CONTAINER_NAME:$CIRCLE_SHA1 \
+            nightfallai/$CONTAINER_NAME:$CIRCLE_TAG \
             nightfallai/$CONTAINER_NAME:latest
           environment:
-            CONTAINER_NAME: nightfall_dlp
+            CONTAINER_NAME: nightfall_code_scanner
 
 workflows:
   version: 2
@@ -92,4 +92,7 @@ workflows:
             - lint
           filters:
             branches:
-              only: master
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+/
+          context: docker-hub

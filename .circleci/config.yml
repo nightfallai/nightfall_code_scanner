@@ -66,7 +66,8 @@ jobs:
           command: ci build
       - run:
           name: Tag docker container
-          command: make dockertag
+          command: |
+            docker tag nightfallai/$CONTAINER_NAME:latest nightfallai/$CONTAINER_NAME:$CIRCLE_TAG
       - run:
           name: Push image to docker hub
           command: |

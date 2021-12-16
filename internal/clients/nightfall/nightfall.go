@@ -75,9 +75,6 @@ type contentToScan struct {
 	LineNumber int
 }
 
-// TODO (emf): need to decide how to handle blurring; might be able to use native redaction support, but
-//				not sure if that will be confusing
-
 func blurContent(content string) string {
 	contentRune := []rune(content)
 	blurredContent := string(contentRune[:2])
@@ -95,7 +92,13 @@ func getCommentMsg(finding *nf.Finding) string {
 	if finding.Finding == "" || finding.Detector.DisplayName == "" {
 		return ""
 	}
-	blurredContent := blurContent(finding.Finding)
+
+	blurredContent := finding.RedactedFinding
+	if blurredContent == "" {
+		// by default use asterisks, so we don't spread data further
+		blurredContent = blurContent(finding.Finding)
+	}
+
 	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.Detector.DisplayName)
 }
 

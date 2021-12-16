@@ -38,7 +38,9 @@ const (
 // Client client which uses Nightfall API
 // to determine findings from input strings
 type Client struct {
-	APIClient          nightfallAPI
+	APIClient interface {
+		ScanText(ctx context.Context, request *nf.ScanTextRequest) (*nf.ScanTextResponse, error)
+	}
 	DetectionRuleUUIDs []uuid.UUID
 	DetectionRules     []nf.DetectionRule
 	MaxNumberRoutines  int
@@ -46,10 +48,6 @@ type Client struct {
 	TokenExclusionList []string
 	FileInclusionList  []string
 	FileExclusionList  []string
-}
-
-type nightfallAPI interface {
-	ScanText(ctx context.Context, request *nf.ScanTextRequest) (*nf.ScanTextResponse, error)
 }
 
 func NewClient(config nightfallconfig.Config) (*Client, error) {

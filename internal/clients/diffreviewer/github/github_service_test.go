@@ -293,6 +293,13 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 						MinConfidence:     nf.ConfidencePossible,
 						MinNumFindings:    1,
 					},
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PASSWORD_IN_CODE",
+						DisplayName:       "PASSWORD_IN_CODE",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
 				},
 			},
 		},

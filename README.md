@@ -14,13 +14,47 @@ security, and ensure you never accidentally leak secrets or other sensitive info
 
 ## NightfallDLP Config File
 
-The `.nightfalldlp/config.json` file is a centralized config file that defines which detectors to use when scanning
-content from pull requests. It supports the following configurations:
+The `.nightfalldlp/config.json` file contains configuration to define which detectors to use when scanning
+content from pull requests. If you do not explicitly define this config file in your code repository, the default
+config will be equivalent to the snippet below:
+
+```json
+{
+  "detectionRules": [
+    {
+      "logicalOp": "ANY",
+      "name": "Nightfall Default Detection Rule",
+      "detectors": [
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "API_KEY",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        },
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "CRYPTOGRAPHIC_KEY",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        },
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "PASSWORD_IN_CODE",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+If you plan on using non-default settings, the config file supports the following options:
 
 ### Detection Rule UUIDs
 
 A Detection Rule UUID is a unique identifier for a [Detection Rule](https://docs.nightfall.ai/docs/entities-and-terms-to-know#detection-rules)
-that has been built in the [Nightfall Dashboard](https://app.nightfall.ai/). Users can copy a set of UUIDs from
+that has been built in the [Nightfall Dashboard](https://app.nightfall.ai/detection-engine/detection-rules). Users can copy a set of UUIDs from
 the dashboard, then paste them into the config file, like below:
 
 ```json
@@ -70,8 +104,8 @@ detectors is available [here](https://docs.nightfall.ai/docs/detector-glossary).
 ```
 
 Two common configurations across all types of detectors are:
-- `minNumFindings`: the number of findings that must match the input string in order for Nightfall to return a finding
-- `minConfidence`: the minimum confidence threshold that Nightfall must meet in order to return a finding.
+- `minNumFindings`: an integer number of findings that must match the input string in order for Nightfall to return a finding
+- `minConfidence`: the minimum confidence threshold that Nightfall must meet in order to return a finding. This field is a string enum; possible values are defined [in the API docs](https://docs.nightfall.ai/docs/entities-and-terms-to-know#confidence-levels).
 
 ## Additional Configuration
 

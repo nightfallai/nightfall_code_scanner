@@ -40,6 +40,13 @@ var defaultNightfallConfig = &ConfigFile{
 					NightfallDetector: "CRYPTOGRAPHIC_KEY",
 					DisplayName:       "CRYPTOGRAPHIC_KEY",
 				},
+				{
+					MinNumFindings:    1,
+					MinConfidence:     nf.ConfidencePossible,
+					DetectorType:      nf.DetectorTypeNightfallDetector,
+					NightfallDetector: "PASSWORD_IN_CODE",
+					DisplayName:       "PASSWORD_IN_CODE",
+				},
 			},
 		},
 	},

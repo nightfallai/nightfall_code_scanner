@@ -82,6 +82,13 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 						DetectorType:      nf.DetectorTypeNightfallDetector,
 						NightfallDetector: "CRYPTOGRAPHIC_KEY",
 					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "PASSWORD_IN_CODE",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PASSWORD_IN_CODE",
+					},
 				},
 			},
 		},

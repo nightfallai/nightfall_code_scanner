@@ -10,15 +10,16 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/v33/github"
+	"github.com/google/uuid"
+	nf "github.com/nightfallai/nightfall-go-sdk"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	circlelogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/circle_logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/gitdiff_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubclient_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubpullrequests_mock"
 	"github.com/nightfallai/nightfall_code_scanner/internal/mocks/clients/githubrepositories_mock"
-	logger_mock "github.com/nightfallai/nightfall_code_scanner/internal/mocks/logger"
+	loggermock "github.com/nightfallai/nightfall_code_scanner/internal/mocks/logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -138,24 +139,10 @@ const testRepo = "TestRepo"
 const testPrUrl = "https://github.com/alan20854/CircleCiTest/pull/3"
 const testConfigFileName = "nightfall_test_config.json"
 const testEmptyConfigFileName = "nightfall_empty_test_config.json"
-const testConfigConditionSetUUIDFileName = "nightfall_test_config_condition_set_uuid.json"
-const testConditionSetUUID = "9c1fd2c9-8ef5-40c4-b661-bd750ff0d684"
+const testConfigDetectionRuleUUIDFileName = "nightfall_test_config_detection_rule_uuid.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
-
-var (
-	one                           int32 = 1
-	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
-	ccDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
-	pnDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
-	ipDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
-	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
-	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
-	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
-	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
-	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
-)
 
 var envVars = []string{
 	WorkspacePathEnvVar,
@@ -167,8 +154,9 @@ var envVars = []string{
 	CirclePullRequestUrlEnvVar,
 	NightfallAPIKeyEnvVar,
 }
+var testDetectionRuleUUID = uuid.MustParse("9c1fd2c9-8ef5-40c4-b661-bd750ff0d684")
 
-func (c *circleCiTestSuite) AfterTest(suiteName, testName string) {
+func (c *circleCiTestSuite) AfterTest(_, _ string) {
 	for _, e := range envVars {
 		err := os.Unsetenv(e)
 		c.NoErrorf(err, "Error unsetting var %s", e)
@@ -181,35 +169,44 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
-	os.Setenv(WorkspacePathEnvVar, workspacePath)
-	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
-	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
-	os.Setenv(CircleBranchEnvVar, testBranch)
-	os.Setenv(CircleOwnerNameEnvVar, testOwner)
-	os.Setenv(CircleRepoNameEnvVar, testRepo)
-	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
-	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	_ = os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	_ = os.Setenv(CircleBranchEnvVar, testBranch)
+	_ = os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	_ = os.Setenv(CircleRepoNameEnvVar, testRepo)
+	_ = os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallConditions: []*nightfallAPI.Condition{
+		NightfallDetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ccDetector,
+				Name: "my detection rule",
+				Detectors: []nf.Detector{
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "cc",
+						NightfallDetector: "CREDIT_CARD_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "phone",
+						NightfallDetector: "PHONE_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidenceLikely,
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						DisplayName:       "ip",
+						NightfallDetector: "IP_ADDRESS",
+					},
 				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &pnDetector,
-				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ipDetector,
-				},
+				LogicalOp: nf.LogicalOpAny,
 			},
 		},
 		NightfallMaxNumberRoutines: 20,
@@ -223,32 +220,32 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
 
-func (c *circleCiTestSuite) TestLoadConfigConditionSetUUID() {
+func (c *circleCiTestSuite) TestLoadConfigDetectionRuleUUID() {
 	tp := c.initTestParams()
 	apiKey := "api-key"
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
-	os.Setenv(WorkspacePathEnvVar, workspacePath)
-	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
-	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
-	os.Setenv(CircleBranchEnvVar, testBranch)
-	os.Setenv(CircleOwnerNameEnvVar, testOwner)
-	os.Setenv(CircleRepoNameEnvVar, testRepo)
-	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
-	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	_ = os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	_ = os.Setenv(CircleBranchEnvVar, testBranch)
+	_ = os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	_ = os.Setenv(CircleRepoNameEnvVar, testRepo)
+	_ = os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
-		NightfallAPIKey:            apiKey,
-		NightfallConditionSetUUID:  testConditionSetUUID,
-		NightfallConditions:        nil,
-		NightfallMaxNumberRoutines: 20,
-		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
-		FileInclusionList:          []string{"*"},
-		FileExclusionList:          []string{".nightfalldlp/config.json"},
+		NightfallAPIKey:             apiKey,
+		NightfallDetectionRuleUUIDs: []uuid.UUID{testDetectionRuleUUID},
+		NightfallDetectionRules:     nil,
+		NightfallMaxNumberRoutines:  20,
+		TokenExclusionList:          []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
+		FileInclusionList:           []string{"*"},
+		FileExclusionList:           []string{".nightfalldlp/config.json"},
 	}
 
-	nightfallConfig, err := tp.cs.LoadConfig(testConfigConditionSetUUIDFileName)
+	nightfallConfig, err := tp.cs.LoadConfig(testConfigDetectionRuleUUIDFileName)
 	c.NoError(err, "Unexpected error in LoadConfig")
 	c.Equal(expectedNightfallConfig, nightfallConfig, "Incorrect nightfall config")
 }
@@ -258,12 +255,12 @@ func (c *circleCiTestSuite) TestLoadConfigMissingApiKey() {
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
-	os.Setenv(WorkspacePathEnvVar, workspacePath)
-	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
-	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
-	os.Setenv(CircleBranchEnvVar, testBranch)
-	os.Setenv(CircleOwnerNameEnvVar, testOwner)
-	os.Setenv(CircleRepoNameEnvVar, testRepo)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	_ = os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	_ = os.Setenv(CircleBranchEnvVar, testBranch)
+	_ = os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	_ = os.Setenv(CircleRepoNameEnvVar, testRepo)
 
 	_, err = tp.cs.LoadConfig(testConfigFileName)
 	c.EqualError(
@@ -279,35 +276,42 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 	workspace, err := os.Getwd()
 	c.NoError(err, "Error getting workspace")
 	workspacePath := path.Join(workspace, "../../../../test/data")
-	os.Setenv(WorkspacePathEnvVar, workspacePath)
-	os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
-	os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
-	os.Setenv(CircleBranchEnvVar, testBranch)
-	os.Setenv(CircleOwnerNameEnvVar, testOwner)
-	os.Setenv(CircleRepoNameEnvVar, testRepo)
-	os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
-	os.Setenv(NightfallAPIKeyEnvVar, apiKey)
+	_ = os.Setenv(WorkspacePathEnvVar, workspacePath)
+	_ = os.Setenv(CircleCurrentCommitShaEnvVar, commitSha)
+	_ = os.Setenv(CircleBeforeCommitEnvVar, prevCommitSha)
+	_ = os.Setenv(CircleBranchEnvVar, testBranch)
+	_ = os.Setenv(CircleOwnerNameEnvVar, testOwner)
+	_ = os.Setenv(CircleRepoNameEnvVar, testRepo)
+	_ = os.Setenv(CirclePullRequestUrlEnvVar, testPrUrl)
+	_ = os.Setenv(NightfallAPIKeyEnvVar, apiKey)
 
 	expectedNightfallConfig := &nightfallconfig.Config{
 		NightfallAPIKey: apiKey,
-		NightfallConditions: []*nightfallAPI.Condition{
+		NightfallDetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallAPIKey,
-					DisplayName:       &nightfallAPIKeyName,
+				Detectors: []nf.Detector{
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "API_KEY",
+						DisplayName:       "API_KEY",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "CRYPTOGRAPHIC_KEY",
+						DisplayName:       "CRYPTOGRAPHIC_KEY",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
+					{
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PASSWORD_IN_CODE",
+						DisplayName:       "PASSWORD_IN_CODE",
+						MinConfidence:     nf.ConfidencePossible,
+						MinNumFindings:    1,
+					},
 				},
-				MinConfidence:  &confidencePossible,
-				MinNumFindings: &one,
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallCryptographicKey,
-					DisplayName:       &nightfallCryptographicKeyName,
-				},
-				MinConfidence:  &confidencePossible,
-				MinNumFindings: &one,
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
@@ -336,7 +340,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 	tp := c.initTestParams()
 	ctrl := gomock.NewController(c.T())
 	defer ctrl.Finish()
-	mockLogger := logger_mock.NewLogger(ctrl)
+	mockLogger := loggermock.NewLogger(ctrl)
 	testCircleService := &Service{
 		Logger: mockLogger,
 		PrDetails: prDetails{
@@ -353,7 +357,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		tp.cs.PrDetails.CommitSha,
 		60,
 	)
-	emptyComments := []*diffreviewer.Comment{}
+	emptyComments := make([]*diffreviewer.Comment, 0)
 
 	tests := []struct {
 		giveComments []*diffreviewer.Comment
@@ -399,7 +403,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
 	mockPullRequests := githubpullrequests_mock.NewGithubPullRequests(tp.ctrl)
-	mockLogger := logger_mock.NewLogger(ctrl)
+	mockLogger := loggermock.NewLogger(ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
 		Logger:       mockLogger,
@@ -418,7 +422,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 		tp.cs.PrDetails.CommitSha,
 		60,
 	)
-	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.PullRequestComment{}
+	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.PullRequestComment, 0)
 
 	tests := []struct {
 		giveComments       []*diffreviewer.Comment
@@ -513,7 +517,7 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	defer ctrl.Finish()
 	mockClient := githubclient_mock.NewGithubClient(tp.ctrl)
 	mockRepositories := githubrepositories_mock.NewGithubRepositories(tp.ctrl)
-	mockLogger := logger_mock.NewLogger(ctrl)
+	mockLogger := loggermock.NewLogger(ctrl)
 	testCircleService := &Service{
 		GithubClient: mockClient,
 		Logger:       mockLogger,
@@ -531,7 +535,7 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 		tp.cs.PrDetails.CommitSha,
 		60,
 	)
-	emptyComments, emptyGithubComments := []*diffreviewer.Comment{}, []*github.RepositoryComment{}
+	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.RepositoryComment, 0)
 
 	tests := []struct {
 		giveComments       []*diffreviewer.Comment

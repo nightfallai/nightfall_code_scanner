@@ -45,7 +45,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	nightfallClient := nightfall.NewClient(*nightfallConfig)
+	nightfallClient, err := nightfall.NewClient(*nightfallConfig)
+	if err != nil {
+		return err
+	}
 
 	fileDiffs, err := diffReviewClient.GetDiff()
 	if err != nil {

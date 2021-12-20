@@ -4,336 +4,265 @@
 
 ### Nightfall_Code_Scanner - a code review tool that protects you from committing sensitive information
 
-nightfall_code_scanner scans your code for secrets or sensitive information. It’s intended to be used as a part of your CI to simplify the development process, improve your
+The `nightfall_code_scanner` is a code review tool that protects you from committing sensitive information to your
+version control. It is intended to be used as a part of your CI to simplify the development process, improve your
 security, and ensure you never accidentally leak secrets or other sensitive information via an accidental commit.
 
 ## Supported Services
+* [GitHub Action](https://github.com/nightfallai/nightfall_dlp_action)
+* [CircleCI Orb](https://github.com/nightfallai/nightfall_circle_orb)
 
-### GithubActions
+## NightfallDLP Config File
 
-[nightfall_dlp_action](https://github.com/nightfallai/nightfall_dlp_action)
-
-## Nightfalldlp Config File
-
-The .nightfalldlp/config.json file is used as a centralized config file to control what conditions/detectors to scan with and what content you want to scan for pull requests. It includes the following adjustable fields to fit your needs.
-
-### ConditionSetUUID
-
-A condition set uuid is a unique identifier of a condition set, which can be created via [app.nightfall.ai](app.nightfall.ai).
-Once defined, you can simply input the uuid in the your config file, e.g.
-
-```json
-{ "conditionSetUUID": "A0BA0D76-78B4-4E10-B653-32996060316B" }
-```
-
-Note: by default, if both conditionSetUUID and conditions are specified, only the conditionSetUUID will be used.
-
-### Conditions
-
-Conditions are a list of conditions specified inline. Each condition contains a nested detector object as well as two additional parameters: minNumFindings and minConfidence.
+The `.nightfalldlp/config.json` file contains configuration to define which detectors to use when scanning
+content from pull requests. If you do not explicitly define this config file in your code repository, the default
+config will be equivalent to the snippet below:
 
 ```json
 {
-  "conditions": [
+  "detectionRules": [
     {
-      "minNumFindings": 1,
-      "minConfidence": "POSSIBLE",
-      "detector": {}
+      "logicalOp": "ANY",
+      "name": "Nightfall Default Detection Rule",
+      "detectors": [
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "API_KEY",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        },
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "CRYPTOGRAPHIC_KEY",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        },
+        {
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "PASSWORD_IN_CODE",
+          "minConfidence": "POSSIBLE",
+          "minNumFindings": 1
+        }
+      ]
     }
   ]
 }
 ```
 
-minNumFindings specifies the minimal number of findings required to return for one request, e.g. if you set minNumFindings to be 2, and only 1 finding within the request payload related to that detector, that finding then will be filtered out from the response.
+If you plan on using non-default settings, the config file supports the following options:
 
-minConfidence specifies the minimal threshold to trigger a potential finding to be captured. We have five levels of confidence from least sensitive to most sensitive:
+### Detection Rule UUIDs
 
-- VERY_LIKELY
-- LIKELY
-- POSSIBLE
-- UNLIKELY
-- VERY_UNLIKELY
+A Detection Rule UUID is a unique identifier for a [Detection Rule](https://docs.nightfall.ai/docs/entities-and-terms-to-know#detection-rules)
+that has been built in the [Nightfall Dashboard](https://app.nightfall.ai/detection-engine/detection-rules). Users can copy a set of UUIDs from
+the dashboard, then paste them into the config file, like below:
+
+```json
+{ "detectionRuleUUIDs": ["A0BA0D76-78B4-4E10-B653-32996060316B", "c035c4f3-eeb2-4764-a715-c8461f388661"] }
+```
+
+### Detection Rules
+
+Detection Rules are a list of detectors specified inline. In addition to the list of inline detector definitions, a
+detection rule contains an optional display name, as well as an operator `logicalOp` that is applied to the list
+of detectors.
+
+```json
+{
+  "detectionRules": [
+    {
+      "name": "my detection rule",
+      "logicalOp": "ANY",
+      "detectors": []
+    }
+  ]
+}
+```
+
+The `logicalOp` field supports two values: `ANY` (logical OR), and `ALL` (logical AND).
+Consider scanning the payload `"my ssn is 678-99-8212"` against a detection rule containing the `CREDIT_CARD_NUMBER` and
+`US_SOCIAL_SECURITY_NUMBER` detectors with the logical op `ANY`. In this case, Nightfall would return a finding for the
+string `678-99-8212` from the SSN detector. However, scanning this same payload with a logical op of `ALL` will not
+return any findings, since the string does not contain any credit card numbers.
 
 ### Detector
 
-A detector is either a prebuilt Nightfall detector or custom regex or wordlist detector that you can create. This is specified by the detectorType field.
+A detector represents the atomic unit of scanning for sensitive data. The simplest examples of detectors leverage
+Nightfall's pre-built detectors for data types such as `CREDIT_CARD_NUMBER` or `API_KEY`. The list of available
+detectors is available [here](https://docs.nightfall.ai/docs/detector-glossary). As an example:
 
-- nightfall prebuilt detector
-
-  ```json
+```json
   {
     "detector": {
       "detectorType": "NIGHTFALL_DETECTOR",
       "nightfallDetector": "API_KEY",
-      "displayName": "apiKeyDetector"
+      "displayName": "apiKeyDetector",
+      "minNumFindings": 1,
+      "minConfidence": "LIKELY"
     }
   }
-  ```
+```
 
-  Within detector struct
-
-  - First specify detectorType as NIGHTFALL_DETECTOR
-  - Pick the nightfall detector you want from the list
-    - API_KEY
-    - CRYPTOGRAPHIC_KEY
-    - RANDOMLY_GENERATED_TOKEN
-    - CREDIT_CARD_NUMBER
-    - US_SOCIAL_SECURITY_NUMBER
-    - AMERICAN_BANKERS_CUSIP_ID
-    - US_BANK_ROUTING_MICR
-    - ICD9_CODE
-    - ICD10_CODE
-    - US_DRIVERS_LICENSE_NUMBER
-    - US_PASSPORT
-    - PHONE_NUMBER
-    - IP_ADDRESS
-    - EMAIL_ADDRESS
-  - Put a display name for your detector, as this will be attached on your findings
-
-- customized regex
-
-  We also support customized regex as a detector, which are defined as followed:
-
-  ```json
-  {
-    "detector": {
-      "detectorType": "REGEX",
-      "regex": {
-        "pattern": "coupon:\\d{4,}",
-        "isCaseSensitive": false
-      },
-      "displayName": "simpleRegexCouponDetector"
-    }
-  }
-  ```
-
-- word list
-
-  Word list detectors look for words you specify in its list. Example below:
-
-  ```json
-  {
-    "detector": {
-      "detectorType": "WORD_LIST",
-      "wordList": {
-        "values": ["key", "credential"],
-        "isCaseSensitive": false
-      },
-      "displayName": "simpleWordListKeyDetector"
-    }
-  }
-  ```
-
-- [Extra Parameters Within Detector]
-
-  Aside from specifying which detector to use for a condition, you can also specify some additional rules to attach. They are contextRules and exclusionRules.
-
-  - contextRules
-    A context rule evaluates the surrounding context(pre/post chars) of a finding and adjusts the finding's confidence if the input context rule pattern exists.
-
-    Example:
-
-    ```json
-    {
-      "detector": {
-        // ...... other detector fields
-        "contextRules": [
-          {
-            "regex": {
-              "pattern": "my cc",
-              "isCaseSensitive": true
-            },
-            "proximity": {
-              "windowBefore": 30,
-              "windowAfter": 30
-            },
-            "confidenceAdjustment": {
-              "fixedConfidence": "VERY_LIKELY"
-            }
-          }
-        ]
-      }
-    }
-    ```
-
-    - regex field specifies a regex to trigger
-    - proximity is defined as the number pre|post chars surrounding the finding to conduct the search
-    - confidenceAdjustment is the confidence level to adjust the finding to upon existence of the input context
-
-    As an example, say we have the following line of text in a file `my cc number: 4242-4242-4242-4242`, and `4242-4242-4242-4242` is detected as a credit card number with confidence of POSSIBLE. If we had the context rule above, the confidence level of this finding will be bumped up to `VERY_LIKELY` because the characters preceding the finding, `my cc`, match the regex.
-
-  - exclusionRules
-    Exclusion rules on individual conditions are used to mute findings related to that condition's detector.
-
-    Example:
-
-    ```json
-    {
-      "detector": {
-        // ...... other detector fields
-        "exclusionRules": [
-          {
-            "matchType": "PARTIAL",
-            "exclusionType": "REGEX",
-            // specify one of these values based on the type specified above
-            "regex": {
-              "pattern": "4242-4242-\\d{4}-\\d{4}",
-              "isCaseSensitive": true
-            },
-            "wordList": {
-              "values": ["4242"],
-              "isCaseSensitive": false
-            }
-          }
-        ]
-      }
-    }
-    ```
-
-    - exclusionType specifies either a REGEX or WORD_LIST
-    - regex field specifies a regex to trigger, if you choose to use REGEX type
-    - matchType could be either PARTIAL or FULL, To be a full match, the entire finding must match the regex pattern or word exactly, whereas findings containing more than just the regex pattern or word are considered partial matches. Example: suppose we have a finding of "4242-4242" with exclusion regex of 4242. If you use PARTIAL, this finding will be deactivated, while FULL not, since the regex only matches partial of the finding
+Two common configurations across all types of detectors are:
+- `minNumFindings`: an integer number of findings that must match the input string in order for Nightfall to return a finding
+- `minConfidence`: the minimum confidence threshold that Nightfall must meet in order to return a finding. This field is a string enum; possible values are defined [in the API docs](https://docs.nightfall.ai/docs/entities-and-terms-to-know#confidence-levels).
 
 ## Additional Configuration
 
-Aside from which conditions to scan on, you can add additional fields to your config, `./nightfall/config.json`, to ignore tokens and files as well as specify which files to exclusively scan on.
+In addition to detection rule configuration, you can also use your config file to further customize the scan process.
 
 ### Token Exclusion
 
-To ignore specific tokens, you can add the `tokenExclusionList` field to your config. The `tokenExclusionList` is a list of strings, and it mutes findings that match any of the given regex patterns.
+To ignore specific tokens, you can add the `tokenExclusionList` field to your config. The `tokenExclusionList` is a
+list of strings, and it mutes findings that match any of the provided regular expression patterns.
 
 Here's an example use case:
 
-`tokenExclusionList: ["NF-gGpblN9cXW2ENcDBapUNaw3bPZMgcABs", "^127\\."]`
+```
+tokenExclusionList: ["NF-gGpblN9cXW2ENcDBapUNaw3bPZMgcABs", "^127\\."]
+```
 
-In the example above, findings with the API token `NF-gGpblN9cXW2ENcDBapUNaw3bPZMgcABs` as well as local IP addresses starting with `127.` would not be reported. For more information on how we match tokens, take a look at [regexp](https://golang.org/pkg/regexp/).
+In the example above, findings with the API token `NF-gGpblN9cXW2ENcDBapUNaw3bPZMgcABs`, as well as
+IP addresses starting with `127.`, would not be reported. For more information on how we match tokens, take a
+look at [the docs](https://docs.nightfall.ai/docs/entities-and-terms-to-know#custom-detectors).
 
 ### File Inclusion/Exclusion
 
-To omit files from being scanned, you can add the `fileExclusionList` field to your config. In addition, to only scan on certain files, add the `fileInclusionList` to the config.
+The field `fileExclusionList` specifies glob patterns for files that should not be scanned during CI.
+Conversely, the field `fileInclusionList` specifies glob patterns for the files that should be scanned during CI.
 
 Here's an example use case:
 
 ```
-
     fileExclusionList: ["*/tests/*"],
     fileInclusionList: ["*.go", "*.json"]
-
 ```
 
 In the example, we are ignoring all file paths with a `tests` subdirectory, and only scanning on `go` and `json` files.
-Note: we are using [gobwas/glob](https://github.com/gobwas/glob) to match file path patterns. Unlike the token regex matching, file paths must be completely matched by the given pattern. e.g. If `tests` is a subdirectory, it will not be matched by `tests/*`, which is only a partial match.
 
 ## Configuration Examples
 
-- Using a pre-built condition set
+- Using a pre-built Detection Rule
 
 ```json
-{ "conditionSetUUID": "UUID HERE" }
+{ "detectionRules": ["83533b7c-de88-466a-b137-fceb8f2a8a57"] }
 ```
 
-- Inline condition set with Nightfall Detectors
+- Inline Detection Rule using Nightfall Detectors
 
 ```json
 {
-  "conditions": [
+  "detectionRules": [
     {
-      "minNumFindings": 1,
-      "minConfidence": "POSSIBLE",
-      "detector": {
-        "detectorType": "NIGHTFALL_DETECTOR",
-        "nightfallDetector": "API_KEY",
-        "displayName": "nfAPIKEY"
-      }
-    },
-
-    {
-      "minNumFindings": 2,
-      "minConfidence": "POSSIBLE",
-      "detector": {
-        "detectorType": "NIGHTFALL_DETECTOR",
-        "nightfallDetector": "CREDIT_CARD_NUMBER",
-        "displayName": "nfCC"
-      }
-    }
-  ]
-}
-```
-
-- Inline Conditions containing custom Regex and WordList detectors
-
-```json
-{
-  "conditions": [
-    {
-      "minNumFindings": 1,
-      "minConfidence": "POSSIBLE",
-      "detector": {
-        "detectorType": "REGEX",
-        "regex": {
-          "pattern": "coupon:\\d{4,}",
-          "isCaseSensitive": false
-        },
-        "displayName": "simpleRegexCouponDetector"
-      }
-    },
-    {
-      "minNumFindings": 1,
-      "minConfidence": "POSSIBLE",
-      "detector": {
-        "detectorType": "WORD_LIST",
-        "wordList": {
-          "values": ["key", "credential"],
-          "isCaseSensitive": false
-        },
-        "displayName": "simpleWordListKeyDetector"
-      }
-    }
-  ]
-}
-```
-
-- Condition Set with condition containing context and exclusion rules:
-
-```json
-{
-  "conditions": [
-    {
-      "minNumFindings": 2,
-      "minConfidence": "POSSIBLE",
-      "detector": {
-        "detectorType": "NIGHTFALL_DETECTOR",
-        "nightfallDetector": "CREDIT_CARD_NUMBER",
-        "displayName": "nfCC"
-      },
-      "contextRules": [
+      "name": "my rule",
+      "detectors": [
         {
+          "minNumFindings": 1,
+          "minConfidence": "POSSIBLE",
+          "displayName": "nfAPIKEY",
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "API_KEY"
+        },
+        {
+          "minNumFindings": 2,
+          "minConfidence": "POSSIBLE",
+          "displayName": "nfCC",
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "CREDIT_CARD_NUMBER"
+        }
+      ],
+      "logicalOp": "ANY"
+    }
+  ]
+}
+```
+
+- Inline Detection Rules using Regex and WordList detectors
+
+```json
+{
+  "detectionRules": [
+    {
+      "name": "regex rule",
+      "detectors": [
+        {
+          "minNumFindings": 1,
+          "minConfidence": "POSSIBLE",
+          "displayName": "simpleRegexCouponDetector",
+          "detectorType": "REGEX",
           "regex": {
-            "pattern": "credit card",
-            "isCaseSensitive": true
-          },
-          "proximity": {
-            "windowBefore": 30,
-            "windowAfter": 30
-          },
-          "confidenceAdjustment": {
-            "fixedConfidence": "VERY_LIKELY"
+            "pattern": "coupon:\\d{4,}",
+            "isCaseSensitive": false
           }
         }
       ],
-      "exclusionRules": [
+      "logicalOp": "ANY"
+    },
+    {
+      "name": "word list rule",
+      "detectors": [
         {
-          "matchType": "PARTIAL",
-          "exclusionType": "REGEX",
-          "regex": {
-            "pattern": "4242-4242-4242-4242",
-            "isCaseSensitive": true
+          "minNumFindings": 1,
+          "minConfidence": "POSSIBLE",
+          "displayName": "simpleWordListKeyDetector",
+          "detectorType": "WORD_LIST",
+          "wordList": {
+            "values": ["key", "credential"],
+            "isCaseSensitive": false
           }
         }
-      ]
+      ],
+      "logicalOp": "ANY"
+    }
+  ]
+}
+```
+
+- Detection Rule containing context and exclusion rules:
+
+```json
+{
+  "detectionRules": [
+    {
+      "name": "",
+      "detectors": [
+        {
+          "minNumFindings": 2,
+          "minConfidence": "POSSIBLE",
+          "displayName": "nfCC",
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "CREDIT_CARD_NUMBER",
+          "contextRules": [
+            {
+              "regex": {
+                "pattern": "credit card",
+                "isCaseSensitive": true
+              },
+              "proximity": {
+                "windowBefore": 30,
+                "windowAfter": 30
+              },
+              "confidenceAdjustment": {
+                "fixedConfidence": "VERY_LIKELY"
+              }
+            }
+          ],
+          "exclusionRules": [
+            {
+              "matchType": "PARTIAL",
+              "exclusionType": "REGEX",
+              "regex": {
+                "pattern": "4242-4242-4242-4242",
+                "isCaseSensitive": true
+              },
+              "wordList": null
+            }
+          ]
+        }
+      ],
+      "logicalOp": "ANY"
     }
   ],
-
   "maxNumberConcurrentRoutines": 5,
   "tokenExclusionList": [
     "4916-6734-7572-5015",

@@ -1,13 +1,12 @@
-package nightfallconfig_test
+package nightfallconfig
 
 import (
 	"os"
 	"path"
 	"testing"
 
+	nf "github.com/nightfallai/nightfall-go-sdk"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
-	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,42 +16,38 @@ const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
 const excludedIPRegex = "^127\\."
 
-var (
-	one                           int32 = 1
-	confidencePossible                  = nightfallAPI.CONFIDENCE_POSSIBLE
-	ccDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER
-	pnDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_PHONE_NUMBER
-	ipDetector                          = nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS
-	nightfallDetectorType               = nightfallAPI.DETECTORTYPE_NIGHTFALL_DETECTOR
-	nightfallAPIKey                     = nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY
-	nightfallAPIKeyName                 = string(nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
-	nightfallCryptographicKey           = nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY
-	nightfallCryptographicKeyName       = string(nightfallAPI.NIGHTFALLDETECTORTYPE_CRYPTOGRAPHIC_KEY)
-)
-
 func TestGetNightfallConfig(t *testing.T) {
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
-	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
-		Conditions: []*nightfallAPI.Condition{
+	expectedConfig := &ConfigFile{
+		DetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ccDetector,
+				Name: "my detection rule",
+				Detectors: []nf.Detector{
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "cc",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "CREDIT_CARD_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "phone",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PHONE_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidenceLikely,
+						DisplayName:       "ip",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "IP_ADDRESS",
+					},
 				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &pnDetector,
-				},
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &ipDetector,
-				},
+				LogicalOp: nf.LogicalOpAny,
 			},
 		},
 		MaxNumberRoutines:  20,
@@ -60,7 +55,7 @@ func TestGetNightfallConfig(t *testing.T) {
 		FileInclusionList:  []string{"*"},
 		FileExclusionList:  []string{".nightfalldlp/config.json"},
 	}
-	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testFileName, nil)
+	actualConfig, err := GetNightfallConfigFile(workspacePath, testFileName, nil)
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }
@@ -69,30 +64,37 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 	workspaceConfig, err := os.Getwd()
 	assert.NoError(t, err, "Unexpected error when getting current directory")
 	workspacePath := path.Join(workspaceConfig, "../../test/data")
-	expectedConfig := &nightfallconfig.NightfallConfigFileStructure{
-		Conditions: []*nightfallAPI.Condition{
+	expectedConfig := &ConfigFile{
+		DetectionRules: []nf.DetectionRule{
 			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallAPIKey,
-					DisplayName:       &nightfallAPIKeyName,
+				Detectors: []nf.Detector{
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "API_KEY",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "API_KEY",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "CRYPTOGRAPHIC_KEY",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "CRYPTOGRAPHIC_KEY",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "PASSWORD_IN_CODE",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PASSWORD_IN_CODE",
+					},
 				},
-				MinNumFindings: &one,
-				MinConfidence:  &confidencePossible,
-			},
-			{
-				Detector: &nightfallAPI.Detector{
-					DetectorType:      &nightfallDetectorType,
-					NightfallDetector: &nightfallCryptographicKey,
-					DisplayName:       &nightfallCryptographicKeyName,
-				},
-				MinNumFindings: &one,
-				MinConfidence:  &confidencePossible,
 			},
 		},
-		MaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
+		MaxNumberRoutines: DefaultMaxNumberRoutines,
 	}
-	actualConfig, err := nightfallconfig.GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
+	actualConfig, err := GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfigMissingConfigFile")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }

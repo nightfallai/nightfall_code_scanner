@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	nf "github.com/nightfallai/nightfall-go-sdk"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	githublogger "github.com/nightfallai/nightfall_code_scanner/internal/clients/logger/github_logger"
-	nightfallAPI "github.com/nightfallai/nightfall_go_client/generated"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -119,17 +118,17 @@ func TestSliceListBySize(t *testing.T) {
 }
 
 func TestCreateCommentsFromScanResp(t *testing.T) {
-	emptyTokenExclusionList := []string{}
+	emptyTokenExclusionList := make([]string, 0)
 	creditCard2Regex := "4242-4242-4242-[0-9]{4}"
 	localIpRegex := "^127\\."
 	tokenExclusionList := []string{creditCard2Regex, localIpRegex}
-	creditCardResponse := createScanResponse(exampleCreditCardNumber, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER)
-	creditCard2Response := createScanResponse(exampleCreditCardNumber2, nightfallAPI.NIGHTFALLDETECTORTYPE_CREDIT_CARD_NUMBER)
-	apiKeyResponse := createScanResponse(exampleAPIKey, nightfallAPI.NIGHTFALLDETECTORTYPE_API_KEY)
-	ipAddressResponse := createScanResponse(exampleIP, nightfallAPI.NIGHTFALLDETECTORTYPE_IP_ADDRESS)
+	creditCardResponse := createFinding(exampleCreditCardNumber, "CREDIT_CARD_NUMBER")
+	creditCard2Response := createFinding(exampleCreditCardNumber2, "CREDIT_CARD_NUMBER")
+	apiKeyResponse := createFinding(exampleAPIKey, "API_KEY")
+	ipAddressResponse := createFinding(exampleIP, "IP_ADDRESS")
 	tests := []struct {
 		haveContentToScanList  []*contentToScan
-		haveScanResponseList   [][]nightfallAPI.ScanResponseV2
+		haveScanResponse       nf.ScanTextResponse
 		haveTokenExclusionList []string
 		want                   []*diffreviewer.Comment
 		desc                   string
@@ -141,16 +140,18 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan(apiKeyContent),
 				createContentToScan(creditCardNumber2Content),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
-				{
-					creditCardResponse,
-				},
-				{},
-				{
-					apiKeyResponse,
-				},
-				{
-					creditCard2Response,
+			haveScanResponse: nf.ScanTextResponse{
+				Findings: [][]*nf.Finding{
+					{
+						creditCardResponse,
+					},
+					{},
+					{
+						apiKeyResponse,
+					},
+					{
+						creditCard2Response,
+					},
 				},
 			},
 			haveTokenExclusionList: emptyTokenExclusionList,
@@ -168,11 +169,13 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan("nothing in here"),
 				createContentToScan("nothing in here"),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
-				{},
-				{},
-				{},
-				{},
+			haveScanResponse: nf.ScanTextResponse{
+				Findings: [][]*nf.Finding{
+					{},
+					{},
+					{},
+					{},
+				},
 			},
 			haveTokenExclusionList: emptyTokenExclusionList,
 			want:                   []*diffreviewer.Comment{},
@@ -186,15 +189,17 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 				createContentToScan(exampleLocalHostIP),
 				createContentToScan(exampleIP),
 			},
-			haveScanResponseList: [][]nightfallAPI.ScanResponseV2{
-				{},
-				{
-					creditCardResponse,
-				},
-				{},
-				{},
-				{
-					ipAddressResponse,
+			haveScanResponse: nf.ScanTextResponse{
+				Findings: [][]*nf.Finding{
+					{},
+					{
+						creditCardResponse,
+					},
+					{},
+					{},
+					{
+						ipAddressResponse,
+					},
 				},
 			},
 			haveTokenExclusionList: tokenExclusionList,
@@ -206,7 +211,7 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		actual := createCommentsFromScanResp(tt.haveContentToScanList, tt.haveScanResponseList, tt.haveTokenExclusionList)
+		actual := createCommentsFromScanResp(tt.haveContentToScanList, &tt.haveScanResponse, tt.haveTokenExclusionList)
 		assert.Equal(t, tt.want, actual, fmt.Sprintf("Incorrect response from createCommentsFromScanResp: test '%s'", tt.desc))
 	}
 }
@@ -373,21 +378,22 @@ func TestMatchGlob(t *testing.T) {
 		assert.Equal(t, tt.wantMatchedPaths, matchedPaths, fmt.Sprintf("Incorrect response from match glob %s test", tt.desc))
 	}
 }
-func createScanResponse(fragment string, detType nightfallAPI.NightfallDetectorType) nightfallAPI.ScanResponseV2 {
-	detectorName := string(detType)
-	zero := int32(0)
-	end := int32(len(fragment))
-	return nightfallAPI.ScanResponseV2{
-		Fragment:     &fragment,
-		DetectorName: &detectorName,
-		Location: &nightfallAPI.ScanResponseLocation{
-			ByteRange: &nightfallAPI.ScanResponseLocationByteRange{
-				Start: &zero,
-				End:   &end,
+func createFinding(fragment string, detectorName string) *nf.Finding {
+	end := int64(len(fragment))
+	return &nf.Finding{
+		Finding: fragment,
+		Detector: nf.DetectorMetadata{
+			DisplayName: detectorName,
+		},
+		Confidence: string(nf.ConfidenceLikely),
+		Location: &nf.Location{
+			ByteRange: &nf.Range{
+				Start: 0,
+				End:   end,
 			},
-			UnicodeRange: &nightfallAPI.ScanResponseLocationUnicodeRange{
-				Start: &zero,
-				End:   &end,
+			CodepointRange: &nf.Range{
+				Start: 0,
+				End:   end,
 			},
 		},
 	}
@@ -408,7 +414,7 @@ func createContentToScan(content string) *contentToScan {
 	}
 }
 
-func createComment(finding nightfallAPI.ScanResponseV2) *diffreviewer.Comment {
+func createComment(finding *nf.Finding) *diffreviewer.Comment {
 	return &diffreviewer.Comment{
 		Body:       getCommentMsg(finding),
 		FilePath:   filePath,

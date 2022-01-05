@@ -54,6 +54,9 @@ func TestGetNightfallConfig(t *testing.T) {
 		TokenExclusionList: []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:  []string{"*"},
 		FileExclusionList:  []string{".nightfalldlp/config.json"},
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
+		},
 	}
 	actualConfig, err := GetNightfallConfigFile(workspacePath, testFileName, nil)
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")

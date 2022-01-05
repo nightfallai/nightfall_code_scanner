@@ -55,12 +55,13 @@ var defaultNightfallConfig = &ConfigFile{
 
 // ConfigFile is the struct of the JSON nightfall config file
 type ConfigFile struct {
-	DetectionRuleUUIDs []uuid.UUID        `json:"detectionRuleUUIDs"`
-	DetectionRules     []nf.DetectionRule `json:"detectionRules"`
-	MaxNumberRoutines  int                `json:"maxNumberConcurrentRoutines"`
-	TokenExclusionList []string           `json:"tokenExclusionList"`
-	FileInclusionList  []string           `json:"fileInclusionList"`
-	FileExclusionList  []string           `json:"fileExclusionList"`
+	DetectionRuleUUIDs     []uuid.UUID         `json:"detectionRuleUUIDs"`
+	DetectionRules         []nf.DetectionRule  `json:"detectionRules"`
+	MaxNumberRoutines      int                 `json:"maxNumberConcurrentRoutines"`
+	TokenExclusionList     []string            `json:"tokenExclusionList"`
+	FileInclusionList      []string            `json:"fileInclusionList"`
+	FileExclusionList      []string            `json:"fileExclusionList"`
+	DefaultRedactionConfig *nf.RedactionConfig `json:"defaultRedactionConfig"`
 }
 
 // Config general config struct
@@ -72,6 +73,7 @@ type Config struct {
 	TokenExclusionList          []string
 	FileInclusionList           []string
 	FileExclusionList           []string
+	DefaultRedactionConfig      *nf.RedactionConfig
 }
 
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid

@@ -232,7 +232,7 @@ func TestScanPaths(t *testing.T) {
 			desc:            "success on first scan request",
 		},
 		{
-			haveNumRequests: MaxScanAttempts + 1,
+			haveNumRequests: maxScanAttempts + 1,
 			wantResponse:    nil,
 			wantErr:         errors.New("failure"),
 			desc:            "failure from API",
@@ -248,7 +248,7 @@ func TestScanPaths(t *testing.T) {
 
 		mockAPIClient.scanFn = func(ctx context.Context, request *nf.ScanTextRequest) (*nf.ScanTextResponse, error) {
 			assert.Equal(t, expectedScanReq, request, "request object did not match")
-			if tt.haveNumRequests > MaxScanAttempts {
+			if tt.haveNumRequests > maxScanAttempts {
 				return nil, errors.New("failure")
 			}
 			return expectedScanResponse, nil

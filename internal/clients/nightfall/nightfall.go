@@ -20,34 +20,30 @@ import (
 )
 
 const (
-	// max request size is 500KB, so set max to 490Kb for buffer room
-	// maxSizeBytes = 490000
-	// max list size imposed by Nightfall API
-	// maxListSize = 50000
 	contentChunkByteSize = 1024
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
 	// timeout for the total time spent sending scan requests and receiving responses for a diff
 	defaultTimeout = time.Minute * 20
 	// maximum attempts to Nightfall API upon receiving 429 Too Many Requests before failing
-	MaxScanAttempts = 5
+	maxScanAttempts = 5
 	// initial delay before re-attempting scan request
-	initialDelay = time.Second * 1
+	initialDelay = time.Second
 )
 
-// Client client which uses Nightfall API
-// to determine findings from input strings
+// Client uses the Nightfall API to scan text for findings
 type Client struct {
 	APIClient interface {
 		ScanText(ctx context.Context, request *nf.ScanTextRequest) (*nf.ScanTextResponse, error)
 	}
-	DetectionRuleUUIDs []uuid.UUID
-	DetectionRules     []nf.DetectionRule
-	MaxNumberRoutines  int
-	InitialRetryDelay  time.Duration
-	TokenExclusionList []string
-	FileInclusionList  []string
-	FileExclusionList  []string
+	DetectionRuleUUIDs     []uuid.UUID
+	DetectionRules         []nf.DetectionRule
+	MaxNumberRoutines      int
+	InitialRetryDelay      time.Duration
+	TokenExclusionList     []string
+	FileInclusionList      []string
+	FileExclusionList      []string
+	DefaultRedactionConfig *nf.RedactionConfig
 }
 
 func NewClient(config nightfallconfig.Config) (*Client, error) {
@@ -56,14 +52,15 @@ func NewClient(config nightfallconfig.Config) (*Client, error) {
 		return nil, err
 	}
 	return &Client{
-		APIClient:          client,
-		DetectionRuleUUIDs: config.NightfallDetectionRuleUUIDs,
-		DetectionRules:     config.NightfallDetectionRules,
-		MaxNumberRoutines:  config.NightfallMaxNumberRoutines,
-		InitialRetryDelay:  initialDelay,
-		TokenExclusionList: config.TokenExclusionList,
-		FileInclusionList:  config.FileInclusionList,
-		FileExclusionList:  config.FileExclusionList,
+		APIClient:              client,
+		DetectionRuleUUIDs:     config.NightfallDetectionRuleUUIDs,
+		DetectionRules:         config.NightfallDetectionRules,
+		MaxNumberRoutines:      config.NightfallMaxNumberRoutines,
+		InitialRetryDelay:      initialDelay,
+		TokenExclusionList:     config.TokenExclusionList,
+		FileInclusionList:      config.FileInclusionList,
+		FileExclusionList:      config.FileExclusionList,
+		DefaultRedactionConfig: config.DefaultRedactionConfig,
 	}, nil
 }
 
@@ -73,31 +70,17 @@ type contentToScan struct {
 	LineNumber int
 }
 
-func blurContent(content string) string {
-	contentRune := []rune(content)
-	blurredContent := string(contentRune[:2])
-	blurLength := 8
-	if len(contentRune[2:]) < blurLength {
-		blurLength = len(contentRune[2:])
-	}
-	for i := 0; i < blurLength; i++ {
-		blurredContent += "*"
-	}
-	return blurredContent
-}
-
 func getCommentMsg(finding *nf.Finding) string {
-	if finding.Finding == "" || finding.Detector.DisplayName == "" {
+	if finding.Finding == "" && finding.RedactedFinding == "" {
 		return ""
 	}
 
-	blurredContent := finding.RedactedFinding
-	if blurredContent == "" {
-		// by default use asterisks, so we don't spread data further
-		blurredContent = blurContent(finding.Finding)
+	content := finding.RedactedFinding
+	if content == "" {
+		content = finding.Finding
 	}
 
-	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.Detector.DisplayName)
+	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, finding.Detector.DisplayName)
 }
 
 func getCommentTitle(finding *nf.Finding) string {
@@ -219,8 +202,9 @@ func (n *Client) buildScanRequest(items []string) *nf.ScanTextRequest {
 	return &nf.ScanTextRequest{
 		Payload: items,
 		Config: &nf.Config{
-			DetectionRules:     n.DetectionRules,
-			DetectionRuleUUIDs: ruleUUIDStrs,
+			DetectionRules:         n.DetectionRules,
+			DetectionRuleUUIDs:     ruleUUIDStrs,
+			DefaultRedactionConfig: n.DefaultRedactionConfig,
 		},
 	}
 }
@@ -371,8 +355,8 @@ func compileGlobs(globPatterns []string, logger logger.Logger) []glob.Glob {
 }
 
 func matchGlob(filePath string, globs []glob.Glob) bool {
-	for _, glob := range globs {
-		if glob.Match(filePath) {
+	for _, g := range globs {
+		if g.Match(filePath) {
 			return true
 		}
 	}

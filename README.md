@@ -140,6 +140,20 @@ Here's an example use case:
 
 In the example, we are ignoring all file paths with a `tests` subdirectory, and only scanning on `go` and `json` files.
 
+### Redaction
+
+Redaction can be configured by using the key `defaultRedactionConfig`. Nightfall supports the following keys on this
+object:
+* `maskConfig`: replacing findings with a character; for example the SSN `678-99-8212` might be masked as `***-**-****`.
+* `substitutionConfig`: replacing findings with a custom phrase, such as `oh no! 🙈`
+* `infoTypeSubstitutionConfig`: replacing findings with the name of the matched info type, such as `CREDIT_CARD_NUMBER`.
+* `cryptoConfig`: using an RSA public key to encrypt findings
+
+If your config file specifies a non-null value for `defaultRedactionConfig`, then exactly one of the above keys must be
+filled out; if more than one is filled out, the Nightfall API will return a 400 error code.
+
+For more information on how to configure redaction-related fields, refer to the [Nightfall docs](https://docs.nightfall.ai/reference/scanpayloadv3). 
+
 ## Configuration Examples
 
 - Using a pre-built Detection Rule
@@ -271,5 +285,50 @@ In the example, we are ignoring all file paths with a `tests` subdirectory, and 
     "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
   ],
   "fileInclusionList": ["*"]
+}
+```
+
+- Sample Redaction Configurations:
+
+Masking:
+```json
+{
+  "defaultRedactionConfig": {
+    "maskConfig": {
+      "maskingChar": "👀",
+      "charsToIgnore": ["-"," "]
+    }
+  }
+}
+```
+
+Substitution:
+```json
+{
+  "defaultRedactionConfig": {
+    "substitutionConfig": {
+      "substitutionPhrase": "REDACTED"
+    }
+  }
+}
+
+```
+Info Type Substitution:
+```json
+{
+  "defaultRedactionConfig": {
+    "infoTypeSubstitutionConfig": {}
+  }
+}
+```
+
+Encryption:
+```json
+{
+  "defaultRedactionConfig": {
+    "cryptoConfig": {
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2VUXMyeEZ8bCJd6OWUJG\n...-----END PUBLIC KEY-----"
+    }
+  }
 }
 ```

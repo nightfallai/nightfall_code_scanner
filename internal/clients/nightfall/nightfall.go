@@ -70,31 +70,17 @@ type contentToScan struct {
 	LineNumber int
 }
 
-func blurContent(content string) string {
-	contentRune := []rune(content)
-	blurredContent := string(contentRune[:2])
-	blurLength := 8
-	if len(contentRune[2:]) < blurLength {
-		blurLength = len(contentRune[2:])
-	}
-	for i := 0; i < blurLength; i++ {
-		blurredContent += "*"
-	}
-	return blurredContent
-}
-
 func getCommentMsg(finding *nf.Finding) string {
-	if (finding.Finding == "" && finding.RedactedFinding == "") || finding.Detector.DisplayName == "" {
+	if finding.Finding == "" && finding.RedactedFinding == "" {
 		return ""
 	}
 
-	blurredContent := finding.RedactedFinding
-	if blurredContent == "" {
-		// by default use asterisks, so we don't spread data further
-		blurredContent = blurContent(finding.Finding)
+	content := finding.RedactedFinding
+	if content == "" {
+		content = finding.Finding
 	}
 
-	return fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredContent, finding.Detector.DisplayName)
+	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, finding.Detector.DisplayName)
 }
 
 func getCommentTitle(finding *nf.Finding) string {

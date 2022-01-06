@@ -51,6 +51,12 @@ var defaultNightfallConfig = &ConfigFile{
 		},
 	},
 	MaxNumberRoutines: DefaultMaxNumberRoutines,
+	DefaultRedactionConfig: &nf.RedactionConfig{
+		MaskConfig: &nf.MaskConfig{
+			MaskingChar:             "*",
+			NumCharsToLeaveUnmasked: 2,
+		},
+	},
 }
 
 // ConfigFile is the struct of the JSON nightfall config file

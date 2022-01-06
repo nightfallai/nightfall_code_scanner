@@ -216,34 +216,6 @@ func TestCreateCommentsFromScanResp(t *testing.T) {
 	}
 }
 
-func TestBlurContent(t *testing.T) {
-	tests := []struct {
-		have string
-		want string
-	}{
-		{
-			have: exampleCreditCardNumber,
-			want: "49********",
-		},
-		{
-			have: exampleAPIKey,
-			want: "yr********",
-		},
-		{
-			have: "汉字 Hello 123",
-			want: "汉字********",
-		},
-		{
-			have: "SHORT",
-			want: "SH***",
-		},
-	}
-	for _, tt := range tests {
-		actual := blurContent(tt.have)
-		assert.Equal(t, tt.want, actual, "Incorrect response from blurContent")
-	}
-}
-
 func TestFilterFileDiffs(t *testing.T) {
 	filePaths := []string{"path/secondary_path/file.txt", "a.go", "a/a.go", "test.go", "path/main.go", "path/test.py"}
 	fileDiffs := make([]*diffreviewer.FileDiff, len(filePaths))

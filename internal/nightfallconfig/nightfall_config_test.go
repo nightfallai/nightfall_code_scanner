@@ -96,6 +96,12 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 			},
 		},
 		MaxNumberRoutines: DefaultMaxNumberRoutines,
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			MaskConfig: &nf.MaskConfig{
+				MaskingChar:             "*",
+				NumCharsToLeaveUnmasked: 2,
+			},
+		},
 	}
 	actualConfig, err := GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfigMissingConfigFile")

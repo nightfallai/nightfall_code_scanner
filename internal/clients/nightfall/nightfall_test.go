@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var blurredCreditCard = "49********"
+var blurredCreditCard = "49*****************"
 
 type mockNightfall struct {
 	scanFn func(context.Context, *nf.ScanTextRequest) (*nf.ScanTextResponse, error)
@@ -57,7 +57,8 @@ var expectedScanResponse = &nf.ScanTextResponse{
 		{},
 		{
 			{
-				Finding: exampleCreditCardNumber,
+				Finding:         exampleCreditCardNumber,
+				RedactedFinding: "49*****************",
 				Detector: nf.DetectorMetadata{
 					DisplayName:  "CREDIT_CARD_NUMBER",
 					DetectorUUID: "2136e3c9-feb0-4aea-8d3e-a767afabf501",
@@ -105,7 +106,7 @@ func TestReviewDiff(t *testing.T) {
 	c := diffreviewer.Comment{
 		FilePath:   filePath,
 		LineNumber: lineNum,
-		Body:       fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredCreditCard, "CREDIT_CARD_NUMBER"),
+		Body:       fmt.Sprintf("Suspicious content detected (%q, type %q)", blurredCreditCard, "CREDIT_CARD_NUMBER"),
 		Title:      fmt.Sprintf("Detected CREDIT_CARD_NUMBER"),
 	}
 	expectedComments := []*diffreviewer.Comment{&c, &c, &c}
@@ -179,7 +180,7 @@ func TestReviewDiffDetectionRuleUUID(t *testing.T) {
 	c := diffreviewer.Comment{
 		FilePath:   filePath,
 		LineNumber: lineNum,
-		Body:       fmt.Sprintf("Suspicious content detected (%s, type %s)", blurredCreditCard, "CREDIT_CARD_NUMBER"),
+		Body:       fmt.Sprintf("Suspicious content detected (%q, type %q)", blurredCreditCard, "CREDIT_CARD_NUMBER"),
 		Title:      "Detected CREDIT_CARD_NUMBER",
 	}
 	expectedComments := []*diffreviewer.Comment{&c, &c, &c}

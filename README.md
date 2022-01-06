@@ -294,10 +294,10 @@ Masking:
 ```json
 {
   "defaultRedactionConfig": {
-   "maskConfig": {
-     "maskingChar": "👀",
-     "charsToIgnore": ["-"," "]
-   }
+    "maskConfig": {
+      "maskingChar": "👀",
+      "charsToIgnore": ["-"," "]
+    }
   }
 }
 ```
@@ -306,9 +306,9 @@ Substitution:
 ```json
 {
   "defaultRedactionConfig": {
-   "substitutionConfig": {
-     "substitutionPhrase": "REDACTED"
-   }
+    "substitutionConfig": {
+      "substitutionPhrase": "REDACTED"
+    }
   }
 }
 
@@ -317,7 +317,7 @@ Info Type Substitution:
 ```json
 {
   "defaultRedactionConfig": {
-   "infoTypeSubstitutionConfig": {}
+    "infoTypeSubstitutionConfig": {}
   }
 }
 ```
@@ -326,9 +326,9 @@ Encryption:
 ```json
 {
   "defaultRedactionConfig": {
-   "cryptoConfig": {
-     "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2VUXMyeEZ8bCJd6OWUJG\n...-----END PUBLIC KEY-----"
-   }
+    "cryptoConfig": {
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2VUXMyeEZ8bCJd6OWUJG\n...-----END PUBLIC KEY-----"
+    }
   }
 }
 ```

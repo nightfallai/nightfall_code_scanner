@@ -213,6 +213,9 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
 		FileExclusionList:          []string{".nightfalldlp/config.json"},
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
+		},
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
@@ -315,6 +318,12 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			MaskConfig: &nf.MaskConfig{
+				MaskingChar:             "*",
+				NumCharsToLeaveUnmasked: 2,
+			},
+		},
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)

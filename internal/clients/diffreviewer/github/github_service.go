@@ -23,10 +23,6 @@ import (
 type Level string
 
 const (
-	InfoLevel    Level = "info"
-	WarningLevel Level = "warning"
-	ErrorLevel   Level = "error"
-
 	WorkspacePathEnvVar      = "GITHUB_WORKSPACE"
 	EventPathEnvVar          = "GITHUB_EVENT_PATH"
 	BaseRefEnvVar            = "GITHUB_BASE_REF"
@@ -207,6 +203,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		TokenExclusionList:          nightfallConfig.TokenExclusionList,
 		FileInclusionList:           nightfallConfig.FileInclusionList,
 		FileExclusionList:           nightfallConfig.FileExclusionList,
+		DefaultRedactionConfig:      nightfallConfig.DefaultRedactionConfig,
 	}, nil
 }
 

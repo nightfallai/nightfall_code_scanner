@@ -119,6 +119,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		TokenExclusionList:          nightfallConfig.TokenExclusionList,
 		FileInclusionList:           nightfallConfig.FileInclusionList,
 		FileExclusionList:           nightfallConfig.FileExclusionList,
+		DefaultRedactionConfig:      nightfallConfig.DefaultRedactionConfig,
 	}, nil
 }
 

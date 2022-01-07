@@ -209,6 +209,9 @@ func (g *githubTestSuite) TestLoadConfig() {
 		TokenExclusionList:         []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:          []string{"*"},
 		FileExclusionList:          []string{".nightfalldlp/config.json"},
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
+		},
 	}
 	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
@@ -304,6 +307,12 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,
+		DefaultRedactionConfig: &nf.RedactionConfig{
+			MaskConfig: &nf.MaskConfig{
+				MaskingChar:             "*",
+				NumCharsToLeaveUnmasked: 2,
+			},
+		},
 	}
 	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,

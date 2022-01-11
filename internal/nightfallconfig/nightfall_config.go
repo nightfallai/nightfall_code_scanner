@@ -25,6 +25,7 @@ const (
 var defaultNightfallConfig = &ConfigFile{
 	DetectionRules: []nf.DetectionRule{
 		{
+			Name: "default detection rule",
 			Detectors: []nf.Detector{
 				{
 					MinNumFindings:    1,
@@ -48,6 +49,7 @@ var defaultNightfallConfig = &ConfigFile{
 					DisplayName:       "PASSWORD_IN_CODE",
 				},
 			},
+			LogicalOp: nf.LogicalOpAny,
 		},
 	},
 	MaxNumberRoutines: DefaultMaxNumberRoutines,

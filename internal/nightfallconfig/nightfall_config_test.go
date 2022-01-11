@@ -70,6 +70,7 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 	expectedConfig := &ConfigFile{
 		DetectionRules: []nf.DetectionRule{
 			{
+				Name: "default detection rule",
 				Detectors: []nf.Detector{
 					{
 						MinNumFindings:    1,
@@ -93,6 +94,7 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 						NightfallDetector: "PASSWORD_IN_CODE",
 					},
 				},
+				LogicalOp: nf.LogicalOpAny,
 			},
 		},
 		MaxNumberRoutines: DefaultMaxNumberRoutines,

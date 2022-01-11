@@ -281,6 +281,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 		NightfallAPIKey: apiKey,
 		NightfallDetectionRules: []nf.DetectionRule{
 			{
+				Name: "default detection rule",
 				Detectors: []nf.Detector{
 					{
 						DetectorType:      nf.DetectorTypeNightfallDetector,
@@ -304,6 +305,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 						MinNumFindings:    1,
 					},
 				},
+				LogicalOp: nf.LogicalOpAny,
 			},
 		},
 		NightfallMaxNumberRoutines: nightfallconfig.DefaultMaxNumberRoutines,

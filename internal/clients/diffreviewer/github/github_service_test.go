@@ -212,6 +212,7 @@ func (g *githubTestSuite) TestLoadConfig() {
 		DefaultRedactionConfig: &nf.RedactionConfig{
 			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
 		},
+		AnnotationLevel: "warning",
 	}
 	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
@@ -248,6 +249,7 @@ func (g *githubTestSuite) TestLoadConfigDetectionRuleUUID() {
 		TokenExclusionList:          []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:           []string{"*"},
 		FileExclusionList:           []string{".nightfalldlp/config.json"},
+		AnnotationLevel:             "failure",
 	}
 	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
@@ -315,6 +317,7 @@ func (g *githubTestSuite) TestLoadEmptyConfig() {
 				NumCharsToLeaveUnmasked: 2,
 			},
 		},
+		AnnotationLevel: "failure",
 	}
 	expectedGithubCheckRequest := &CheckRequest{
 		Owner:       owner,
@@ -510,7 +513,7 @@ func (g *githubTestSuite) TestWriteComments() {
 				lastUpdateOpt,
 			).Return(expectedLastUpdatedCheckRun, nil, nil)
 		}
-		err := tp.gc.WriteComments(tt.giveComments)
+		err := tp.gc.WriteComments(tt.giveComments, "warning")
 		g.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
 	}
 }
@@ -518,7 +521,7 @@ func (g *githubTestSuite) TestWriteComments() {
 func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffreviewer.Comment, []*github.CheckRunAnnotation) {
 	comments := make([]*diffreviewer.Comment, size)
 	annotations := make([]*github.CheckRunAnnotation, size)
-	annotationLevelFailure := "failure"
+	annotationLevel := "warning"
 	for i := 0; i < size; i++ {
 		comments[i] = &diffreviewer.Comment{
 			Title:      "title",
@@ -530,7 +533,7 @@ func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffrev
 			Path:            &filePath,
 			StartLine:       &comments[i].LineNumber,
 			EndLine:         &comments[i].LineNumber,
-			AnnotationLevel: &annotationLevelFailure,
+			AnnotationLevel: &annotationLevel,
 			Message:         &body,
 			Title:           &comments[i].Title,
 		}

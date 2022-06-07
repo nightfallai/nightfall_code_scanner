@@ -367,6 +367,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"notice",
 	)
 	emptyComments := make([]*diffreviewer.Comment, 0)
 
@@ -378,7 +379,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		{
 			giveComments: testComments,
 			wantErr:      errSensitiveItemsFound,
-			desc:         "single batch comments test",
+			desc:         "notice: single batch comments test",
 		},
 		{
 			giveComments: emptyComments,
@@ -393,13 +394,13 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		}
 		for _, comment := range tt.giveComments {
 			mockLogger.EXPECT().Error(fmt.Sprintf(
-				"%s at %s on line %d",
+				"notice: %s at %s on line %d",
 				comment.Body,
 				comment.FilePath,
 				comment.LineNumber,
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
+		err := tp.cs.WriteComments(tt.giveComments, "notice")
 		if len(tt.giveComments) == 0 {
 			c.NoError(err, fmt.Sprintf("unexpected error writing comments for %s test", tt.desc))
 		} else {
@@ -432,6 +433,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"failure",
 	)
 	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.PullRequestComment, 0)
 
@@ -483,7 +485,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 				gc.GetLine(),
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
+		err := tp.cs.WriteComments(tt.giveComments, "failure")
 		if len(tt.giveComments) > 0 {
 			c.EqualError(
 				err,
@@ -501,6 +503,7 @@ func makeTestGithubPullRequestComments(
 	filePath,
 	commitSha string,
 	size int,
+	level string,
 ) ([]*diffreviewer.Comment, []*github.PullRequestComment) {
 	comments := make([]*diffreviewer.Comment, size)
 	githubComments := make([]*github.PullRequestComment, size)
@@ -511,9 +514,10 @@ func makeTestGithubPullRequestComments(
 			FilePath:   filePath,
 			LineNumber: i + 1,
 		}
+		githubBody := fmt.Sprintf("%s: %s", level, body)
 		githubComments[i] = &github.PullRequestComment{
 			CommitID: &commitSha,
-			Body:     &body,
+			Body:     &githubBody,
 			Path:     &filePath,
 			Line:     &comments[i].LineNumber,
 			Side:     github.String(GithubCommentRightSide),
@@ -541,10 +545,11 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	tp.cs = testCircleService
 
 	testComments, testGithubComments := makeTestGithubRepositoryComments(
-		"testComment",
+		"warning: testComment",
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"warning",
 	)
 	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.RepositoryComment, 0)
 
@@ -588,7 +593,7 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 				tt.giveComments[index].LineNumber,
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
+		err := tp.cs.WriteComments(tt.giveComments, "warning")
 		if len(tt.giveComments) > 0 {
 			c.EqualError(
 				err,
@@ -606,6 +611,7 @@ func makeTestGithubRepositoryComments(
 	filePath,
 	commitSha string,
 	size int,
+	level string,
 ) ([]*diffreviewer.Comment, []*github.RepositoryComment) {
 	comments := make([]*diffreviewer.Comment, size)
 	githubComments := make([]*github.RepositoryComment, size)
@@ -616,9 +622,10 @@ func makeTestGithubRepositoryComments(
 			FilePath:   filePath,
 			LineNumber: i + 1,
 		}
+		githubBody := fmt.Sprintf("%s: %s", level, body)
 		githubComments[i] = &github.RepositoryComment{
 			CommitID: &commitSha,
-			Body:     &body,
+			Body:     &githubBody,
 			Path:     &filePath,
 			Position: github.Int(i + 1),
 		}

@@ -66,17 +66,17 @@ func (mr *DiffReviewerMockRecorder) GetDiff() *gomock.Call {
 }
 
 // WriteComments mocks base method
-func (m *DiffReviewer) WriteComments(comments []*diffreviewer.Comment) error {
+func (m *DiffReviewer) WriteComments(comments []*diffreviewer.Comment, level string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WriteComments", comments)
+	ret := m.ctrl.Call(m, "WriteComments", comments, level)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WriteComments indicates an expected call of WriteComments
-func (mr *DiffReviewerMockRecorder) WriteComments(comments interface{}) *gomock.Call {
+func (mr *DiffReviewerMockRecorder) WriteComments(comments, level interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteComments", reflect.TypeOf((*DiffReviewer)(nil).WriteComments), comments)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteComments", reflect.TypeOf((*DiffReviewer)(nil).WriteComments), comments, level)
 }
 
 // GetLogger mocks base method

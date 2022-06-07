@@ -13,8 +13,8 @@ type DiffReviewer interface {
 	LoadConfig(nightfallConfigFileName string) (*nightfallconfig.Config, error)
 	// GetDiff fetches the diff from the code repository and return a parsed array of FileDiffs
 	GetDiff() ([]*FileDiff, error)
-	// WriteComments posts the Nightfall DLP findings as comments/a review to the diff
-	WriteComments(comments []*Comment) error
+	// WriteComments posts the Nightfall DLP findings as comments/a review to the diff at a given alert level
+	WriteComments(comments []*Comment, level string) error
 	// GetLogger gets the logger for the diff reviewer
 	GetLogger() logger.Logger
 }

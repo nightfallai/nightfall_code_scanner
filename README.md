@@ -45,7 +45,8 @@ config will be equivalent to the snippet below:
         }
       ]
     }
-  ]
+  ],
+  annotationLevel: "failure"
 }
 ```
 
@@ -152,7 +153,12 @@ object:
 If your config file specifies a non-null value for `defaultRedactionConfig`, then exactly one of the above keys must be
 filled out; if more than one is filled out, the Nightfall API will return a 400 error code.
 
-For more information on how to configure redaction-related fields, refer to the [Nightfall docs](https://docs.nightfall.ai/reference/scanpayloadv3). 
+For more information on how to configure redaction-related fields, refer to the [Nightfall docs](https://docs.nightfall.ai/reference/scanpayloadv3).
+
+### Annotation Level customization
+
+Annotations can be configured to be `notice`, `warning`, or `failure`, by setting the `annotationLevel` key in the
+configuration object.
 
 ## Configuration Examples
 
@@ -332,3 +338,9 @@ Encryption:
   }
 }
 ```
+
+Annotate as Warnings:
+```json
+{
+  "annotationLevel": "warning"
+}

@@ -46,7 +46,7 @@ config will be equivalent to the snippet below:
       ]
     }
   ],
-  annotationLevel: "failure"
+  "annotationLevel": "failure"
 }
 ```
 

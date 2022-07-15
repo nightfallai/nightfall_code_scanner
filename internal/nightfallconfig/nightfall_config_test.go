@@ -151,7 +151,7 @@ func TestGetNightfallConfigWrongAnnotationLevel(t *testing.T) {
 		FileExclusionList: []string{".nightfalldlp/config.json"},
 		AnnotationLevel:   "failure",
 	}
-	actualConfig, err := GetNightfallConfigFile(workspacePath, testAnnotationFileName, nil)
+	actualConfig, err := GetNightfallConfigFile(workspacePath, testAnnotationFileName, githublogger.NewDefaultGithubLogger())
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }

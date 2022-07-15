@@ -122,6 +122,9 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	// must be one of notice, warning, or failure
 	if _, ok := annotationLevels[nightfallConfig.AnnotationLevel]; !ok {
 		nightfallConfig.AnnotationLevel = AnnotationLevelFailure
+		if nightfallConfig.AnnotationLevel != "" {
+			logger.Warning(fmt.Sprintf("Unknown annotation level: %s. Defaulting to failure", nightfallConfig.AnnotationLevel))
+		}
 	}
 	return &nightfallConfig, nil
 }

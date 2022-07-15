@@ -120,6 +120,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		FileInclusionList:           nightfallConfig.FileInclusionList,
 		FileExclusionList:           nightfallConfig.FileExclusionList,
 		DefaultRedactionConfig:      nightfallConfig.DefaultRedactionConfig,
+		AnnotationLevel:             nightfallConfig.AnnotationLevel,
 	}, nil
 }
 
@@ -198,14 +199,18 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 }
 
 // WriteComments posts the findings as annotations to the github check
-func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) error {
 	if len(comments) == 0 {
 		s.Logger.Info("no sensitive items found")
 		return nil
 	}
-	s.logCommentsToCircle(comments)
+	s.logCommentsToCircle(comments, level)
+	var returnErr error
+	if level == nightfallconfig.AnnotationLevelFailure {
+		returnErr = errSensitiveItemsFound
+	}
 	if s.GithubClient == nil {
-		return errSensitiveItemsFound
+		return returnErr
 	}
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
@@ -218,7 +223,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		if err != nil {
 			s.Logger.Error(fmt.Sprintf("Error listing existing pull request comments: %s", err.Error()))
 		}
-		githubComments := s.createGithubPullRequestComments(comments)
+		githubComments := s.createGithubPullRequestComments(comments, level)
 		filteredGithubComments := filterExistingComments(githubComments, existingComments)
 		for _, c := range filteredGithubComments {
 			_, _, err := s.GithubClient.PullRequestsService().CreateComment(
@@ -233,7 +238,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 			}
 		}
 	} else {
-		githubComments := s.createGithubRepositoryComments(comments)
+		githubComments := s.createGithubRepositoryComments(comments, level)
 		for _, c := range githubComments {
 			_, _, err := s.GithubClient.RepositoriesService().CreateComment(
 				context.Background(),
@@ -248,26 +253,37 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		}
 	}
 	// returning error to fail circleCI step
-	return errSensitiveItemsFound
+	return returnErr
 }
 
-func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment) {
+func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment, level string) {
 	for _, comment := range comments {
-		s.Logger.Error(fmt.Sprintf(
+		logString := fmt.Sprintf(
 			"%s at %s on line %d",
 			comment.Body,
 			comment.FilePath,
 			comment.LineNumber,
-		))
+		)
+		switch level {
+		case nightfallconfig.AnnotationLevelFailure:
+			s.Logger.Error(logString)
+		case nightfallconfig.AnnotationLevelWarning:
+			s.Logger.Warning(logString)
+		case nightfallconfig.AnnotationLevelNotice:
+			s.Logger.Info(logString)
+		default:
+			s.Logger.Error(logString)
+		}
 	}
 }
 
-func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comment) []*github.PullRequestComment {
+func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comment, level string) []*github.PullRequestComment {
 	githubComments := make([]*github.PullRequestComment, len(comments))
 	for i, comment := range comments {
+		body := fmt.Sprintf("%s: %s", level, comment.Body)
 		githubComments[i] = &github.PullRequestComment{
 			CommitID: &s.PrDetails.CommitSha,
-			Body:     &comment.Body,
+			Body:     &body,
 			Path:     &comment.FilePath,
 			Line:     &comment.LineNumber,
 			Side:     github.String(GithubCommentRightSide),
@@ -276,12 +292,13 @@ func (s *Service) createGithubPullRequestComments(comments []*diffreviewer.Comme
 	return githubComments
 }
 
-func (s *Service) createGithubRepositoryComments(comments []*diffreviewer.Comment) []*github.RepositoryComment {
+func (s *Service) createGithubRepositoryComments(comments []*diffreviewer.Comment, level string) []*github.RepositoryComment {
 	githubComments := make([]*github.RepositoryComment, len(comments))
 	for i, comment := range comments {
+		body := fmt.Sprintf("%s: %s", level, comment.Body)
 		githubComments[i] = &github.RepositoryComment{
 			CommitID: &s.PrDetails.CommitSha,
-			Body:     &comment.Body,
+			Body:     &body,
 			Path:     &comment.FilePath,
 			Position: &comment.LineNumber,
 		}

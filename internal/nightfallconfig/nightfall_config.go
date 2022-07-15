@@ -22,6 +22,15 @@ const (
 	defaultConditionsInfoMessage = "Using default Detection Rule with detectors API_KEY and CRYPTOGRAPHIC_KEY"
 )
 
+// AnnotationLevelFailure describes the failure severity to render comments on code
+var AnnotationLevelFailure = "failure"
+
+// AnnotationLevelFailure describes the warning severity to render comments on code
+var AnnotationLevelWarning = "warning"
+
+// AnnotationLevelFailure describes the notice severity to render comments on code
+var AnnotationLevelNotice = "notice"
+var annotationLevels = map[string]struct{}{AnnotationLevelNotice: {}, AnnotationLevelWarning: {}, AnnotationLevelFailure: {}}
 var defaultNightfallConfig = &ConfigFile{
 	DetectionRules: []nf.DetectionRule{
 		{
@@ -59,6 +68,7 @@ var defaultNightfallConfig = &ConfigFile{
 			NumCharsToLeaveUnmasked: 2,
 		},
 	},
+	AnnotationLevel: AnnotationLevelFailure,
 }
 
 // ConfigFile is the struct of the JSON nightfall config file
@@ -70,6 +80,7 @@ type ConfigFile struct {
 	FileInclusionList      []string            `json:"fileInclusionList"`
 	FileExclusionList      []string            `json:"fileExclusionList"`
 	DefaultRedactionConfig *nf.RedactionConfig `json:"defaultRedactionConfig"`
+	AnnotationLevel        string              `json:"annotationLevel"`
 }
 
 // Config general config struct
@@ -82,6 +93,7 @@ type Config struct {
 	FileInclusionList           []string
 	FileExclusionList           []string
 	DefaultRedactionConfig      *nf.RedactionConfig
+	AnnotationLevel             string
 }
 
 // GetNightfallConfigFile loads nightfall config from file, returns default if missing/invalid
@@ -113,5 +125,12 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 		nightfallConfig.MaxNumberRoutines = MaxConcurrentRoutinesCap
 	}
 	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)
+	// must be one of notice, warning, or failure
+	if _, ok := annotationLevels[nightfallConfig.AnnotationLevel]; !ok {
+		if nightfallConfig.AnnotationLevel != "" {
+			logger.Warning(fmt.Sprintf("Unknown annotation level: %s. Defaulting to failure", nightfallConfig.AnnotationLevel))
+		}
+		nightfallConfig.AnnotationLevel = AnnotationLevelFailure
+	}
 	return &nightfallConfig, nil
 }

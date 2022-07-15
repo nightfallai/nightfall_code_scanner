@@ -60,7 +60,7 @@ func run() error {
 		return err
 	}
 
-	return diffReviewClient.WriteComments(comments)
+	return diffReviewClient.WriteComments(comments, nightfallConfig.AnnotationLevel)
 }
 
 // usingGithubAction determine if nightfalldlp is being run by

@@ -216,6 +216,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 		DefaultRedactionConfig: &nf.RedactionConfig{
 			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
 		},
+		AnnotationLevel: "warning",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
@@ -246,6 +247,7 @@ func (c *circleCiTestSuite) TestLoadConfigDetectionRuleUUID() {
 		TokenExclusionList:          []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:           []string{"*"},
 		FileExclusionList:           []string{".nightfalldlp/config.json"},
+		AnnotationLevel:             "failure",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigDetectionRuleUUIDFileName)
@@ -326,6 +328,7 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 				NumCharsToLeaveUnmasked: 2,
 			},
 		},
+		AnnotationLevel: "failure",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)
@@ -367,6 +370,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"notice",
 	)
 	emptyComments := make([]*diffreviewer.Comment, 0)
 
@@ -377,8 +381,8 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 	}{
 		{
 			giveComments: testComments,
-			wantErr:      errSensitiveItemsFound,
-			desc:         "single batch comments test",
+			wantErr:      nil,
+			desc:         "notice: single batch comments test",
 		},
 		{
 			giveComments: emptyComments,
@@ -392,15 +396,15 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 			mockLogger.EXPECT().Info("no sensitive items found")
 		}
 		for _, comment := range tt.giveComments {
-			mockLogger.EXPECT().Error(fmt.Sprintf(
+			mockLogger.EXPECT().Info(fmt.Sprintf(
 				"%s at %s on line %d",
 				comment.Body,
 				comment.FilePath,
 				comment.LineNumber,
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
-		if len(tt.giveComments) == 0 {
+		err := tp.cs.WriteComments(tt.giveComments, "notice")
+		if tt.wantErr == nil {
 			c.NoError(err, fmt.Sprintf("unexpected error writing comments for %s test", tt.desc))
 		} else {
 			c.EqualError(err, tt.wantErr.Error(), fmt.Sprintf("invalid error writing comments for %s test", tt.desc))
@@ -432,6 +436,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"failure",
 	)
 	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.PullRequestComment, 0)
 
@@ -478,12 +483,12 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 			)
 			mockLogger.EXPECT().Error(fmt.Sprintf(
 				"%s at %s on line %d",
-				gc.GetBody(),
+				"testComment",
 				gc.GetPath(),
 				gc.GetLine(),
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
+		err := tp.cs.WriteComments(tt.giveComments, "failure")
 		if len(tt.giveComments) > 0 {
 			c.EqualError(
 				err,
@@ -501,6 +506,7 @@ func makeTestGithubPullRequestComments(
 	filePath,
 	commitSha string,
 	size int,
+	level string,
 ) ([]*diffreviewer.Comment, []*github.PullRequestComment) {
 	comments := make([]*diffreviewer.Comment, size)
 	githubComments := make([]*github.PullRequestComment, size)
@@ -511,9 +517,10 @@ func makeTestGithubPullRequestComments(
 			FilePath:   filePath,
 			LineNumber: i + 1,
 		}
+		githubBody := fmt.Sprintf("%s: %s", level, body)
 		githubComments[i] = &github.PullRequestComment{
 			CommitID: &commitSha,
-			Body:     &body,
+			Body:     &githubBody,
 			Path:     &filePath,
 			Line:     &comments[i].LineNumber,
 			Side:     github.String(GithubCommentRightSide),
@@ -545,25 +552,23 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
+		"warning",
 	)
 	emptyComments, emptyGithubComments := make([]*diffreviewer.Comment, 0), make([]*github.RepositoryComment, 0)
 
 	tests := []struct {
 		giveComments       []*diffreviewer.Comment
 		giveGithubComments []*github.RepositoryComment
-		wantError          error
 		desc               string
 	}{
 		{
 			giveComments:       testComments,
 			giveGithubComments: testGithubComments,
-			wantError:          errSensitiveItemsFound,
 			desc:               "single batch comments test",
 		},
 		{
 			giveComments:       emptyComments,
 			giveGithubComments: emptyGithubComments,
-			wantError:          nil,
 			desc:               "no comments test",
 		},
 	}
@@ -581,19 +586,18 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 				testCircleService.PrDetails.CommitSha,
 				gc,
 			)
-			mockLogger.EXPECT().Error(fmt.Sprintf(
+			mockLogger.EXPECT().Warning(fmt.Sprintf(
 				"%s at %s on line %d",
-				gc.GetBody(),
+				"testComment",
 				gc.GetPath(),
 				tt.giveComments[index].LineNumber,
 			))
 		}
-		err := tp.cs.WriteComments(tt.giveComments)
+		err := tp.cs.WriteComments(tt.giveComments, "warning")
 		if len(tt.giveComments) > 0 {
-			c.EqualError(
+			c.NoError(
 				err,
-				tt.wantError.Error(),
-				fmt.Sprintf("invalid error writing comments for %s test", tt.desc),
+				fmt.Sprintf("should be no error writing comments for %s test", tt.desc),
 			)
 		} else {
 			c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
@@ -606,6 +610,7 @@ func makeTestGithubRepositoryComments(
 	filePath,
 	commitSha string,
 	size int,
+	level string,
 ) ([]*diffreviewer.Comment, []*github.RepositoryComment) {
 	comments := make([]*diffreviewer.Comment, size)
 	githubComments := make([]*github.RepositoryComment, size)
@@ -616,9 +621,10 @@ func makeTestGithubRepositoryComments(
 			FilePath:   filePath,
 			LineNumber: i + 1,
 		}
+		githubBody := fmt.Sprintf("%s: %s", level, body)
 		githubComments[i] = &github.RepositoryComment{
 			CommitID: &commitSha,
-			Body:     &body,
+			Body:     &githubBody,
 			Path:     &filePath,
 			Position: github.Int(i + 1),
 		}

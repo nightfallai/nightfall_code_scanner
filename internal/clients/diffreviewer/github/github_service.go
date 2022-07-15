@@ -34,11 +34,11 @@ const (
 	summaryString = "Nightfall DLP has found %d potentially sensitive items"
 )
 
-var annotationLevelFailure = "failure"
 var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
+var checkRunConclusionNeutral = "neutral"
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -204,6 +204,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		FileInclusionList:           nightfallConfig.FileInclusionList,
 		FileExclusionList:           nightfallConfig.FileExclusionList,
 		DefaultRedactionConfig:      nightfallConfig.DefaultRedactionConfig,
+		AnnotationLevel:             nightfallConfig.AnnotationLevel,
 	}, nil
 }
 
@@ -226,7 +227,7 @@ func (s *Service) GetDiff() ([]*diffreviewer.FileDiff, error) {
 }
 
 // WriteComments posts the findings as annotations to the github check
-func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
+func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) error {
 	s.Logger.Debug(fmt.Sprintf("Writing %d annotations to Github", len(comments)))
 	checkRun, err := s.createCheckRun()
 	if err != nil {
@@ -241,7 +242,15 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 		}
 		return nil
 	}
-	annotations := createAnnotations(comments)
+	annotations := createAnnotations(comments, level)
+	// Only set conclusion as failure if there is a failure annotation - see #72
+	conclusion := &checkRunConclusionNeutral
+	for _, a := range annotations {
+		if a.GetAnnotationLevel() == nightfallconfig.AnnotationLevelFailure {
+			conclusion = &checkRunConclusionFailure
+			break
+		}
+	}
 	annotationLength := len(comments)
 	summaryNumFindings := fmt.Sprintf(summaryString, annotationLength)
 	// numIntermediateUpdateRequests contains the number of intermediate requests to be made prior to the final update request
@@ -271,7 +280,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment) error {
 	completedOpt := github.UpdateCheckRunOptions{
 		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
-		Conclusion: &checkRunConclusionFailure,
+		Conclusion: conclusion,
 		Output: &github.CheckRunOutput{
 			Title:       github.String(getCheckName(s.CheckRequest.Name)),
 			Summary:     github.String(summaryNumFindings),
@@ -347,22 +356,22 @@ func (s *Service) createCheckRun() (*github.CheckRun, error) {
 	return checkRun, nil
 }
 
-func createAnnotations(comments []*diffreviewer.Comment) []*github.CheckRunAnnotation {
+func createAnnotations(comments []*diffreviewer.Comment, level string) []*github.CheckRunAnnotation {
 	annotations := make([]*github.CheckRunAnnotation, len(comments))
 	for i := 0; i < len(comments); i++ {
-		annotations[i] = convertCommentToAnnotation(comments[i])
+		annotations[i] = convertCommentToAnnotation(comments[i], level)
 	}
 	return annotations
 }
 
-func convertCommentToAnnotation(comment *diffreviewer.Comment) *github.CheckRunAnnotation {
+func convertCommentToAnnotation(comment *diffreviewer.Comment, level string) *github.CheckRunAnnotation {
 	return &github.CheckRunAnnotation{
 		Path:            &comment.FilePath,
 		StartLine:       &comment.LineNumber,
 		EndLine:         &comment.LineNumber,
 		Title:           &comment.Title,
 		Message:         &comment.Body,
-		AnnotationLevel: &annotationLevelFailure,
+		AnnotationLevel: &level,
 	}
 }
 

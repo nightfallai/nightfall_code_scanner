@@ -11,6 +11,7 @@ import (
 )
 
 const testFileName = "nightfall_test_config.json"
+const testAnnotationFileName = "nightfall_test_config_annotation.json"
 const testMissingFileName = "nightfall_test_missing_config.json"
 const excludedCreditCardRegex = "4242-4242-4242-[0-9]{4}"
 const excludedApiToken = "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
@@ -57,6 +58,7 @@ func TestGetNightfallConfig(t *testing.T) {
 		DefaultRedactionConfig: &nf.RedactionConfig{
 			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
 		},
+		AnnotationLevel: "warning",
 	}
 	actualConfig, err := GetNightfallConfigFile(workspacePath, testFileName, nil)
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
@@ -104,8 +106,52 @@ func TestGetNightfallConfigMissingConfigFile(t *testing.T) {
 				NumCharsToLeaveUnmasked: 2,
 			},
 		},
+		AnnotationLevel: "failure",
 	}
 	actualConfig, err := GetNightfallConfigFile(workspacePath, testMissingFileName, githublogger.NewDefaultGithubLogger())
 	assert.NoError(t, err, "Unexpected error in test GetNightfallConfigMissingConfigFile")
+	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
+}
+
+func TestGetNightfallConfigWrongAnnotationLevel(t *testing.T) {
+	workspaceConfig, err := os.Getwd()
+	assert.NoError(t, err, "Unexpected error when getting current directory")
+	workspacePath := path.Join(workspaceConfig, "../../test/data")
+	expectedConfig := &ConfigFile{
+		DetectionRules: []nf.DetectionRule{
+			{
+				Name: "my detection rule",
+				Detectors: []nf.Detector{
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "cc",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "CREDIT_CARD_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidencePossible,
+						DisplayName:       "phone",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "PHONE_NUMBER",
+					},
+					{
+						MinNumFindings:    1,
+						MinConfidence:     nf.ConfidenceLikely,
+						DisplayName:       "ip",
+						DetectorType:      nf.DetectorTypeNightfallDetector,
+						NightfallDetector: "IP_ADDRESS",
+					},
+				},
+				LogicalOp: nf.LogicalOpAny,
+			},
+		},
+		MaxNumberRoutines: 20,
+		FileExclusionList: []string{".nightfalldlp/config.json"},
+		AnnotationLevel:   "failure",
+	}
+	actualConfig, err := GetNightfallConfigFile(workspacePath, testAnnotationFileName, githublogger.NewDefaultGithubLogger())
+	assert.NoError(t, err, "Unexpected error in test GetNightfallConfig")
 	assert.Equal(t, expectedConfig, actualConfig, "Incorrect nightfall config")
 }

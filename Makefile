@@ -25,7 +25,7 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 start:
-	./$(BINARY_NAME)
+	$(BINARY_NAME)
 dockertag:
 	docker tag $(NAME):latest $(VERSION)
 	docker tag $(NAME):latest $(LATEST)

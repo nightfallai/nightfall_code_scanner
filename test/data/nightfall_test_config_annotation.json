@@ -28,13 +28,5 @@
             ]
         }
     ],
-    "maxNumberConcurrentRoutines": 20,
-    "tokenExclusionList": ["4242-4242-4242-[0-9]{4}", "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv", "^127\\."],
-    "fileInclusionList": ["*"],
-    "defaultRedactionConfig": {
-        "substitutionConfig": {
-            "substitutionPhrase": "REDACTED"
-        }
-    },
-    "annotationLevel": "warning"
+    "annotationLevel": "not a real annotation level"
 }

@@ -21,6 +21,17 @@ jobs:
           name: Clean up reusable Docker
           command: clean_up_reusable_docker
 
+  run-local:
+    docker:
+      - image: cimg/go:1.18.4
+    steps:
+      - checkout
+      - run:
+          name: run binary locally
+          command: make
+          environment:
+            GITHUB_WORKSPACE: "."
+
   lint:
     docker:
       - image: deliveroo/circleci:0.2.8
@@ -79,6 +90,11 @@ workflows:
   build_and_test:
     jobs:
       - build:
+          filters:
+            tags:
+              only: /.*/
+          context: build
+      - run-local:
           filters:
             tags:
               only: /.*/

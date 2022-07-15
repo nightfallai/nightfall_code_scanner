@@ -158,7 +158,7 @@ For more information on how to configure redaction-related fields, refer to the 
 ### Annotation Level customization
 
 Annotations can be configured to be `notice`, `warning`, or `failure`, by setting the `annotationLevel` key in the
-configuration object.
+configuration object. The check will only fail if `failure` annotations are written.
 
 ## Configuration Examples
 

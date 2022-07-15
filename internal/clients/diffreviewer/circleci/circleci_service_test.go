@@ -556,19 +556,16 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	tests := []struct {
 		giveComments       []*diffreviewer.Comment
 		giveGithubComments []*github.RepositoryComment
-		wantError          error
 		desc               string
 	}{
 		{
 			giveComments:       testComments,
 			giveGithubComments: testGithubComments,
-			wantError:          errSensitiveItemsFound,
 			desc:               "single batch comments test",
 		},
 		{
 			giveComments:       emptyComments,
 			giveGithubComments: emptyGithubComments,
-			wantError:          nil,
 			desc:               "no comments test",
 		},
 	}
@@ -595,10 +592,9 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 		}
 		err := tp.cs.WriteComments(tt.giveComments, "warning")
 		if len(tt.giveComments) > 0 {
-			c.EqualError(
+			c.NoError(
 				err,
-				tt.wantError.Error(),
-				fmt.Sprintf("invalid error writing comments for %s test", tt.desc),
+				fmt.Sprintf("should be no error writing comments for %s test", tt.desc),
 			)
 		} else {
 			c.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))

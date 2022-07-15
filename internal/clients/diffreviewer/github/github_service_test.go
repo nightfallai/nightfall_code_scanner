@@ -359,19 +359,34 @@ func (g *githubTestSuite) TestWriteComments() {
 	}
 	tp.gc = testGithubService
 
-	singleBatchComments, singleBatchAnnotations := makeTestCommentsAndAnnotations(
+	warnSingleBatchComments, warnSingleBatchAnnotations := makeTestCommentsAndAnnotations(
 		"testComment",
 		"/comments.txt",
+		"warning",
 		10,
 	)
-	multiBatchComments, multiBatchAnnotations := makeTestCommentsAndAnnotations(
+	failSingleBatchComments, failSingleBatchAnnotations := makeTestCommentsAndAnnotations(
 		"testComment",
 		"/comments.txt",
+		"failure",
+		10,
+	)
+	warnMultiBatchComments, warnMultiBatchAnnotations := makeTestCommentsAndAnnotations(
+		"testComment",
+		"/comments.txt",
+		"warning",
+		120,
+	)
+	failMultiBatchComments, failMultiBatchAnnotations := makeTestCommentsAndAnnotations(
+		"testComment",
+		"/comments.txt",
+		"failure",
 		120,
 	)
 	emptyComments, emptyAnnotations := make([]*diffreviewer.Comment, 0), make([]*github.CheckRunAnnotation, 0)
 
 	failureConclusion := "failure"
+	neutralConclusion := "neutral"
 	successConclusion := "success"
 
 	tests := []struct {
@@ -379,24 +394,42 @@ func (g *githubTestSuite) TestWriteComments() {
 		wantAnnotations []*github.CheckRunAnnotation
 		wantConclusion  string
 		desc            string
+		annotationLevel string
 	}{
 		{
-			giveComments:    singleBatchComments,
-			wantAnnotations: singleBatchAnnotations,
-			wantConclusion:  failureConclusion,
-			desc:            "single batch comments test",
+			giveComments:    warnSingleBatchComments,
+			wantAnnotations: warnSingleBatchAnnotations,
+			wantConclusion:  neutralConclusion,
+			desc:            "warn single batch comments test",
+			annotationLevel: "warning",
 		},
 		{
-			giveComments:    multiBatchComments,
-			wantAnnotations: multiBatchAnnotations,
+			giveComments:    warnMultiBatchComments,
+			wantAnnotations: warnMultiBatchAnnotations,
+			wantConclusion:  neutralConclusion,
+			desc:            "warn multiple batch comments test",
+			annotationLevel: "warning",
+		},
+		{
+			giveComments:    failSingleBatchComments,
+			wantAnnotations: failSingleBatchAnnotations,
 			wantConclusion:  failureConclusion,
-			desc:            "multiple batch comments test",
+			desc:            "fail single batch comments test",
+			annotationLevel: "failure",
+		},
+		{
+			giveComments:    failMultiBatchComments,
+			wantAnnotations: failMultiBatchAnnotations,
+			wantConclusion:  failureConclusion,
+			desc:            "fail multiple batch comments test",
+			annotationLevel: "failure",
 		},
 		{
 			giveComments:    emptyComments,
 			wantAnnotations: emptyAnnotations,
 			wantConclusion:  successConclusion,
 			desc:            "no comments test",
+			annotationLevel: "failure",
 		},
 	}
 
@@ -485,7 +518,7 @@ func (g *githubTestSuite) TestWriteComments() {
 			lastUpdateOpt := github.UpdateCheckRunOptions{
 				Name:       checkName,
 				Status:     &checkRunCompletedStatus,
-				Conclusion: &failureConclusion,
+				Conclusion: &tt.wantConclusion,
 				Output: &github.CheckRunOutput{
 					Title:       &checkName,
 					Summary:     github.String(summaryString),
@@ -501,7 +534,7 @@ func (g *githubTestSuite) TestWriteComments() {
 			expectedLastUpdatedCheckRun := &github.CheckRun{
 				Name:       expectedCheckRun.Name,
 				Status:     &checkRunCompletedStatus,
-				Conclusion: &failureConclusion,
+				Conclusion: &tt.wantConclusion,
 				Output:     lastUpdateOpt.Output,
 			}
 			mockClient.EXPECT().ChecksService().Return(mockChecks)
@@ -513,15 +546,14 @@ func (g *githubTestSuite) TestWriteComments() {
 				lastUpdateOpt,
 			).Return(expectedLastUpdatedCheckRun, nil, nil)
 		}
-		err := tp.gc.WriteComments(tt.giveComments, "warning")
+		err := tp.gc.WriteComments(tt.giveComments, tt.annotationLevel)
 		g.NoError(err, fmt.Sprintf("Error writing comments for %s test", tt.desc))
 	}
 }
 
-func makeTestCommentsAndAnnotations(body, filePath string, size int) ([]*diffreviewer.Comment, []*github.CheckRunAnnotation) {
+func makeTestCommentsAndAnnotations(body, filePath, annotationLevel string, size int) ([]*diffreviewer.Comment, []*github.CheckRunAnnotation) {
 	comments := make([]*diffreviewer.Comment, size)
 	annotations := make([]*github.CheckRunAnnotation, size)
-	annotationLevel := "warning"
 	for i := 0; i < size; i++ {
 		comments[i] = &diffreviewer.Comment{
 			Title:      "title",

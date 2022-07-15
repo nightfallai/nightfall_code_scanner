@@ -22,7 +22,8 @@ const (
 	defaultConditionsInfoMessage = "Using default Detection Rule with detectors API_KEY and CRYPTOGRAPHIC_KEY"
 )
 
-var annotationLevelFailure = "failure"
+// AnnotationLevelFailure describes the failure severity to render comments on code
+var AnnotationLevelFailure = "failure"
 var annotationLevels = map[string]struct{}{"notice": {}, "warning": {}, "failure": {}}
 var defaultNightfallConfig = &ConfigFile{
 	DetectionRules: []nf.DetectionRule{
@@ -61,7 +62,7 @@ var defaultNightfallConfig = &ConfigFile{
 			NumCharsToLeaveUnmasked: 2,
 		},
 	},
-	AnnotationLevel: annotationLevelFailure,
+	AnnotationLevel: AnnotationLevelFailure,
 }
 
 // ConfigFile is the struct of the JSON nightfall config file
@@ -120,7 +121,7 @@ func GetNightfallConfigFile(workspacePath, fileName string, logger logger.Logger
 	nightfallConfig.FileExclusionList = append(nightfallConfig.FileExclusionList, nightfallConfigFilename)
 	// must be one of notice, warning, or failure
 	if _, ok := annotationLevels[nightfallConfig.AnnotationLevel]; !ok {
-		nightfallConfig.AnnotationLevel = annotationLevelFailure
+		nightfallConfig.AnnotationLevel = AnnotationLevelFailure
 	}
 	return &nightfallConfig, nil
 }

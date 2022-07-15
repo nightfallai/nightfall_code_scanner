@@ -204,6 +204,10 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 		return nil
 	}
 	s.logCommentsToCircle(comments, level)
+	var returnErr error
+	if level == nightfallconfig.AnnotationLevelFailure {
+		returnErr = errSensitiveItemsFound
+	}
 	if s.GithubClient == nil {
 		return errSensitiveItemsFound
 	}
@@ -248,7 +252,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 		}
 	}
 	// returning error to fail circleCI step
-	return errSensitiveItemsFound
+	return returnErr
 }
 
 func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment, level string) {

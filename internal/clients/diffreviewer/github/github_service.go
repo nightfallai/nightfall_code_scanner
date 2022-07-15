@@ -38,6 +38,7 @@ var checkRunCompletedStatus = "completed"
 var checkRunInProgressStatus = "in_progress"
 var checkRunConclusionSuccess = "success"
 var checkRunConclusionFailure = "failure"
+var checkRunConclusionNeutral = "neutral"
 
 type ownerLogin struct {
 	Login string `json:"login"`
@@ -242,6 +243,14 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 		return nil
 	}
 	annotations := createAnnotations(comments, level)
+	// Only set conclusion as failure if there is a failure annotation - see #72
+	conclusion := &checkRunConclusionNeutral
+	for _, a := range annotations {
+		if a.GetAnnotationLevel() == nightfallconfig.AnnotationLevelFailure {
+			conclusion = &checkRunConclusionFailure
+			break
+		}
+	}
 	annotationLength := len(comments)
 	summaryNumFindings := fmt.Sprintf(summaryString, annotationLength)
 	// numIntermediateUpdateRequests contains the number of intermediate requests to be made prior to the final update request
@@ -271,7 +280,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 	completedOpt := github.UpdateCheckRunOptions{
 		Name:       getCheckName(s.CheckRequest.Name),
 		Status:     &checkRunCompletedStatus,
-		Conclusion: &checkRunConclusionFailure,
+		Conclusion: conclusion,
 		Output: &github.CheckRunOutput{
 			Title:       github.String(getCheckName(s.CheckRequest.Name)),
 			Summary:     github.String(summaryNumFindings),

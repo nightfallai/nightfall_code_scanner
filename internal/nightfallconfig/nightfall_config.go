@@ -24,7 +24,13 @@ const (
 
 // AnnotationLevelFailure describes the failure severity to render comments on code
 var AnnotationLevelFailure = "failure"
-var annotationLevels = map[string]struct{}{"notice": {}, "warning": {}, "failure": {}}
+
+// AnnotationLevelFailure describes the warning severity to render comments on code
+var AnnotationLevelWarning = "warning"
+
+// AnnotationLevelFailure describes the notice severity to render comments on code
+var AnnotationLevelNotice = "notice"
+var annotationLevels = map[string]struct{}{AnnotationLevelNotice: {}, AnnotationLevelWarning: {}, AnnotationLevelFailure: {}}
 var defaultNightfallConfig = &ConfigFile{
 	DetectionRules: []nf.DetectionRule{
 		{

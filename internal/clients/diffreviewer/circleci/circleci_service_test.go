@@ -393,8 +393,8 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 			mockLogger.EXPECT().Info("no sensitive items found")
 		}
 		for _, comment := range tt.giveComments {
-			mockLogger.EXPECT().Error(fmt.Sprintf(
-				"notice: %s at %s on line %d",
+			mockLogger.EXPECT().Info(fmt.Sprintf(
+				"%s at %s on line %d",
 				comment.Body,
 				comment.FilePath,
 				comment.LineNumber,
@@ -480,7 +480,7 @@ func (c *circleCiTestSuite) TestWritePullRequestComments() {
 			)
 			mockLogger.EXPECT().Error(fmt.Sprintf(
 				"%s at %s on line %d",
-				gc.GetBody(),
+				"testComment",
 				gc.GetPath(),
 				gc.GetLine(),
 			))
@@ -545,7 +545,7 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 	tp.cs = testCircleService
 
 	testComments, testGithubComments := makeTestGithubRepositoryComments(
-		"warning: testComment",
+		"testComment",
 		"/comments.txt",
 		tp.cs.PrDetails.CommitSha,
 		60,
@@ -583,9 +583,9 @@ func (c *circleCiTestSuite) TestWriteRepositoryComments() {
 				testCircleService.PrDetails.CommitSha,
 				gc,
 			)
-			mockLogger.EXPECT().Error(fmt.Sprintf(
+			mockLogger.EXPECT().Warning(fmt.Sprintf(
 				"%s at %s on line %d",
-				gc.GetBody(),
+				"testComment",
 				gc.GetPath(),
 				tt.giveComments[index].LineNumber,
 			))

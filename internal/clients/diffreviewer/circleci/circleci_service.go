@@ -257,13 +257,20 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 
 func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment, level string) {
 	for _, comment := range comments {
-		s.Logger.Error(fmt.Sprintf(
-			"%s: %s at %s on line %d",
-			level,
+		logString := fmt.Sprintf(
+			"%s at %s on line %d",
 			comment.Body,
 			comment.FilePath,
 			comment.LineNumber,
-		))
+		)
+		switch level {
+		case nightfallconfig.AnnotationLevelFailure:
+			s.Logger.Error(logString)
+		case nightfallconfig.AnnotationLevelWarning:
+			s.Logger.Warning(logString)
+		case nightfallconfig.AnnotationLevelNotice:
+			s.Logger.Info(logString)
+		}
 	}
 }
 

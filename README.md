@@ -344,6 +344,3 @@ Annotate as Warnings:
 {
   "annotationLevel": "warning"
 }
-```
-
-api_key="NF-gGpblN9cXW2ENcDBapUNaw3bPZMgcABs"

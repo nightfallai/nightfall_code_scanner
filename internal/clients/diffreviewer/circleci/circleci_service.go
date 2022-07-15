@@ -120,6 +120,7 @@ func (s *Service) LoadConfig(nightfallConfigFileName string) (*nightfallconfig.C
 		FileInclusionList:           nightfallConfig.FileInclusionList,
 		FileExclusionList:           nightfallConfig.FileExclusionList,
 		DefaultRedactionConfig:      nightfallConfig.DefaultRedactionConfig,
+		AnnotationLevel:             nightfallConfig.AnnotationLevel,
 	}, nil
 }
 
@@ -209,7 +210,7 @@ func (s *Service) WriteComments(comments []*diffreviewer.Comment, level string) 
 		returnErr = errSensitiveItemsFound
 	}
 	if s.GithubClient == nil {
-		return errSensitiveItemsFound
+		return returnErr
 	}
 	if s.PrDetails.PrNumber != nil {
 		existingComments, _, err := s.GithubClient.PullRequestsService().ListComments(
@@ -270,6 +271,8 @@ func (s *Service) logCommentsToCircle(comments []*diffreviewer.Comment, level st
 			s.Logger.Warning(logString)
 		case nightfallconfig.AnnotationLevelNotice:
 			s.Logger.Info(logString)
+		default:
+			s.Logger.Error(logString)
 		}
 	}
 }

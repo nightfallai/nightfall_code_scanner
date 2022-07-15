@@ -216,6 +216,7 @@ func (c *circleCiTestSuite) TestLoadConfig() {
 		DefaultRedactionConfig: &nf.RedactionConfig{
 			SubstitutionConfig: &nf.SubstitutionConfig{SubstitutionPhrase: "REDACTED"},
 		},
+		AnnotationLevel: "warning",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigFileName)
@@ -246,6 +247,7 @@ func (c *circleCiTestSuite) TestLoadConfigDetectionRuleUUID() {
 		TokenExclusionList:          []string{excludedCreditCardRegex, excludedApiToken, excludedIPRegex},
 		FileInclusionList:           []string{"*"},
 		FileExclusionList:           []string{".nightfalldlp/config.json"},
+		AnnotationLevel:             "failure",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testConfigDetectionRuleUUIDFileName)
@@ -326,6 +328,7 @@ func (c *circleCiTestSuite) TestLoadEmptyConfig() {
 				NumCharsToLeaveUnmasked: 2,
 			},
 		},
+		AnnotationLevel: "failure",
 	}
 
 	nightfallConfig, err := tp.cs.LoadConfig(testEmptyConfigFileName)
@@ -378,7 +381,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 	}{
 		{
 			giveComments: testComments,
-			wantErr:      errSensitiveItemsFound,
+			wantErr:      nil,
 			desc:         "notice: single batch comments test",
 		},
 		{
@@ -401,7 +404,7 @@ func (c *circleCiTestSuite) TestWriteCircleComments() {
 			))
 		}
 		err := tp.cs.WriteComments(tt.giveComments, "notice")
-		if len(tt.giveComments) == 0 {
+		if tt.wantErr == nil {
 			c.NoError(err, fmt.Sprintf("unexpected error writing comments for %s test", tt.desc))
 		} else {
 			c.EqualError(err, tt.wantErr.Error(), fmt.Sprintf("invalid error writing comments for %s test", tt.desc))

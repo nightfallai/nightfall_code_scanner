@@ -83,7 +83,7 @@ func getCommentMsg(finding *nf.Finding) string {
 		content = finding.Finding
 	}
 
-	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, getDisplayType(finding))
+	return fmt.Sprintf("Suspicious content detected (%q, type %s)", content, getDisplayType(finding))
 }
 
 func getCommentTitle(finding *nf.Finding) string {
@@ -102,15 +102,11 @@ func getDisplayType(finding *nf.Finding) string {
 			titledKind := cases.Title(language.English).String(strings.ToLower(kind))
 			if status := apiKeyMd.Status; status != "UNVERIFIED" {
 				titledStatus := cases.Title(language.English).String(strings.ToLower(status))
-				displayType = fmt.Sprintf("%q (%q %q)", finding.Detector.DisplayName, titledStatus, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s)", finding.Detector.DisplayName, titledStatus, titledKind)
 			} else {
 				titledConfidence := cases.Title(language.English).String(strings.ToLower(finding.Confidence))
-				displayType = fmt.Sprintf("%q (%q %q)", finding.Detector.DisplayName, titledConfidence, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s)", finding.Detector.DisplayName, titledConfidence, titledKind)
 			}
-		} else {
-			titledKind := cases.Title(language.English).String(strings.ToLower(kind))
-			titledConfidence := cases.Title(language.English).String(strings.ToLower(finding.Confidence))
-			displayType = fmt.Sprintf("%q (%q %q)", finding.Detector.DisplayName, titledConfidence, titledKind)
 		}
 	}
 	return displayType

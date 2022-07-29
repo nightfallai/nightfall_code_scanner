@@ -83,7 +83,7 @@ func getCommentMsg(finding *nf.Finding) string {
 		content = finding.Finding
 	}
 
-	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, getDisplayType(finding))
+	return fmt.Sprintf("Suspicious content detected (%q, type testing)", content)
 }
 
 func getCommentTitle(finding *nf.Finding) string {

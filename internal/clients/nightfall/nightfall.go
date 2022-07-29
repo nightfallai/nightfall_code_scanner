@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 	"unicode/utf8"
@@ -17,6 +18,8 @@ import (
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const (
@@ -80,7 +83,7 @@ func getCommentMsg(finding *nf.Finding) string {
 		content = finding.Finding
 	}
 
-	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, finding.Detector.DisplayName)
+	return fmt.Sprintf("Suspicious content detected (%q, type %q)", content, getDisplayType(finding))
 }
 
 func getCommentTitle(finding *nf.Finding) string {
@@ -88,6 +91,25 @@ func getCommentTitle(finding *nf.Finding) string {
 		return ""
 	}
 	return fmt.Sprintf("Detected %s", finding.Detector.DisplayName)
+}
+
+func getDisplayType(finding *nf.Finding) string {
+	displayType := finding.Detector.DisplayName
+	// Check if there is additional context to add to the display type
+	if finding.FindingMetadata != nil && finding.FindingMetadata.APIKeyMetadata != nil {
+		apiKeyMd := finding.FindingMetadata.APIKeyMetadata
+		if kind := apiKeyMd.Kind; kind != "UNSPECIFIED" {
+			titledKind := cases.Title(language.English).String(strings.ToLower(kind))
+			if status := apiKeyMd.Status; status != "UNVERIFIED" {
+				titledStatus := cases.Title(language.English).String(strings.ToLower(status))
+				displayType = fmt.Sprintf("%q (%q %q)", finding.Detector.DisplayName, titledStatus, titledKind)
+			} else {
+				titledConfidence := cases.Title(language.English).String(strings.ToLower(finding.Confidence))
+				displayType = fmt.Sprintf("%q (%q %q)", finding.Detector.DisplayName, titledConfidence, titledKind)
+			}
+		}
+	}
+	return displayType
 }
 
 // wordSplitter is of type bufio.SplitFunc (https://golang.org/pkg/bufio/#SplitFunc)

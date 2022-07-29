@@ -102,10 +102,10 @@ func getDisplayType(finding *nf.Finding) string {
 			titledKind := cases.Title(language.English).String(strings.ToLower(kind))
 			if status := apiKeyMd.Status; status != "UNVERIFIED" {
 				titledStatus := cases.Title(language.English).String(strings.ToLower(status))
-				displayType = fmt.Sprintf("%q (%s %s)", finding.Detector.DisplayName, titledStatus, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledStatus, titledKind)
 			} else {
 				titledConfidence := cases.Title(language.English).String(strings.ToLower(finding.Confidence))
-				displayType = fmt.Sprintf("%q (%s %s)", finding.Detector.DisplayName, titledConfidence, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledConfidence, titledKind)
 			}
 		}
 	}

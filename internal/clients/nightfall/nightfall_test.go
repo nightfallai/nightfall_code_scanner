@@ -255,7 +255,7 @@ func TestReviewDiffHasFindingMetadata(t *testing.T) {
 	c := diffreviewer.Comment{
 		FilePath:   filePath,
 		LineNumber: lineNum,
-		Body:       fmt.Sprintf("Suspicious content detected (%q, type %q (%s %s))", blurredAPIKey, "API_KEY", "Active", "Stripe"),
+		Body:       fmt.Sprintf("Suspicious content detected (%q, type %q (%s %s key))", blurredAPIKey, "API_KEY", "Active", "Stripe"),
 		Title:      fmt.Sprintf("Detected API_KEY"),
 	}
 	expectedComments := []*diffreviewer.Comment{&c, &c, &c}

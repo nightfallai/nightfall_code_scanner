@@ -94,7 +94,7 @@ func getCommentTitle(finding *nf.Finding) string {
 }
 
 func getDisplayType(finding *nf.Finding) string {
-	displayType := finding.Detector.DisplayName
+	displayType := fmt.Sprintf("%q", finding.Detector.DisplayName)
 	// Check if there is additional context to add to the display type
 	if finding.FindingMetadata != nil && finding.FindingMetadata.APIKeyMetadata != nil {
 		apiKeyMd := finding.FindingMetadata.APIKeyMetadata

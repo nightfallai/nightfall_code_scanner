@@ -98,14 +98,13 @@ func getDisplayType(finding *nf.Finding) string {
 	// Check if there is additional context to add to the display type
 	if finding.FindingMetadata != nil && finding.FindingMetadata.APIKeyMetadata != nil {
 		apiKeyMd := finding.FindingMetadata.APIKeyMetadata
-		if kind := apiKeyMd.Kind; kind != "UNSPECIFIED" {
-			titledKind := cases.Title(language.English).String(strings.ToLower(kind))
-			if status := apiKeyMd.Status; status != "UNVERIFIED" {
+		if kind := apiKeyMd.Kind; strings.ToUpper(kind) != "UNSPECIFIED" {
+			if status := apiKeyMd.Status; strings.ToUpper(status) != "UNVERIFIED" {
 				titledStatus := cases.Title(language.English).String(strings.ToLower(status))
-				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledStatus, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledStatus, kind)
 			} else {
 				titledConfidence := cases.Title(language.English).String(strings.ToLower(finding.Confidence))
-				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledConfidence, titledKind)
+				displayType = fmt.Sprintf("%q (%s %s key)", finding.Detector.DisplayName, titledConfidence, kind)
 			}
 		}
 	}

@@ -274,7 +274,7 @@ func TestReviewDiffHasFindingMetadata(t *testing.T) {
 					Confidence: string(nf.ConfidencePossible),
 					FindingMetadata: &nf.FindingMetadata{APIKeyMetadata: &nf.APIKeyMetadata{
 						Status: "ACTIVE",
-						Kind:   "STRIPE",
+						Kind:   "Stripe",
 					}},
 				},
 			},

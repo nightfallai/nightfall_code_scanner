@@ -37,6 +37,13 @@
           "displayName": "password",
           "detectorType": "NIGHTFALL_DETECTOR",
           "nightfallDetector": "PASSWORD_IN_CODE"
+        },
+        {
+          "minNumFindings": 1,
+          "minConfidence": "LIKELY",
+          "displayName": "pii",
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "HIPAA_DEFINED_PII"
         }
       ],
       "logicalOp": "ANY"

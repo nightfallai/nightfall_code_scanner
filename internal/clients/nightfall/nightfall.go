@@ -242,6 +242,9 @@ func (n *Client) scanContent(
 		items[i] = item.Content
 	}
 
+	fmt.Println("Scanning content")
+	fmt.Println(items)
+
 	// send API request
 	resp, err := n.Scan(ctx, items)
 	if err != nil {

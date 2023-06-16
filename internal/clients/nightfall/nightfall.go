@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"regexp"
@@ -251,6 +252,10 @@ func (n *Client) scanContent(
 		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
 		return nil, err
 	}
+
+	b, err := json.Marshal(resp.Findings)
+	fmt.Println(string(b))
+	fmt.Println(err)
 
 	// Determine findings from response and create comments
 	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)

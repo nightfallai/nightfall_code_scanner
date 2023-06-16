@@ -241,6 +241,8 @@ func (n *Client) scanContent(
 	items := make([]string, len(cts))
 	for i, item := range cts {
 		items[i] = item.Content
+		fmt.Println("Item", i)
+		fmt.Println(item.Content)
 	}
 
 	fmt.Println("Scanning content")

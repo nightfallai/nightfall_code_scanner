@@ -9,6 +9,13 @@
           "displayName": "cc num",
           "detectorType": "NIGHTFALL_DETECTOR",
           "nightfallDetector": "CREDIT_CARD_NUMBER"
+        },
+        {
+          "minNumFindings": 1,
+          "minConfidence": "LIKELY",
+          "displayName": "ssn",
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "detectorUUID": "e30d9a87-f6c7-46b9-a8f4-16547901e069"
         }
       ],
       "logicalOp": "ANY"

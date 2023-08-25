@@ -18,7 +18,7 @@
           "nightfallDetector": "US_SOCIAL_SECURITY_NUMBER"
         }
       ],
-      "logicalOp": "ANY"
+      "logicalOp": "ALL"
     }
   ],
   "maxNumberConcurrentRoutines": 5,

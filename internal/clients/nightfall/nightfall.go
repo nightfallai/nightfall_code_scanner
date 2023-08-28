@@ -33,6 +33,8 @@ const (
 	maxScanAttempts = 5
 	// initial delay before re-attempting scan request
 	initialDelay = time.Second
+
+	maxAPIRequestSize = 500 * 1024 // 500KB
 )
 
 // Client uses the Nightfall API to scan text for findings
@@ -182,6 +184,34 @@ func sliceListBySize(index, numItemsForMaxSize int, contentToScanList []*content
 	return contentToScanList[startIndex:endIndex]
 }
 
+func createCommentsFromScanRespForFiles(inputContent []*fileToScan, resp *nf.ScanTextResponse, tokenExclusionList []string) []*diffreviewer.Comment {
+	comments := make([]*diffreviewer.Comment, 0)
+	for j, findingList := range resp.Findings {
+		for _, finding := range findingList {
+			if finding.Finding != "" && !isFindingInTokenExclusionList(finding.Finding, tokenExclusionList) {
+				// Found sensitive info
+				// Create comment if fragment is not in exclusion set
+				correspondingContent := inputContent[j]
+				exists, lineNumber, _ := correspondingContent.ContentToLineMap.Find(int(finding.Location.ByteRange.Start))
+				if !exists {
+					// should not come here
+					continue
+				}
+				findingMsg := getCommentMsg(finding)
+				findingTitle := getCommentTitle(finding)
+				c := diffreviewer.Comment{
+					FilePath:   correspondingContent.FilePath,
+					LineNumber: lineNumber,
+					Body:       findingMsg,
+					Title:      findingTitle,
+				}
+				comments = append(comments, &c)
+			}
+		}
+	}
+	return comments
+}
+
 func createCommentsFromScanResp(inputContent []*contentToScan, resp *nf.ScanTextResponse, tokenExclusionList []string) []*diffreviewer.Comment {
 	comments := make([]*diffreviewer.Comment, 0)
 	for j, findingList := range resp.Findings {
@@ -237,6 +267,31 @@ func (n *Client) buildScanRequest(items []string) *nf.ScanTextRequest {
 	}
 }
 
+func (n *Client) scanFileContent(
+	ctx context.Context,
+	cts []*fileToScan,
+	requestNum int,
+	logger logger.Logger,
+) ([]*diffreviewer.Comment, error) {
+	// Pull out content strings for request
+	items := make([]string, len(cts))
+	for i, item := range cts {
+		items[i] = item.Content
+	}
+
+	// send API request
+	resp, err := n.Scan(ctx, items)
+	if err != nil {
+		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
+		return nil, err
+	}
+
+	// Determine findings from response and create comments
+	createdComments := createCommentsFromScanRespForFiles(cts, resp, n.TokenExclusionList)
+	logger.Info(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
+	return createdComments, nil
+}
+
 func (n *Client) scanContent(
 	ctx context.Context,
 	cts []*contentToScan,
@@ -260,6 +315,60 @@ func (n *Client) scanContent(
 	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)
 	logger.Info(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
 	return createdComments, nil
+}
+
+func (n *Client) scanAllFiles(
+	ctx context.Context,
+	logger logger.Logger,
+	cts []*fileToScan,
+	commentCh chan<- []*diffreviewer.Comment,
+) {
+	defer close(commentCh)
+	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
+	var wg sync.WaitGroup
+	requestBatches := make([][]*fileToScan, 0, 1)
+	endIndex := 0
+	for endIndex < len(cts) {
+		requestBatch := make([]*fileToScan, 0)
+		startIndex := endIndex
+		currentSize := 0
+		for {
+			if endIndex >= len(cts) {
+				break
+			}
+			size := len(cts[endIndex].Content)
+			if (size + currentSize) >= maxAPIRequestSize {
+				break
+			}
+			endIndex++
+		}
+		requestBatch = append(requestBatch, cts[startIndex:endIndex]...)
+		requestBatches = append(requestBatches, requestBatch)
+	}
+
+	// Integer round up division
+	numRequestsRequired := len(requestBatches)
+	logger.Info(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
+	for i := 0; i < numRequestsRequired; i++ {
+		// Use max number of items to determine content to send in request
+		wg.Add(1)
+		blockingCh <- struct{}{}
+		go func(loopCount int, cts []*fileToScan) {
+			defer wg.Done()
+			if ctx.Err() != nil {
+				return
+			}
+
+			c, err := n.scanFileContent(ctx, cts, loopCount+1, logger)
+			if err != nil {
+				logger.Error(fmt.Sprintf("Unable to scan %d content items", len(cts)))
+			} else {
+				commentCh <- c
+			}
+			<-blockingCh
+		}(i, requestBatches[i])
+	}
+	wg.Wait()
 }
 
 func (n *Client) scanAllContent(
@@ -310,7 +419,7 @@ func (n *Client) Scan(ctx context.Context, items []string) (*nf.ScanTextResponse
 // contains sensitive data
 func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
 	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
-	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
+	//contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	fileToScanList := make([]*fileToScan, 0, len(fileDiffs))
 
 	for _, fd := range fileDiffs {
@@ -322,24 +431,24 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	}
 
 	// Chunk fileDiffs content and store chunk and its metadata
-	for _, fd := range fileDiffs {
-		for _, hunk := range fd.Hunks {
-			for _, line := range hunk.Lines {
-				chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.PathNew)
-				if err != nil {
-					logger.Error("Error chunking git diff")
-					return nil, err
-				}
-				contentToScanList = append(contentToScanList, chunkedContent...)
-			}
-		}
-	}
+	//for _, fd := range fileDiffs {
+	//	for _, hunk := range fd.Hunks {
+	//		for _, line := range hunk.Lines {
+	//			chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.PathNew)
+	//			if err != nil {
+	//				logger.Error("Error chunking git diff")
+	//				return nil, err
+	//			}
+	//			contentToScanList = append(contentToScanList, chunkedContent...)
+	//		}
+	//	}
+	//}
 
 	commentCh := make(chan []*diffreviewer.Comment)
 	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(defaultTimeout))
 	defer cancel()
 
-	go n.scanAllContent(newCtx, logger, contentToScanList, commentCh)
+	go n.scanAllFiles(newCtx, logger, fileToScanList, commentCh)
 
 	comments := make([]*diffreviewer.Comment, 0)
 	for {
@@ -379,6 +488,7 @@ func getFileToScan(fd *diffreviewer.FileDiff) (*fileToScan, error) {
 		}
 	}
 
+	fts.Content = bufferString.String()
 	return fts, nil
 }
 

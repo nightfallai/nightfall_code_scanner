@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/nightfallai/nightfall_code_scanner/internal/clients/datastructs"
 	"io"
 	"regexp"
 	"strings"
@@ -71,6 +72,12 @@ type contentToScan struct {
 	Content    string
 	FilePath   string
 	LineNumber int
+}
+
+type fileToScan struct {
+	Content          string
+	FilePath         string
+	ContentToLineMap *datastructs.RangeMap
 }
 
 func getCommentMsg(finding *nf.Finding) string {
@@ -304,6 +311,16 @@ func (n *Client) Scan(ctx context.Context, items []string) (*nf.ScanTextResponse
 func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
 	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
 	contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
+	fileToScanList := make([]*fileToScan, 0, len(fileDiffs))
+
+	for _, fd := range fileDiffs {
+		file, err := getFileToScan(fd)
+		if err != nil {
+			return nil, err
+		}
+		fileToScanList = append(fileToScanList, file)
+	}
+
 	// Chunk fileDiffs content and store chunk and its metadata
 	for _, fd := range fileDiffs {
 		for _, hunk := range fd.Hunks {
@@ -336,6 +353,33 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 			return nil, newCtx.Err()
 		}
 	}
+}
+
+func getFileToScan(fd *diffreviewer.FileDiff) (*fileToScan, error) {
+	fts := &fileToScan{
+		FilePath:         fd.PathNew,
+		ContentToLineMap: datastructs.NewRangeMap(),
+	}
+
+	bufferString := bytes.NewBufferString("")
+	startByteRange, endByteRange := 0, -1
+	for _, hunk := range fd.Hunks {
+		for _, line := range hunk.Lines {
+			startByteRange = endByteRange + 1
+			// adding space between each line
+			n, err := bufferString.WriteString(fmt.Sprintf("%s ", line.Content))
+			if err != nil {
+				return nil, err
+			}
+			endByteRange += n
+			err = fts.ContentToLineMap.AddRange(startByteRange, endByteRange, line.LnumNew)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return fts, nil
 }
 
 func filterFileDiffs(fileDiffs []*diffreviewer.FileDiff, fileIncludeList, fileExcludeList []string, logger logger.Logger) []*diffreviewer.FileDiff {

@@ -27,6 +27,6 @@ func TestRangeMap(t *testing.T) {
 	exists, value, _ = rangeMap.Find(265)
 	assert.True(t, exists)
 	assert.Equal(t, 27, value)
-	exists, value, _ = rangeMap.Find(200)
+	exists, _, _ = rangeMap.Find(200)
 	assert.False(t, exists)
 }

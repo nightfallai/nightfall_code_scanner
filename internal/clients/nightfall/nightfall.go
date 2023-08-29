@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	contentChunkByteSize = 1024
 	// max number of items that can be sent to Nightfall API at a time
 	maxItemsForAPIReq = 479
 	// timeout for the total time spent sending scan requests and receiving responses for a diff
@@ -292,31 +291,6 @@ func (n *Client) scanFileContent(
 	return createdComments, nil
 }
 
-func (n *Client) scanContent(
-	ctx context.Context,
-	cts []*contentToScan,
-	requestNum int,
-	logger logger.Logger,
-) ([]*diffreviewer.Comment, error) {
-	// Pull out content strings for request
-	items := make([]string, len(cts))
-	for i, item := range cts {
-		items[i] = item.Content
-	}
-
-	// send API request
-	resp, err := n.Scan(ctx, items)
-	if err != nil {
-		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
-		return nil, err
-	}
-
-	// Determine findings from response and create comments
-	createdComments := createCommentsFromScanResp(cts, resp, n.TokenExclusionList)
-	logger.Info(fmt.Sprintf("Got %d annotations for request #%d", len(createdComments), requestNum))
-	return createdComments, nil
-}
-
 func (n *Client) scanAllFiles(
 	ctx context.Context,
 	logger logger.Logger,
@@ -377,44 +351,6 @@ func (n *Client) scanAllFiles(
 			}
 			<-blockingCh
 		}(i, requestBatches[i])
-	}
-	wg.Wait()
-}
-
-func (n *Client) scanAllContent(
-	ctx context.Context,
-	logger logger.Logger,
-	cts []*contentToScan,
-	commentCh chan<- []*diffreviewer.Comment,
-) {
-	defer close(commentCh)
-	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
-	var wg sync.WaitGroup
-
-	// Integer round up division
-	numRequestsRequired := (len(cts) + maxItemsForAPIReq - 1) / maxItemsForAPIReq
-
-	logger.Info(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
-	for i := 0; i < numRequestsRequired; i++ {
-		// Use max number of items to determine content to send in request
-		contentSlice := sliceListBySize(i, maxItemsForAPIReq, cts)
-
-		wg.Add(1)
-		blockingCh <- struct{}{}
-		go func(loopCount int, cts []*contentToScan) {
-			defer wg.Done()
-			if ctx.Err() != nil {
-				return
-			}
-
-			c, err := n.scanContent(ctx, cts, loopCount+1, logger)
-			if err != nil {
-				logger.Error(fmt.Sprintf("Unable to scan %d content items", len(cts)))
-			} else {
-				commentCh <- c
-			}
-			<-blockingCh
-		}(i, contentSlice)
 	}
 	wg.Wait()
 }

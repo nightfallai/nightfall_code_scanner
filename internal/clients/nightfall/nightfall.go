@@ -433,22 +433,12 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 		if err != nil {
 			return nil, err
 		}
+		if len(file.Content) > maxAPIRequestSize {
+			logger.Warning(fmt.Sprintf("unable to scan file %s as its size exceeds the supported limit of %d Kbs", file.FilePath, maxAPIRequestSize/1024))
+			continue
+		}
 		fileToScanList = append(fileToScanList, file)
 	}
-
-	// Chunk fileDiffs content and store chunk and its metadata
-	//for _, fd := range fileDiffs {
-	//	for _, hunk := range fd.Hunks {
-	//		for _, line := range hunk.Lines {
-	//			chunkedContent, err := chunkContent(contentChunkByteSize, line, fd.PathNew)
-	//			if err != nil {
-	//				logger.Error("Error chunking git diff")
-	//				return nil, err
-	//			}
-	//			contentToScanList = append(contentToScanList, chunkedContent...)
-	//		}
-	//	}
-	//}
 
 	commentCh := make(chan []*diffreviewer.Comment)
 	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(defaultTimeout))

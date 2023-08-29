@@ -338,11 +338,15 @@ func (n *Client) scanAllFiles(
 			}
 			size := len(cts[endIndex].Content)
 			if size > maxAPIRequestSize {
-				// file diff size is greater than supported by API platform should not come here
+				// file diff size is greater than supported by API platform, should not come here
 				logger.Error("terminating the scan early as large file scanning is not supported by API platform")
 				return
 			}
 			if (size + currentSize) > maxAPIRequestSize {
+				break
+			}
+
+			if (endIndex - startIndex) >= maxItemsForAPIReq {
 				break
 			}
 			currentSize += size

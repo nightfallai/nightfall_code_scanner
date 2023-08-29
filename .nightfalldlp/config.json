@@ -6,19 +6,12 @@
         {
           "minNumFindings": 1,
           "minConfidence": "LIKELY",
-          "displayName": "cc num",
+          "displayName": "phi",
           "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "CREDIT_CARD_NUMBER"
-        },
-        {
-          "minNumFindings": 1,
-          "minConfidence": "LIKELY",
-          "displayName": "ssn",
-          "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "US_SOCIAL_SECURITY_NUMBER"
+          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
         }
       ],
-      "logicalOp": "ALL"
+      "logicalOp": "ANY"
     }
   ],
   "maxNumberConcurrentRoutines": 5,

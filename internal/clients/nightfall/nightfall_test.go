@@ -68,7 +68,7 @@ var expectedScanResponse = &nf.ScanTextResponse{
 					DetectorUUID: "2136e3c9-feb0-4aea-8d3e-a767afabf501",
 				},
 				Confidence: string(nf.ConfidencePossible),
-				Location: &nf.Location{ByteRange: &nf.Range{
+				Location: &nf.Location{CodepointRange: &nf.Range{
 					Start: 30,
 					End:   40,
 				}},
@@ -304,7 +304,7 @@ func TestReviewDiffHasFindingMetadata(t *testing.T) {
 						Status: "ACTIVE",
 						Kind:   "Stripe",
 					}},
-					Location: &nf.Location{ByteRange: &nf.Range{
+					Location: &nf.Location{CodepointRange: &nf.Range{
 						Start: 30,
 						End:   40,
 					}},

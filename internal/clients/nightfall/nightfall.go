@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/datastructs"
 	"io"
 	"regexp"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	nf "github.com/nightfallai/nightfall-go-sdk"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/diffreviewer"
 	"github.com/nightfallai/nightfall_code_scanner/internal/clients/logger"
+	"github.com/nightfallai/nightfall_code_scanner/internal/datastructs"
 	"github.com/nightfallai/nightfall_code_scanner/internal/nightfallconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -191,7 +191,7 @@ func createCommentsFromScanRespForFiles(inputContent []*fileToScan, resp *nf.Sca
 				// Found sensitive info
 				// Create comment if fragment is not in exclusion set
 				correspondingContent := inputContent[j]
-				exists, lineNumber, _ := correspondingContent.ContentToLineMap.Find(int(finding.Location.ByteRange.Start))
+				exists, lineNumber, _ := correspondingContent.ContentToLineMap.Find(int(finding.Location.CodepointRange.Start))
 				if !exists {
 					// should not come here
 					continue
@@ -300,7 +300,7 @@ func (n *Client) scanAllFiles(
 	defer close(commentCh)
 	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 	var wg sync.WaitGroup
-	requestBatches := make([][]*fileToScan, 0, 1)
+	requestBatches := make([][]*fileToScan, 0)
 	endIndex := 0
 	for endIndex < len(cts) {
 		requestBatch := make([]*fileToScan, 0)
@@ -330,7 +330,6 @@ func (n *Client) scanAllFiles(
 		requestBatches = append(requestBatches, requestBatch)
 	}
 
-	// Integer round up division
 	numRequestsRequired := len(requestBatches)
 	logger.Info(fmt.Sprintf("Sending %d requests to Nightfall API", numRequestsRequired))
 	for i := 0; i < numRequestsRequired; i++ {
@@ -365,7 +364,6 @@ func (n *Client) Scan(ctx context.Context, items []string) (*nf.ScanTextResponse
 // contains sensitive data
 func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs []*diffreviewer.FileDiff) ([]*diffreviewer.Comment, error) {
 	fileDiffs = filterFileDiffs(fileDiffs, n.FileInclusionList, n.FileExclusionList, logger)
-	//contentToScanList := make([]*contentToScan, 0, len(fileDiffs))
 	fileToScanList := make([]*fileToScan, 0, len(fileDiffs))
 
 	for _, fd := range fileDiffs {
@@ -407,17 +405,17 @@ func getFileToScan(fd *diffreviewer.FileDiff) (*fileToScan, error) {
 	}
 
 	bufferString := bytes.NewBufferString("")
-	startByteRange, endByteRange := 0, -1
+	startCodePointRange, endCodePointRange := 0, -1
 	for _, hunk := range fd.Hunks {
 		for _, line := range hunk.Lines {
-			startByteRange = endByteRange + 1
+			startCodePointRange = endCodePointRange + 1
 			// adding space between each line
 			n, err := bufferString.WriteString(fmt.Sprintf("%s ", line.Content))
 			if err != nil {
 				return nil, err
 			}
-			endByteRange += n
-			err = fts.ContentToLineMap.AddRange(startByteRange, endByteRange, line.LnumNew)
+			endCodePointRange += n
+			err = fts.ContentToLineMap.AddRange(startCodePointRange, endCodePointRange, line.LnumNew)
 			if err != nil {
 				return nil, err
 			}

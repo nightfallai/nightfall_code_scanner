@@ -1,7 +1,7 @@
 package datastructs_test
 
 import (
-	"github.com/nightfallai/nightfall_code_scanner/internal/clients/datastructs"
+	"github.com/nightfallai/nightfall_code_scanner/internal/datastructs"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -5,23 +5,23 @@ import (
 	"sort"
 )
 
-type pair struct {
+type rangeValue struct {
 	left  int
 	right int
+	value int
 }
 
 type RangeMap struct {
-	ranges []pair
-	values []int
+	rangeValues []*rangeValue
 }
 
 func (r *RangeMap) Find(key int) (exists bool, value int, canBeInsertedAt int) {
 	//use binary sort for searching in the range
-	i := sort.Search(len(r.ranges), func(i int) bool {
-		return key <= r.ranges[i].right
+	i := sort.Search(len(r.rangeValues), func(i int) bool {
+		return key <= r.rangeValues[i].right
 	})
-	if i < len(r.ranges) && key >= r.ranges[i].left && key <= r.ranges[i].right {
-		return true, r.values[i], i
+	if i < len(r.rangeValues) && key >= r.rangeValues[i].left && key <= r.rangeValues[i].right {
+		return true, r.rangeValues[i].value, i
 	}
 	return false, 0, i
 }
@@ -40,23 +40,21 @@ func (r *RangeMap) AddRange(left int, right int, value int) error {
 	if toBeInsertedAtLeft != toBeInsertedAtRight {
 		return errors.New("range should not overlap")
 	}
+
 	toBeInsertedAt := toBeInsertedAtRight
-	if toBeInsertedAt >= len(r.ranges) {
-		r.ranges = append(r.ranges, pair{left: left, right: right})
-		r.values = append(r.values, value)
+	if toBeInsertedAt >= len(r.rangeValues) {
+		r.rangeValues = append(r.rangeValues, &rangeValue{left: left, right: right, value: value})
 		return nil
 	}
 
-	r.ranges = append(r.ranges[:toBeInsertedAt+1], r.ranges[toBeInsertedAt:]...)
-	r.ranges[toBeInsertedAt] = pair{left: left, right: right}
-	r.values = append(r.values[:toBeInsertedAt+1], r.values[toBeInsertedAt:]...)
-	r.values[toBeInsertedAt] = value
+	// this will insert range value at toBeInsertedAt
+	r.rangeValues = append(r.rangeValues[:toBeInsertedAt+1], r.rangeValues[toBeInsertedAt:]...)
+	r.rangeValues[toBeInsertedAt] = &rangeValue{left: left, right: right, value: value}
 	return nil
 }
 
 func NewRangeMap() *RangeMap {
 	return &RangeMap{
-		ranges: make([]pair, 0),
-		values: make([]int, 0),
+		rangeValues: make([]*rangeValue, 0),
 	}
 }

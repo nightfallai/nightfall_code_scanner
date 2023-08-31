@@ -20,15 +20,15 @@
           "minNumFindings": 1,
           "minConfidence": "LIKELY",
           "displayName": "cc num",
-          "detectorType": "CREDIT_CARD_NUMBER",
-          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "CREDIT_CARD_NUMBER"
         },
         {
           "minNumFindings": 1,
           "minConfidence": "LIKELY",
           "displayName": "cc num",
-          "detectorType": "UD_SOCIAL_SECURITY_NUMBER",
-          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
+          "detectorType": "NIGHTFALL_DETECTOR",
+          "nightfallDetector": "US_SOCIAL_SECURITY_NUMBER"
         }
       ],
       "logicalOp": "ALL"

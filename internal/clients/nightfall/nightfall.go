@@ -410,11 +410,12 @@ func getFileToScan(fd *diffreviewer.FileDiff) (*fileToScan, error) {
 		for _, line := range hunk.Lines {
 			startCodePointRange = endCodePointRange + 1
 			// adding space between each line
-			n, err := bufferString.WriteString(fmt.Sprintf("%s ", line.Content))
+			strToAdd := fmt.Sprintf("%s ", line.Content)
+			_, err := bufferString.WriteString(strToAdd)
 			if err != nil {
 				return nil, err
 			}
-			endCodePointRange += n
+			endCodePointRange += len([]rune(strToAdd))
 			err = fts.ContentToLineMap.AddRange(startCodePointRange, endCodePointRange, line.LnumNew)
 			if err != nil {
 				return nil, err

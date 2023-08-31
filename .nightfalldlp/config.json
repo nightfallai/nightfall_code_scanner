@@ -12,15 +12,30 @@
         }
       ],
       "logicalOp": "ANY"
+    },
+    {
+      "name": "nightfall_code_scanner 2 detection rule",
+      "detectors": [
+        {
+          "minNumFindings": 1,
+          "minConfidence": "LIKELY",
+          "displayName": "cc num",
+          "detectorType": "CREDIT_CARD_NUMBER",
+          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
+        },
+        {
+          "minNumFindings": 1,
+          "minConfidence": "LIKELY",
+          "displayName": "cc num",
+          "detectorType": "UD_SOCIAL_SECURITY_NUMBER",
+          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
+        }
+      ],
+      "logicalOp": "ALL"
     }
   ],
   "maxNumberConcurrentRoutines": 5,
   "tokenExclusionList": [
-    "4916-6734-7572-5015",
-    "4242-4242-4242-4242",
-    "301-123-4567",
-    "1-240-925-5721",
-    "xG0Ct4Wsu3OTcJnE1dFLAQfRgL6b8tIv"
   ],
   "fileInclusionList": ["*"],
   "fileExclusionList": ["README.md"]

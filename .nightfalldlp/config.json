@@ -6,37 +6,9 @@
         {
           "minNumFindings": 1,
           "minConfidence": "LIKELY",
-          "displayName": "cc num",
+          "displayName": "phi",
           "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "CREDIT_CARD_NUMBER"
-        },
-        {
-          "minNumFindings": 1,
-          "minConfidence": "LIKELY",
-          "displayName": "phone num",
-          "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "PHONE_NUMBER"
-        },
-        {
-          "minNumFindings": 1,
-          "minConfidence": "LIKELY",
-          "displayName": "api key",
-          "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "API_KEY"
-        },
-        {
-          "minNumFindings": 1,
-          "minConfidence": "LIKELY",
-          "displayName": "crypto key",
-          "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "CRYPTOGRAPHIC_KEY"
-        },
-        {
-          "minNumFindings": 1,
-          "minConfidence": "LIKELY",
-          "displayName": "password",
-          "detectorType": "NIGHTFALL_DETECTOR",
-          "nightfallDetector": "PASSWORD_IN_CODE"
+          "nightfallDetector": "PROTECTED_HEALTH_INFORMATION"
         }
       ],
       "logicalOp": "ANY"

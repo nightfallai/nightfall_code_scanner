@@ -6,7 +6,7 @@
 
 The `nightfall_code_scanner` is a code review tool that protects you from committing sensitive information to your
 version control. It is intended to be used as a part of your CI to simplify the development process, improve your
-security, and ensure you never accidentally leak secrets or other sensitive information via an accidental commit.
+security, and ensure you never accidentally leak secrets or other sensitive information via accidental commits.
 
 ## Supported Services
 * [GitHub Action](https://github.com/nightfallai/nightfall_dlp_action)

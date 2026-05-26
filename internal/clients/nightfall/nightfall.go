@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -266,6 +268,28 @@ func (n *Client) buildScanRequest(items []string) *nf.ScanTextRequest {
 	}
 }
 
+// isAuthError reports whether err represents a Nightfall API authentication
+// failure (HTTP 401 or 403). The Nightfall Go SDK returns *nf.Error for any
+// non-2xx response, with Code set to the HTTP status.
+func isAuthError(err error) bool {
+	var apiErr *nf.Error
+	if errors.As(err, &apiErr) {
+		return apiErr.Code == http.StatusUnauthorized || apiErr.Code == http.StatusForbidden
+	}
+	return false
+}
+
+// describeScanError returns a user-facing error message for a failed scan
+// request. Authentication failures are called out explicitly so the action
+// fails loudly when NIGHTFALL_API_KEY is missing/expired/revoked, instead of
+// silently passing the PR through (see INTM-4909).
+func describeScanError(err error) error {
+	if isAuthError(err) {
+		return fmt.Errorf("nightfall API authentication failed (check NIGHTFALL_API_KEY is valid and not expired): %w", err)
+	}
+	return err
+}
+
 func (n *Client) scanFileContent(
 	ctx context.Context,
 	cts []*fileToScan,
@@ -282,7 +306,7 @@ func (n *Client) scanFileContent(
 	resp, err := n.Scan(ctx, items)
 	if err != nil {
 		logger.Debug(fmt.Sprintf("Error sending request number %d with %d items: %v", requestNum, len(items), err))
-		return nil, err
+		return nil, describeScanError(err)
 	}
 
 	// Determine findings from response and create comments
@@ -296,8 +320,10 @@ func (n *Client) scanAllFiles(
 	logger logger.Logger,
 	cts []*fileToScan,
 	commentCh chan<- []*diffreviewer.Comment,
+	errCh chan<- error,
 ) {
 	defer close(commentCh)
+	defer close(errCh)
 	blockingCh := make(chan struct{}, n.MaxNumberRoutines)
 	var wg sync.WaitGroup
 	requestBatches := make([][]*fileToScan, 0)
@@ -338,17 +364,24 @@ func (n *Client) scanAllFiles(
 		blockingCh <- struct{}{}
 		go func(loopCount int, cts []*fileToScan) {
 			defer wg.Done()
+			defer func() { <-blockingCh }()
 			if ctx.Err() != nil {
 				return
 			}
 
 			c, err := n.scanFileContent(ctx, cts, loopCount+1, logger)
 			if err != nil {
-				logger.Error(fmt.Sprintf("Unable to scan %d content items", len(cts)))
-			} else {
-				commentCh <- c
+				logger.Error(fmt.Sprintf("Unable to scan %d content items: %v", len(cts), err))
+				// Propagate error so the action exits non-zero. We do a
+				// non-blocking send: the consumer only needs the first
+				// failure to fail the run (see INTM-4909).
+				select {
+				case errCh <- err:
+				default:
+				}
+				return
 			}
-			<-blockingCh
+			commentCh <- c
 		}(i, requestBatches[i])
 	}
 	wg.Wait()
@@ -379,19 +412,38 @@ func (n *Client) ReviewDiff(ctx context.Context, logger logger.Logger, fileDiffs
 	}
 
 	commentCh := make(chan []*diffreviewer.Comment)
+	// Buffered so a worker can record an error without blocking; we only
+	// surface the first error we observe (see INTM-4909).
+	errCh := make(chan error, 1)
 	newCtx, cancel := context.WithDeadline(ctx, time.Now().Add(defaultTimeout))
 	defer cancel()
 
-	go n.scanAllFiles(newCtx, logger, fileToScanList, commentCh)
+	go n.scanAllFiles(newCtx, logger, fileToScanList, commentCh, errCh)
 
 	comments := make([]*diffreviewer.Comment, 0)
+	var scanErr error
 	for {
 		select {
 		case c, chOpen := <-commentCh:
 			if !chOpen {
+				// commentCh is closed once scanAllFiles is done. Drain any
+				// pending error before returning so we don't lose a failure
+				// that came in alongside the close.
+				if scanErr == nil {
+					if err, ok := <-errCh; ok {
+						scanErr = err
+					}
+				}
+				if scanErr != nil {
+					return nil, scanErr
+				}
 				return comments, nil
 			}
 			comments = append(comments, c...)
+		case err, ok := <-errCh:
+			if ok && scanErr == nil {
+				scanErr = err
+			}
 		case <-newCtx.Done():
 			return nil, newCtx.Err()
 		}

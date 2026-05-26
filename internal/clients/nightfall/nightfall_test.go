@@ -331,6 +331,65 @@ func TestReviewDiffHasFindingMetadata(t *testing.T) {
 	assert.Equal(t, expectedComments, comments, "Received incorrect response from ReviewDiff")
 }
 
+// TestReviewDiffPropagatesScanError verifies that a scan-time failure (such
+// as a bad NIGHTFALL_API_KEY producing a 401) bubbles up from ReviewDiff
+// rather than being silently swallowed. See INTM-4909: previously the
+// worker logged the error and the action exited 0, letting unscanned PRs
+// merge.
+func TestReviewDiffPropagatesScanError(t *testing.T) {
+	mockAPIClient := &mockNightfall{
+		scanFn: func(ctx context.Context, request *nf.ScanTextRequest) (*nf.ScanTextResponse, error) {
+			return nil, &nf.Error{Code: 401, Message: "Unauthorized"}
+		},
+	}
+	client := Client{
+		APIClient:         mockAPIClient,
+		DetectionRules:    testDetectionRules,
+		MaxNumberRoutines: 1,
+	}
+
+	input := []*diffreviewer.FileDiff{
+		{
+			PathNew: "test/data",
+			Hunks: []*diffreviewer.Hunk{
+				{
+					Lines: []*diffreviewer.Line{
+						{LnumNew: 1, Content: "some content"},
+					},
+				},
+			},
+		},
+	}
+
+	comments, err := client.ReviewDiff(context.Background(), githublogger.NewDefaultGithubLogger(), input)
+	assert.Error(t, err, "ReviewDiff must surface scan-time errors so the action exits non-zero")
+	assert.Nil(t, comments)
+	assert.Contains(t, err.Error(), "authentication failed",
+		"401 errors should be wrapped with a clear NIGHTFALL_API_KEY hint")
+}
+
+// TestIsAuthError covers the 401/403 detection used to produce a clear
+// error message when NIGHTFALL_API_KEY is invalid (INTM-4909).
+func TestIsAuthError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{name: "nil", err: nil, want: false},
+		{name: "generic error", err: errors.New("boom"), want: false},
+		{name: "500 from API", err: &nf.Error{Code: 500}, want: false},
+		{name: "401 from API", err: &nf.Error{Code: 401}, want: true},
+		{name: "403 from API", err: &nf.Error{Code: 403}, want: true},
+		{name: "wrapped 401", err: fmt.Errorf("outer: %w", &nf.Error{Code: 401}), want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, isAuthError(tt.err))
+		})
+	}
+}
+
 func TestScanPaths(t *testing.T) {
 	client := Client{
 		DetectionRules: testDetectionRules,
